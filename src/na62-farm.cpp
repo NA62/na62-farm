@@ -37,13 +37,15 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 		AExecutable::InterruptAll();
 		AExecutable::JoinAll();
 
+		for (auto eventBuilder : eventBuilders) {
+			delete eventBuilder;
+		}
+
 		for (auto packetHandler : packetHandlers) {
 			delete packetHandler;
 		}
 
-		for (auto eventBuilder : eventBuilders) {
-			delete eventBuilder;
-		}
+		StorageHandler::OnShutDown();
 
 		ZMQHandler::Destroy();
 
@@ -119,7 +121,6 @@ int main(int argc, char* argv[]) {
 	cream::L1DistributionHandler l1Handler;
 	l1Handler.startThread();
 
-//	AExecutable::JoinAll();
-	sleep(1000);
+	AExecutable::JoinAll();
 	return 0;
 }
