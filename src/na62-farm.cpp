@@ -14,7 +14,6 @@
 #include <socket/ZMQHandler.h>
 #include <unistd.h>
 #include <utils/LoggingHandler.hpp>
-#include <socket/ZMQHandler.h>
 #include <csignal>
 #include <iostream>
 #include <vector>
