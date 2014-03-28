@@ -5,15 +5,11 @@
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
-#include <eventBuilding/EventBuilder.h>
 #include <eventBuilding/SourceIDManager.h>
-#include <eventBuilding/StorageHandler.h>
 #include <glog/logging.h>
 #include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
-#include <monitoring/MonitorConnector.h>
 #include <options/Options.h>
-#include <socket/PacketHandler.h>
 #include <socket/PFringHandler.h>
 #include <socket/ZMQHandler.h>
 #include <unistd.h>
@@ -22,6 +18,11 @@
 #include <csignal>
 #include <iostream>
 #include <vector>
+
+#include "monitoring/MonitorConnector.h"
+#include "eventBuilding/EventBuilder.h"
+#include "socket/PacketHandler.h"
+#include "eventBuilding/StorageHandler.h"
 
 using namespace std;
 using namespace na62;
