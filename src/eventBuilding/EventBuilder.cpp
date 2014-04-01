@@ -33,8 +33,8 @@
 #include <eventBuilding/Event.h>
 #include <eventBuilding/SourceIDManager.h>
 
-#include "../l1/L1TriggerProcessor.h"
-#include "../l2/L2TriggerProcessor.h"
+#include <l1/L1TriggerProcessor.h>
+#include <l2/L2TriggerProcessor.h>
 #include "StorageHandler.h"
 
 namespace na62 {
