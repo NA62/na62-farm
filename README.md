@@ -1,6 +1,8 @@
 NA62 PC-Farm
 ========
 
+If you are a member of NA62 and interested in implementing trigger algorithms, please visit the [[na62-trigger-algorithms|https://github.com/NA62/na62-trigger-algorithms]] repository.
+
 ## Introduction
 The NA62 PC-Farm framework is the interface between the raw data produced by the CERN experiment NA62, 
 the online software trigger algorithms running on the PC farm at the experiment and the data storage located
