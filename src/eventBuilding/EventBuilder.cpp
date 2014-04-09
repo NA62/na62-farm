@@ -50,10 +50,11 @@ boost::timer::cpu_timer EventBuilder::EOBReceivedTime_;
 
 uint32_t EventBuilder::currentBurstID_ = 0;
 
+uint EventBuilder::NUMBER_OF_EBS = 0;
+
 EventBuilder::EventBuilder() :
 		L0Socket_(ZMQHandler::GenerateSocket(ZMQ_PULL)), LKrSocket_(
-				ZMQHandler::GenerateSocket(ZMQ_PULL)), NUMBER_OF_EBS(
-				Options::GetInt(OPTION_NUMBER_OF_EBS)), changeBurstID_(
+				ZMQHandler::GenerateSocket(ZMQ_PULL)), changeBurstID_(
 		false), threadCurrentBurstID_(0), L1processor_(new L1TriggerProcessor), L2processor_(
 				new L2TriggerProcessor(threadNum_)) {
 
@@ -68,6 +69,7 @@ EventBuilder::~EventBuilder() {
 }
 
 void EventBuilder::Initialize() {
+	NUMBER_OF_EBS = Options::GetInt(OPTION_NUMBER_OF_EBS);
 	L1Triggers_ = new std::atomic<uint64_t>[0xFF + 1];
 	L2Triggers_ = new std::atomic<uint64_t>[0xFF + 1];
 
@@ -78,9 +80,13 @@ void EventBuilder::Initialize() {
 }
 
 void EventBuilder::thread() {
+	eventPool_.resize(
+			Options::GetInt(OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED));
 	for (int i = 0;
-			i != Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP) / NUMBER_OF_EBS;
-			++i) {
+			i
+					!= Options::GetInt(
+							OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED)
+							/ NUMBER_OF_EBS; ++i) {
 		unusedEvents_.push_back(new Event(0));
 	}
 
@@ -114,7 +120,6 @@ void EventBuilder::thread() {
 				LKrSocket_->recv(&message);
 				handleLKRData((cream::LKREvent*) message.data());
 			}
-
 		} catch (NA62Error &e) {
 // Continue... Message will be printed automatically
 		} catch (const zmq::error_t& ex) {
@@ -149,8 +154,7 @@ void EventBuilder::handleL0Data(l0::MEPEvent *mepEvent) {
 	Event *event;
 
 	if (eventPoolIndex >= eventPool_.size()) { // Memory overflow
-		eventPool_.reserve(eventPoolIndex * 2);
-		eventPool_.resize(eventPoolIndex + 1);
+		eventPool_.resize(eventPoolIndex * 2);
 		event = getNewEvent(mepEvent->getEventNumber());
 		eventPool_[eventPoolIndex] = event;
 	} else {

@@ -74,6 +74,8 @@ public:
 		return currentBurstID_;
 	}
 
+	static uint NUMBER_OF_EBS;
+
 private:
 	void thread();
 
@@ -110,8 +112,6 @@ private:
 	std::vector<Event*> unusedEvents_;
 	std::vector<Event*> eventPool_;
 
-	const int NUMBER_OF_EBS;
-
 	bool changeBurstID_;
 	static uint32_t currentBurstID_;
 	uint32_t threadCurrentBurstID_;
@@ -128,7 +128,6 @@ private:
 	static std::atomic<uint64_t> EventsSentToStorage_;
 
 	static boost::timer::cpu_timer EOBReceivedTime_;
-
 };
 
 }
