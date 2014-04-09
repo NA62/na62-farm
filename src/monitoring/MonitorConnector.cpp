@@ -58,8 +58,6 @@ void MonitorConnector::handleUpdate() {
 	timer_.expires_from_now(boost::posix_time::milliseconds(1000));
 	timer_.async_wait(boost::bind(&MonitorConnector::handleUpdate, this));
 
-	float CPULoad = updateWatch_.getCPULoad();
-
 	updateWatch_.reset();
 
 	IPCHandler::updateState(RUNNING);

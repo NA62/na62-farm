@@ -7,21 +7,25 @@
 
 #include "StorageHandler.h"
 
-#include <unistd.h>
-#include <zmq.h>
-#include <cstring>
-#include <string>
+#include <asm-generic/errno-base.h>
+#include <bits/atomic_base.h>
+#include <eventBuilding/Event.h>
+#include <eventBuilding/SourceIDManager.h>
 #include <glog/logging.h>
-
-#include <exceptions/NA62Error.h>
 #include <l0/MEPEvent.h>
 #include <l0/Subevent.h>
 #include <LKr/LKREvent.h>
 #include <options/Options.h>
 #include <socket/ZMQHandler.h>
 #include <structs/Event.h>
-#include <structs/Network.h>
-#include <eventBuilding/Event.h>
+#include <sys/types.h>
+#include <zmq.h>
+#include <cstdbool>
+#include <cstring>
+#include <iostream>
+#include <string>
+
+#include "EventBuilder.h"
 
 namespace na62 {
 
@@ -30,7 +34,12 @@ std::vector<zmq::socket_t*> StorageHandler::MergerSockets_;
 std::atomic<uint> StorageHandler::InitialEventBufferSize_;
 int StorageHandler::TotalNumberOfDetectors_;
 
+void freeZmqMessage(void *data, void *hint) {
+	delete[](data);
+}
+
 void StorageHandler::Initialize() {
+	LOG(INFO)<< "Connecting to merger: " << ZMQHandler::GetMergerAddress().c_str();
 	for (int i = 0; i < Options::GetInt(OPTION_NUMBER_OF_EBS); i++) {
 		zmq::socket_t* sock = ZMQHandler::GenerateSocket(ZMQ_PUSH);
 		MergerSockets_.push_back(sock);
@@ -45,7 +54,7 @@ void StorageHandler::Initialize() {
 		TotalNumberOfDetectors_ = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES;
 	} else {
 		TotalNumberOfDetectors_ = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES
-				+ 1;
+		+ 1;
 	}
 	InitialEventBufferSize_ = 1000;
 }
@@ -210,7 +219,7 @@ int StorageHandler::SendEvent(const uint16_t& threadNum, Event* event) {
 	header->length = eventLength / 4;
 
 	zmq::message_t zmqMessage((void*) eventBuffer, eventLength,
-			(zmq::free_fn*) nullptr);
+			(zmq::free_fn*) freeZmqMessage);
 
 	while (true) {
 		try {
@@ -220,7 +229,7 @@ int StorageHandler::SendEvent(const uint16_t& threadNum, Event* event) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
 				LOG(ERROR)<< ex.what();
 
-				for (int i = 0; i < Options::GetInt(OPTION_NUMBER_OF_EBS); i++) {
+				for (int i = 0; i <EventBuilder::NUMBER_OF_EBS; i++) {
 					MergerSockets_[i]->close();
 					delete MergerSockets_[i];
 				}
