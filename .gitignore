@@ -1,5 +1,5 @@
 perf.data
-
+gmon.out
 # Compiled Object files
 *.slo
 *.lo
@@ -14,3 +14,4 @@ perf.data
 *.la
 *.a
 /Debug
+/Release
