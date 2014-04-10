@@ -26,11 +26,4 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
-	<linkedResources>
-		<link>
-			<name>na62-trigger-algorithms</name>
-			<type>2</type>
-			<locationURI>WORKSPACE_LOC/na62-trigger-algorithms</locationURI>
-		</link>
-	</linkedResources>
 </projectDescription>
