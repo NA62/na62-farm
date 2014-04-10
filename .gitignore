@@ -1,5 +1,5 @@
 perf.data
-
+gmon.out
 # Compiled Object files
 *.slo
 *.lo
