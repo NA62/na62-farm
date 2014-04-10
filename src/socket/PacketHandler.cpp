@@ -210,6 +210,8 @@ void PacketHandler::processARPRequest(struct ARP_HDR* arp) {
 bool PacketHandler::processPacket(DataContainer container) {
 	const uint16_t L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
 	const uint16_t CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
+	const uint16_t EOB_BROADCAST_PORT = Options::GetInt(
+			OPTION_EOB_BROADCAST_PORT);
 
 	try {
 		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
@@ -320,7 +322,7 @@ bool PacketHandler::processPacket(DataContainer container) {
 					}
 				}
 			}
-		} else if (destPort == Options::GetInt(OPTION_EOB_BROADCAST_PORT)) {
+		} else if (destPort == EOB_BROADCAST_PORT) {
 			if (dataLength != sizeof(struct EOB_FULL_FRAME) - sizeof(UDP_HDR)) {
 				LOG(ERROR)<<
 				"Unrecognizable packet received at EOB farm broadcast Port!";
