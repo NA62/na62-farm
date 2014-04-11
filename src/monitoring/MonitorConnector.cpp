@@ -62,8 +62,8 @@ void MonitorConnector::handleUpdate() {
 
 	IPCHandler::updateState(RUNNING);
 
-	setDifferentialData("ReceiverRate", PFringHandler::GetBytesReceived());
-	setDifferentialData("ReceiverPacks", PFringHandler::GetPacksReceived());
+	setDifferentialData("BytesReceived", PFringHandler::GetBytesReceived());
+	setDifferentialData("FramesReceived", PFringHandler::GetFramesReceived());
 
 	/*
 	 * Number of Events and data rate from all detectors

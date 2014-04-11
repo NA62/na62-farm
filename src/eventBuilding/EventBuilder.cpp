@@ -82,7 +82,7 @@ void EventBuilder::Initialize() {
 void EventBuilder::thread() {
 	eventPool_.resize(
 			Options::GetInt(OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED));
-	for (int i = 0;
+	for (uint i = 0;
 			i
 					!= Options::GetInt(
 							OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED)
