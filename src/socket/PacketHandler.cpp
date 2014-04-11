@@ -35,7 +35,7 @@
 #include <LKr/L1DistributionHandler.h>
 #include <LKr/LKREvent.h>
 #include <LKr/LKRMEP.h>
-#include <options/Options.h>
+#include "../options/MyOptions.h"
 #include <structs/Event.h>
 #include <structs/Network.h>
 #include <socket/EthernetUtils.h>

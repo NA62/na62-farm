@@ -15,7 +15,7 @@
 #include <l0/MEPEvent.h>
 #include <l0/Subevent.h>
 #include <LKr/LKREvent.h>
-#include <options/Options.h>
+#include "../options/MyOptions.h"
 #include <socket/ZMQHandler.h>
 #include <structs/Event.h>
 #include <sys/types.h>
