@@ -26,7 +26,6 @@
 #include <LKr/LKREvent.h>
 #include <socket/EthernetUtils.h>
 #include <socket/PFringHandler.h>
-#include <socket/ZMQHandler.h>
 #include <structs/Network.h>
 #include <structs/Event.h>
 #include <eventBuilding/Event.h>
@@ -36,6 +35,7 @@
 #include <l2/L2TriggerProcessor.h>
 #include "StorageHandler.h"
 #include "../options/MyOptions.h"
+#include "../socket/ZMQHandler.h"
 
 namespace na62 {
 std::vector<EventBuilder*> EventBuilder::Instances_;

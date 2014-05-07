@@ -9,24 +9,14 @@
 #ifndef MYOPTIONS_H_
 #define MYOPTIONS_H_
 
-#include <boost/program_options/options_description.hpp>
-#include <boost/program_options/value_semantic.hpp>
-#include <boost/thread/detail/thread.hpp>
 #include <options/Options.h>
 #include <string>
+#include <boost/thread.hpp>
 
 /*
  * Compile time options
  */
-#define MTU 1500
-
-/*
- * Dynamic Options
- */
-#define OPTION_HELP (char*)"help"
-#define OPTION_VERBOSITY (char*)"verbosity"
-#define OPTION_CONFIG_FILE (char*)"configFile"
-#define OPTION_LOGTOSTDERR (char*)"logtostderr"
+#define MTU 9000
 
 /*
  * Listening Ports
@@ -79,20 +69,8 @@ public:
 	MyOptions();
 	virtual ~MyOptions();
 
-	static void initialize(int argc, char* argv[],) {
+	static void Load(int argc, char* argv[]) {
 		desc.add_options()
-
-		(OPTION_HELP, "Produce help message")
-
-		(OPTION_VERBOSITY, po::value<int>()->default_value(0),
-				"Verbosity mode:\n0: Error\n1: Warning\n2: Info")
-
-		(OPTION_CONFIG_FILE,
-				po::value<std::string>()->default_value("/etc/na62-farm.cfg"),
-				"Config file for these options")
-
-		(OPTION_LOGTOSTDERR, po::value<int>()->default_value(0),
-				"Show logs in stderr")
 
 		(OPTION_L0_RECEIVER_PORT, po::value<int>()->default_value(58913),
 				"UDP-Port for L1 data reception")
@@ -157,7 +135,7 @@ public:
 
 				;
 
-		Options::Initialize(argc, argv);
+		Options::Initialize(argc, argv, desc);
 	}
 };
 
