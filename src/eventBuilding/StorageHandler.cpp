@@ -229,7 +229,7 @@ int StorageHandler::SendEvent(const uint16_t& threadNum, Event* event) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
 				LOG(ERROR)<< ex.what();
 
-				for (int i = 0; i <EventBuilder::NUMBER_OF_EBS; i++) {
+				for (uint i = 0; i !=EventBuilder::NUMBER_OF_EBS; i++) {
 					MergerSockets_[i]->close();
 					delete MergerSockets_[i];
 				}

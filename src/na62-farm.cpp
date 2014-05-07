@@ -100,7 +100,8 @@ int main(int argc, char* argv[]) {
 	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
 		packetHandlers.push_back(new PacketHandler());
 		LOG(INFO)<< "Binding PacketHandler " << i << " to core " << i << "!";
-		packetHandlers[i]->startThread(i, "PacketHandler"+std::to_string(i), i, 15);
+		packetHandlers[i]->startThread(i, "PacketHandler" + std::to_string(i),
+				i, 15);
 	}
 
 	/*
@@ -112,7 +113,8 @@ int main(int argc, char* argv[]) {
 
 	for (unsigned int i = 0; i < numberOfEB; i++) {
 		eventBuilders.push_back(new EventBuilder());
-		eventBuilders[i]->startThread(i,"EventBuilder"+std::to_string(i), -1, 15);
+		eventBuilders[i]->startThread(i, "EventBuilder" + std::to_string(i), -1,
+				15);
 	}
 
 	/*
