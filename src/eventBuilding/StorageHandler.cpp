@@ -15,7 +15,7 @@
 #include <l0/MEPEvent.h>
 #include <l0/Subevent.h>
 #include <LKr/LKREvent.h>
-#include <options/Options.h>
+#include "../options/MyOptions.h"
 #include <socket/ZMQHandler.h>
 #include <structs/Event.h>
 #include <sys/types.h>
@@ -35,7 +35,7 @@ std::atomic<uint> StorageHandler::InitialEventBufferSize_;
 int StorageHandler::TotalNumberOfDetectors_;
 
 void freeZmqMessage(void *data, void *hint) {
-	delete[](data);
+	delete[]((char*)data);
 }
 
 void StorageHandler::Initialize() {

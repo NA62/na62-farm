@@ -24,7 +24,6 @@
 #include <l0/MEPEvent.h>
 #include <LKr/L1DistributionHandler.h>
 #include <LKr/LKREvent.h>
-#include <options/Options.h>
 #include <socket/EthernetUtils.h>
 #include <socket/PFringHandler.h>
 #include <socket/ZMQHandler.h>
@@ -36,6 +35,7 @@
 #include <l1/L1TriggerProcessor.h>
 #include <l2/L2TriggerProcessor.h>
 #include "StorageHandler.h"
+#include "../options/MyOptions.h"
 
 namespace na62 {
 std::vector<EventBuilder*> EventBuilder::Instances_;

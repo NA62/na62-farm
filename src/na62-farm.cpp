@@ -3,8 +3,14 @@
 // Author      : Jonas Kunze (kunze.jonas@gmail.com)
 //============================================================================
 
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/signal_set.hpp>
+//#include <boost/asio.hpp>
+#include <boost/bind/bind_cc.hpp>
+#include <boost/bind/bind_mf_cc.hpp>
+//#include <boost/bind.hpp>
+#include <boost/system/error_code.hpp>
+#include <boost/thread/detail/thread.hpp>
 #include <eventBuilding/SourceIDManager.h>
 #include <glog/logging.h>
 #include <LKr/L1DistributionHandler.h>
@@ -12,16 +18,17 @@
 #include <options/Options.h>
 #include <socket/PFringHandler.h>
 #include <socket/ZMQHandler.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include <utils/LoggingHandler.hpp>
 #include <csignal>
 #include <iostream>
 #include <vector>
 
-#include "monitoring/MonitorConnector.h"
 #include "eventBuilding/EventBuilder.h"
-#include "socket/PacketHandler.h"
 #include "eventBuilding/StorageHandler.h"
+#include "monitoring/MonitorConnector.h"
+#include "options/MyOptions.h"
+#include "socket/PacketHandler.h"
 
 using namespace std;
 using namespace na62;
@@ -66,7 +73,7 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Static Class initializations
 	 */
-	Options::Initialize(argc, argv);
+	MyOptions::Initialize(argc, argv);
 
 	InitializeLogging(argv);
 
@@ -74,7 +81,7 @@ int main(int argc, char* argv[]) {
 
 	PFringHandler pfRingHandler("dna0");
 
-	SourceIDManager::Initialize();
+	SourceIDManager::Initialize( Options::GetInt(OPTION_TS_SOURCEID), Options::GetIntPairList(OPTION_DATA_SOURCE_IDS), Options::GetIntPairList(OPTION_CREAM_CRATES));
 
 	PacketHandler::Initialize();
 
