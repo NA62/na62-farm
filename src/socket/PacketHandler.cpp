@@ -40,8 +40,8 @@
 #include <structs/Network.h>
 #include <socket/EthernetUtils.h>
 #include <socket/PFringHandler.h>
-#include <socket/ZMQHandler.h>
 
+#include "../socket/ZMQHandler.h"
 #include "../eventBuilding/EventBuilder.h"
 
 namespace na62 {

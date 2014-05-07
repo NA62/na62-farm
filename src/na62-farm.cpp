@@ -3,32 +3,28 @@
 // Author      : Jonas Kunze (kunze.jonas@gmail.com)
 //============================================================================
 
-#include <boost/asio/io_service.hpp>
-#include <boost/asio/signal_set.hpp>
-//#include <boost/asio.hpp>
-#include <boost/bind/bind_cc.hpp>
-#include <boost/bind/bind_mf_cc.hpp>
-//#include <boost/bind.hpp>
-#include <boost/system/error_code.hpp>
-#include <boost/thread/detail/thread.hpp>
+#include <boost/asio.hpp>
+#include <boost/bind.hpp>
 #include <eventBuilding/SourceIDManager.h>
 #include <glog/logging.h>
 #include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
 #include <options/Options.h>
 #include <socket/PFringHandler.h>
-#include <socket/ZMQHandler.h>
-//#include <unistd.h>
+#include <unistd.h>
 #include <utils/LoggingHandler.hpp>
 #include <csignal>
 #include <iostream>
 #include <vector>
+#include <l1/L1TriggerProcessor.h>
+#include <l2/L2TriggerProcessor.h>
 
 #include "eventBuilding/EventBuilder.h"
 #include "eventBuilding/StorageHandler.h"
 #include "monitoring/MonitorConnector.h"
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
+#include "socket/ZMQHandler.h"
 
 using namespace std;
 using namespace na62;
@@ -73,21 +69,35 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Static Class initializations
 	 */
-	MyOptions::Initialize(argc, argv);
+	MyOptions::Load(argc, argv);
 
 	InitializeLogging(argv);
 
-	ZMQHandler::Initialize();
+	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
 
 	PFringHandler pfRingHandler("dna0");
 
-	SourceIDManager::Initialize( Options::GetInt(OPTION_TS_SOURCEID), Options::GetIntPairList(OPTION_DATA_SOURCE_IDS), Options::GetIntPairList(OPTION_CREAM_CRATES));
+	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
+			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
+			Options::GetIntPairList(OPTION_CREAM_CRATES));
 
 	PacketHandler::Initialize();
 
 	StorageHandler::Initialize();
 
 	EventBuilder::Initialize();
+
+	L1TriggerProcessor::Initialize(Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR));
+
+	L2TriggerProcessor::Initialize(Options::GetInt(OPTION_L2_DOWNSCALE_FACTOR));
+
+	cream::L1DistributionHandler::Initialize(
+			Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP),
+			Options::GetInt(OPTION_NUMBER_OF_EBS),
+			Options::GetInt(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS),
+			Options::GetString(OPTION_CREAM_MULTICAST_GROUP),
+			Options::GetInt(OPTION_CREAM_RECEIVER_PORT),
+			Options::GetInt(OPTION_CREAM_MULTICAST_PORT));
 
 	/*
 	 * Monitor
