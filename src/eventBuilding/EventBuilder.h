@@ -2,7 +2,7 @@
  * EventCollector.h
  *
  *  Created on: Dec 6, 2011
- *      Author: Jonas Kunze (kunzej@cern.ch)
+ *      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
 #pragma once

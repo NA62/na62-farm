@@ -2,7 +2,7 @@
  * MyOptions.h
  *
  *  Created on: Apr 11, 2014
- *      Author: root
+ \*      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
 #pragma once
