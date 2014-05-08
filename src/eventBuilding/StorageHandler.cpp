@@ -2,7 +2,7 @@
  * StorageHandler.cpp
  *
  *  Created on: Mar 4, 2014
- *      Author: root
+ \*      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
 #include "StorageHandler.h"

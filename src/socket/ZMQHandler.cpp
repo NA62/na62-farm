@@ -2,7 +2,7 @@
  * ZMQHandler.cpp
  *
  *  Created on: Feb 21, 2014
- *      Author: Jonas Kunze (kunzej@cern.ch)
+ *      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
 #include "ZMQHandler.h"
