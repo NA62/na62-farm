@@ -19,7 +19,7 @@ from every readout board (each board is defined by a unique sourceID). This proc
 As soon as the event is complete, the L1 trigger algorithms will be executed with the built event.
 
 As the LKr detector only sends a reduced data set after the L0 trigger, the PC farm requests the full data set 
-in case of a positive L1 trigger. Thereby a multicas UDP datagram is sent to the LKr readout boards (CREAMs) and 
+in case of a positive L1 trigger. Thereby a multicast UDP datagram is sent to the LKr readout boards (CREAMs) and 
 those boards response with the requested event data.
 As soon as all CREAMs have sent the requested data to the PC which has sent the request, this PC will execute the L2 
 trigger algorithms with the now complete event. If the event passes the L2 algorithms it will be passed to the 
