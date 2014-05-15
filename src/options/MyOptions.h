@@ -14,11 +14,6 @@
 #include <boost/thread.hpp>
 
 /*
- * Compile time options
- */
-#define MTU 9000
-
-/*
  * Listening Ports
  */
 #define OPTION_L0_RECEIVER_PORT (char*)"L0Port"
@@ -70,7 +65,9 @@ public:
 	virtual ~MyOptions();
 
 	static void Load(int argc, char* argv[]) {
-		desc.add_options()(OPTION_CONFIG_FILE,
+		desc.add_options()
+
+		( OPTION_CONFIG_FILE,
 				po::value<std::string>()->default_value("/etc/na62-farm.cfg"),
 				"Config file for the options shown here")
 
