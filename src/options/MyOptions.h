@@ -14,11 +14,6 @@
 #include <boost/thread.hpp>
 
 /*
- * Compile time options
- */
-#define MTU 9000
-
-/*
  * Listening Ports
  */
 #define OPTION_L0_RECEIVER_PORT (char*)"L0Port"
@@ -71,6 +66,10 @@ public:
 
 	static void Load(int argc, char* argv[]) {
 		desc.add_options()
+
+		( OPTION_CONFIG_FILE,
+				po::value<std::string>()->default_value("/etc/na62-farm.cfg"),
+				"Config file for the options shown here")
 
 		(OPTION_L0_RECEIVER_PORT, po::value<int>()->default_value(58913),
 				"UDP-Port for L1 data reception")
