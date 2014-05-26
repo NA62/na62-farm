@@ -12,7 +12,6 @@
 #include <options/Options.h>
 #include <socket/PFringHandler.h>
 #include <unistd.h>
-#include <utils/LoggingHandler.hpp>
 #include <csignal>
 #include <iostream>
 #include <vector>
@@ -70,8 +69,6 @@ int main(int argc, char* argv[]) {
 	 * Static Class initializations
 	 */
 	MyOptions::Load(argc, argv);
-
-	InitializeLogging(argv);
 
 	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
 
