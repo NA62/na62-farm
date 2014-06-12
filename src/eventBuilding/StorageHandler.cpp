@@ -2,7 +2,7 @@
  * StorageHandler.cpp
  *
  *  Created on: Mar 4, 2014
- *      Author: root
+ \*      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
 #include "StorageHandler.h"
@@ -15,8 +15,8 @@
 #include <l0/MEPEvent.h>
 #include <l0/Subevent.h>
 #include <LKr/LKREvent.h>
-#include <options/Options.h>
-#include <socket/ZMQHandler.h>
+#include "../options/MyOptions.h"
+
 #include <structs/Event.h>
 #include <sys/types.h>
 #include <zmq.h>
@@ -25,7 +25,9 @@
 #include <iostream>
 #include <string>
 
+#include "../socket/ZMQHandler.h"
 #include "EventBuilder.h"
+
 
 namespace na62 {
 

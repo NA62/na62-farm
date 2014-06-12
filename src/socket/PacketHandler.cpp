@@ -2,7 +2,7 @@
  * PacketHandler.cpp
  *
  *  Created on: Feb 7, 2012
- *      Author: Jonas Kunze (kunzej@cern.ch)
+ *      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
 #include "PacketHandler.h"
@@ -35,13 +35,14 @@
 #include <LKr/L1DistributionHandler.h>
 #include <LKr/LKREvent.h>
 #include <LKr/LKRMEP.h>
-#include <options/Options.h>
+#include "../options/MyOptions.h"
 #include <structs/Event.h>
 #include <structs/Network.h>
 #include <socket/EthernetUtils.h>
 #include <socket/PFringHandler.h>
-#include <socket/ZMQHandler.h>
+#include <monitoring/BurstIdHandler.h>
 
+#include "../socket/ZMQHandler.h"
 #include "../eventBuilding/EventBuilder.h"
 
 namespace na62 {
@@ -210,6 +211,7 @@ void PacketHandler::processARPRequest(struct ARP_HDR* arp) {
 bool PacketHandler::processPacket(DataContainer container) {
 	const uint16_t L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
 	const uint16_t CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
+	const uint16_t Straw_Port = Options::GetInt(OPTION_STRAW_PORT);
 	const uint16_t EOB_BROADCAST_PORT = Options::GetInt(
 	OPTION_EOB_BROADCAST_PORT);
 
@@ -333,6 +335,10 @@ bool PacketHandler::processPacket(DataContainer container) {
 			LOG(INFO) <<
 			"Received EOB Farm-Broadcast. Will increment BurstID now to " << pack->finishedBurstID + 1;
 			EventBuilder::SetNextBurstID(pack->finishedBurstID + 1);
+			BurstIdHandler::SetNextBurstID(pack->finishedBurstID + 1);
+		} else if (destPort == Straw_Port) {
+			zmq::message_t zmqMessage((void*) container.data, container.length, (zmq::free_fn*) nullptr);
+			strawSocket_->send(zmqMessage);
 		} else {
 			/*
 			 * Packet with unknown UDP port received

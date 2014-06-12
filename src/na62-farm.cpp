@@ -11,17 +11,19 @@
 #include <monitoring/IPCHandler.h>
 #include <options/Options.h>
 #include <socket/PFringHandler.h>
-#include <socket/ZMQHandler.h>
 #include <unistd.h>
-#include <utils/LoggingHandler.hpp>
 #include <csignal>
 #include <iostream>
 #include <vector>
+#include <l1/L1TriggerProcessor.h>
+#include <l2/L2TriggerProcessor.h>
 
-#include "monitoring/MonitorConnector.h"
 #include "eventBuilding/EventBuilder.h"
-#include "socket/PacketHandler.h"
 #include "eventBuilding/StorageHandler.h"
+#include "monitoring/MonitorConnector.h"
+#include "options/MyOptions.h"
+#include "socket/PacketHandler.h"
+#include "socket/ZMQHandler.h"
 
 using namespace std;
 using namespace na62;
@@ -66,21 +68,33 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Static Class initializations
 	 */
-	Options::Initialize(argc, argv);
+	MyOptions::Load(argc, argv);
 
-	InitializeLogging(argv);
-
-	ZMQHandler::Initialize();
+	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
 
 	PFringHandler pfRingHandler("dna0");
 
-	SourceIDManager::Initialize();
+	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
+			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
+			Options::GetIntPairList(OPTION_CREAM_CRATES));
 
 	PacketHandler::Initialize();
 
 	StorageHandler::Initialize();
 
 	EventBuilder::Initialize();
+
+	L1TriggerProcessor::Initialize(Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR));
+
+	L2TriggerProcessor::Initialize(Options::GetInt(OPTION_L2_DOWNSCALE_FACTOR));
+
+	cream::L1DistributionHandler::Initialize(
+			Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP),
+			Options::GetInt(OPTION_NUMBER_OF_EBS),
+			Options::GetInt(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS),
+			Options::GetString(OPTION_CREAM_MULTICAST_GROUP),
+			Options::GetInt(OPTION_CREAM_RECEIVER_PORT),
+			Options::GetInt(OPTION_CREAM_MULTICAST_PORT));
 
 	/*
 	 * Monitor
@@ -100,7 +114,8 @@ int main(int argc, char* argv[]) {
 	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
 		packetHandlers.push_back(new PacketHandler());
 		LOG(INFO)<< "Binding PacketHandler " << i << " to core " << i << "!";
-		packetHandlers[i]->startThread(i, "PacketHandler"+std::to_string(i), i, 15);
+		packetHandlers[i]->startThread(i, "PacketHandler" + std::to_string(i),
+				i, 15);
 	}
 
 	/*
@@ -112,7 +127,8 @@ int main(int argc, char* argv[]) {
 
 	for (unsigned int i = 0; i < numberOfEB; i++) {
 		eventBuilders.push_back(new EventBuilder());
-		eventBuilders[i]->startThread(i,"EventBuilder"+std::to_string(i), -1, 15);
+		eventBuilders[i]->startThread(i, "EventBuilder" + std::to_string(i), -1,
+				15);
 	}
 
 	/*
