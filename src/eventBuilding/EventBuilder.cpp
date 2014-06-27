@@ -30,7 +30,6 @@
 #include <structs/Event.h>
 #include <eventBuilding/Event.h>
 #include <eventBuilding/SourceIDManager.h>
-#include <monitoring/BurstIdHandler.h>
 
 #include <l1/L1TriggerProcessor.h>
 #include <l2/L2TriggerProcessor.h>
@@ -46,6 +45,10 @@ std::atomic<uint64_t>* EventBuilder::L2Triggers_;
 
 std::atomic<uint64_t> EventBuilder::BytesSentToStorage_(0);
 std::atomic<uint64_t> EventBuilder::EventsSentToStorage_(0);
+
+boost::timer::cpu_timer EventBuilder::EOBReceivedTime_;
+
+uint32_t EventBuilder::currentBurstID_ = 0;
 
 uint EventBuilder::NUMBER_OF_EBS = 0;
 
@@ -79,8 +82,11 @@ void EventBuilder::Initialize() {
 void EventBuilder::thread() {
 	eventPool_.resize(
 			Options::GetInt(OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED));
-	for (uint i = 0; i != Options::GetInt(
-	OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED) / NUMBER_OF_EBS; ++i) {
+	for (uint i = 0;
+			i
+					!= Options::GetInt(
+							OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED)
+							/ NUMBER_OF_EBS; ++i) {
 		unusedEvents_.push_back(new Event(0));
 	}
 
@@ -103,9 +109,9 @@ void EventBuilder::thread() {
 				L0Socket_->recv(&message);
 				handleL0Data((l0::MEPEvent*) message.data());
 			} else if (changeBurstID_) {
-				if (BurstIdHandler::getTimeSinceLastEOB() > 100E6) {
-					LOG(INFO)<< "EB "<<threadNum_ <<" changed burst number to " << BurstIdHandler::getCurrentBurstId() << " (" << (BurstIdHandler::getTimeSinceLastEOB()*1E6) << " ms after receiving the EOB)";
-					threadCurrentBurstID_ = BurstIdHandler::getCurrentBurstId();
+				if (EOBReceivedTime_.elapsed().wall > 100E6) {
+					LOG(INFO)<< "EB "<<threadNum_ <<" changed burst number to " << currentBurstID_ << " (" << (EOBReceivedTime_.elapsed().wall*1E6) << " ms after receiving the EOB)";
+					threadCurrentBurstID_ = currentBurstID_;
 					changeBurstID_ = false;
 				}
 			}
@@ -317,7 +323,6 @@ void EventBuilder::SendEOBBroadcast(uint32_t eventNumber,
 			true, false);
 
 	EventBuilder::SetNextBurstID(EOBPacket.finishedBurstID + 1);
-	BurstIdHandler::SetNextBurstID(EOBPacket.finishedBurstID + 1);
 }
 
 }

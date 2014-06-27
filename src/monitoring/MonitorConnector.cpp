@@ -22,7 +22,6 @@
 #include <socket/PFringHandler.h>
 #include <utils/Utils.h>
 #include <monitoring/IPCHandler.h>
-#include <monitoring/BurstIdHandler.h>
 
 #include "../socket/PacketHandler.h"
 #include "../eventBuilding/EventBuilder.h"
@@ -169,7 +168,7 @@ void MonitorConnector::handleUpdate() {
 			boost::lexical_cast<std::string>(
 					cream::L1DistributionHandler::GetL1TriggersSent()));
 
-	LOG(INFO)<<"BurstID:\t" << BurstIdHandler::getCurrentBurstId();
+	LOG(INFO)<<"BurstID:\t" << EventBuilder::getCurrentBurstId();
 
 	PFringHandler::PrintStats();
 }

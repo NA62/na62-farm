@@ -9,6 +9,7 @@
 #ifndef EVENTBUILDER_H_
 #define EVENTBUILDER_H_
 
+#include <boost/timer/timer.hpp>
 #include <glog/logging.h>
 #include <atomic>
 #include <cstdint>
@@ -61,9 +62,17 @@ public:
 	}
 
 	static void SetNextBurstID(uint32_t nextBurstID) {
+		currentBurstID_ = nextBurstID;
+
+		EOBReceivedTime_.start();
+		LOG(INFO)<<"Changing BurstID to " << nextBurstID;
 		for (unsigned int i = 0; i < Instances_.size(); i++) {
-			Instances_[i]->setNextBurstID();
+			Instances_[i]->setNextBurstID(nextBurstID);
 		}
+	}
+
+	static uint32_t getCurrentBurstId() {
+		return currentBurstID_;
 	}
 
 	static uint NUMBER_OF_EBS;
@@ -94,7 +103,7 @@ private:
 	/*
 	 * The burst ID will be changed as soon as the next L0 element is received. This way we can still receive CREAM data.
 	 */
-	inline void setNextBurstID() {
+	inline void setNextBurstID(uint32_t nextBurstID) {
 		changeBurstID_ = true;
 	}
 
@@ -105,6 +114,7 @@ private:
 	std::vector<Event*> eventPool_;
 
 	bool changeBurstID_;
+	static uint32_t currentBurstID_;
 	uint32_t threadCurrentBurstID_;
 
 	L1TriggerProcessor* L1processor_;
@@ -117,6 +127,8 @@ private:
 
 	static std::atomic<uint64_t> BytesSentToStorage_;
 	static std::atomic<uint64_t> EventsSentToStorage_;
+
+	static boost::timer::cpu_timer EOBReceivedTime_;
 };
 
 }
