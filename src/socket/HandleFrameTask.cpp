@@ -1,0 +1,251 @@
+/*
+ * HandleFrameTask.cpp
+ *
+ *  Created on: Jun 27, 2014
+ *      Author: root
+ */
+
+#include "HandleFrameTask.h"
+
+#include <asm-generic/errno-base.h>
+#include <eventBuilding/SourceIDManager.h>
+#include <exceptions/UnknownCREAMSourceIDFound.h>
+#include <exceptions/UnknownSourceIDFound.h>
+#include <glog/logging.h>
+#include <l0/MEP.h>
+#include <l0/MEPEvent.h>
+#include <LKr/LKREvent.h>
+#include <LKr/LKRMEP.h>
+#include <net/ethernet.h>
+#include <net/if_arp.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/udp.h>
+#include <options/Options.h>
+#include <socket/PFringHandler.h>
+#include <structs/Event.h>
+#include <structs/Network.h>
+#include <sys/types.h>
+#include <zmq.hpp>
+#include <cstdbool>
+#include <cstdint>
+#include <iostream>
+#include <vector>
+
+#include "../eventBuilding/EventBuilder.h"
+
+namespace na62 {
+
+HandleFrameTask::HandleFrameTask(DataContainer&& _container):
+		container(std::move(_container)) {
+
+}
+
+HandleFrameTask::~HandleFrameTask() {
+}
+
+void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
+	/*
+	 * Look for ARP requests asking for my IP
+	 */
+	if (arp->targetIPAddr == PFringHandler::GetMyIP()) { // This is asking for me
+		struct DataContainer responseArp = EthernetUtils::GenerateARPv4(
+				PFringHandler::GetMyMac().data(), arp->sourceHardwAddr,
+				PFringHandler::GetMyIP(), arp->sourceIPAddr,
+				ARPOP_REPLY);
+		// FIXME: Which thread should we use to send data?
+		PFringHandler::SendFrameConcurrently(0, responseArp.data,
+				responseArp.length);
+		delete[] responseArp.data;
+	}
+}
+
+
+tbb::task* HandleFrameTask::execute() {
+		 const uint16_t L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
+		 	const uint16_t CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
+
+		 	const uint16_t EOB_BROADCAST_PORT = Options::GetInt(
+		 	OPTION_EOB_BROADCAST_PORT);
+
+		 	try {
+		 		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
+		 		uint16_t etherType = ntohs(hdr->eth.ether_type);
+		 		uint8_t ipProto = hdr->ip.protocol;
+		 		uint16_t destPort = ntohs(hdr->udp.dest);
+
+		 		/*
+		 		 * Check if we received an ARP request
+		 		 */
+		 		if (etherType != ETHERTYPE_IP || ipProto != IPPROTO_UDP) {
+		 			if (etherType == ETHERTYPE_ARP) {
+		 				processARPRequest((struct ARP_HDR*) container.data);
+		 			}
+
+		 			// Anyway delete the buffer afterwards
+		 			delete[] container.data;
+		 			return true;
+		 		}
+
+		 		/*
+		 		 * Check checksum errors
+		 		 */
+		 		if (!checkFrame(hdr, container.length)) {
+		 			delete[] container.data;
+		 			return true;
+		 		}
+
+		 		const char * UDPPayload = container.data + sizeof(struct UDP_HDR);
+		 		const uint16_t & dataLength = ntohs(hdr->udp.len)
+		 				- sizeof(struct udphdr);
+
+		 		/*
+		 		 *  Now let's see what's insight the packet
+		 		 */
+		 		if (destPort == L0_Port) {
+
+		 			/*
+		 			 * L0 Data
+		 			 * * Length is hdr->ip.tot_len-sizeof(struct udphdr) and not container.length because of ethernet padding bytes!
+		 			 */
+		 			l0::MEP* mep = new l0::MEP(UDPPayload, dataLength, container.data);
+
+		 			PacketHandler::MEPsReceivedBySourceID_[mep->getSourceID()]++;
+		 			PacketHandler::EventsReceivedBySourceID_[mep->getSourceID()] +=
+		 					mep->getNumberOfEvents();
+		 			PacketHandler::BytesReceivedBySourceID_[mep->getSourceID()] += container.length;
+
+		 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
+		 				l0::MEPEvent* event = mep->getEvent(i);
+
+		 				zmq::message_t zmqMessage((void*) event,
+		 						event->getEventLength(), (zmq::free_fn*) nullptr);
+
+		 				while (true) {
+		 					try {
+		 						EBL0sockets_[event->getEventNumber() % NUMBER_OF_EBS]->send(
+		 								zmqMessage);
+		 						break;
+		 					} catch (const zmq::error_t& ex) {
+		 						if (ex.num() != EINTR) { // try again if EINTR (signal caught)
+		 							LOG(ERROR)<< ex.what();
+		 							for (uint i = 0; i < NUMBER_OF_EBS; i++) {
+		 								EBL0sockets_[i]->close();
+		 								EBLKrSockets_[i]->close();
+		 								delete EBL0sockets_[i];
+		 								delete EBLKrSockets_[i];
+		 							}
+		 							return false;
+		 						}
+		 					}
+		 				}
+		 			}
+
+		 		} else if (destPort == CREAM_Port) {
+		 			/*
+		 			 * CREAM Data
+		 			 * Length is hdr->ip.tot_len-sizeof(struct iphdr) and not container.length because of ethernet padding bytes!
+		 			 */
+		 			cream::LKRMEP* mep = new cream::LKRMEP(UDPPayload, dataLength,
+		 					container.data);
+
+		 			PacketHandler::MEPsReceivedBySourceID_[SOURCE_ID_LKr]++;
+		 			PacketHandler::EventsReceivedBySourceID_[SOURCE_ID_LKr] +=
+		 			mep->getNumberOfEvents();
+		 			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr] += container.length;
+		 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
+		 				cream::LKREvent* event = mep->getEvent(i);
+		 				zmq::message_t zmqMessage((void*) event,
+		 						event->getEventLength(), (zmq::free_fn*) nullptr);
+
+		 				while (true) {
+		 					try {
+		 						EBLKrSockets_[event->getEventNumber() % NUMBER_OF_EBS]->send(
+		 								zmqMessage);
+		 						break;
+		 					} catch (const zmq::error_t& ex) {
+		 						if (ex.num() != EINTR) { // try again if EINTR (signal caught)
+		 							LOG(ERROR)<< ex.what();
+		 							for (uint i = 0; i < NUMBER_OF_EBS; i++) {
+		 								EBL0sockets_[i]->close();
+		 								EBLKrSockets_[i]->close();
+		 								delete EBL0sockets_[i];
+		 								delete EBLKrSockets_[i];
+		 							}
+		 							return false;
+		 						}
+		 					}
+		 				}
+		 			}
+		 		} else if (destPort == EOB_BROADCAST_PORT) {
+		 			if (dataLength != sizeof(struct EOB_FULL_FRAME) - sizeof(UDP_HDR)) {
+		 				LOG(ERROR)<<
+		 				"Unrecognizable packet received at EOB farm broadcast Port!";
+		 				delete[] container.data;
+		 				return true;
+		 			}
+		 			EOB_FULL_FRAME* pack = (struct EOB_FULL_FRAME*) container.data;
+		 			LOG(INFO) <<
+		 			"Received EOB Farm-Broadcast. Will increment BurstID now to " << pack->finishedBurstID + 1;
+		 			EventBuilder::SetNextBurstID(pack->finishedBurstID + 1);
+		 		} else {
+		 			/*
+		 			 * Packet with unknown UDP port received
+		 			 */
+		 			LOG(ERROR) <<"Packet with unknown UDP port received: " << destPort;
+		 			delete[] container.data;
+		 			return true;
+		 		}
+		 	} catch (UnknownSourceIDFound const& e) {
+		 		delete[] container.data;
+		 	} catch (UnknownCREAMSourceIDFound const&e) {
+		 		delete[] container.data;
+		 	} catch (NA62Error const& e) {
+		 		delete[] container.data;
+		 	}
+		 	return true;
+	 }
+
+
+
+bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
+	/*
+	 * Check IP-Header
+	 */
+	//				if (!EthernetUtils::CheckData((char*) &hdr->ip, sizeof(iphdr))) {
+	//					LOG(ERROR) << "Packet with broken IP-checksum received");
+	//					delete[] container.data;
+	//					continue;
+	//				}
+	if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) != length) {
+		/*
+		 * Does not need to be equal because of ethernet padding
+		 */
+		if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) > length) {
+			LOG(ERROR)<<
+			"Received IP-Packet with less bytes than ip.tot_len field! " << (ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length;
+			return false;
+		}
+	}
+
+	/*
+	 * Does not need to be equal because of ethernet padding
+	 */
+	if (ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)
+			> length) {
+		LOG(ERROR)<<"Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length;
+		return false;
+	}
+
+	//				/*
+	//				 * Check UDP checksum
+	//				 */
+	//				if (!EthernetUtils::CheckUDP(hdr, (const char *) (&hdr->udp) + sizeof(struct udphdr), ntohs(hdr->udp.len) - sizeof(struct udphdr))) {
+	//					LOG(ERROR) << "Packet with broken UDP-checksum received" );
+	//					delete[] container.data;
+	//					continue;
+	//				}
+	return true;
+}
+
+} /* namespace na62 */
