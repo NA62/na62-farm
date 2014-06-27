@@ -42,26 +42,15 @@ public:
 		return BytesReceivedBySourceID_[sourceID];
 	}
 
+	static std::atomic<uint64_t>* MEPsReceivedBySourceID_;
+	static std::atomic<uint64_t>* EventsReceivedBySourceID_;
+	static std::atomic<uint64_t>* BytesReceivedBySourceID_;
+
 private:
 	/**
 	 * @return <true> In case of success, false in case of a serious error (we should stop the thread in this case)
 	 */
-	bool processPacket(DataContainer container);
-	void processARPRequest(struct ARP_HDR* arp);
 	void thread();
-	void connectZMQ();
-
-	/**
-	 * @return <true> If no checksum errors have been found
-	 */
-	bool checkFrame(struct UDP_HDR* hdr, uint16_t length);
-
-	std::vector<zmq::socket_t*> EBL0sockets_;
-	std::vector<zmq::socket_t*> EBLKrSockets_;
-
-	static std::atomic<uint64_t>* MEPsReceivedBySourceID_;
-	static std::atomic<uint64_t>* EventsReceivedBySourceID_;
-	static std::atomic<uint64_t>* BytesReceivedBySourceID_;
 };
 
 } /* namespace na62 */

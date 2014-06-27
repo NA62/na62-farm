@@ -78,6 +78,7 @@
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="boost_program_options"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="boost_system"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="rt"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="tbb"/>
 								</option>
 								<option id="gnu.cpp.link.option.debugging.gprof.351456919" name="Generate gprof information (-pg)" superClass="gnu.cpp.link.option.debugging.gprof" value="false" valueType="boolean"/>
 								<option id="gnu.cpp.link.option.debugging.prof.1848555923" name="Generate prof information (-p)" superClass="gnu.cpp.link.option.debugging.prof" value="false" valueType="boolean"/>
