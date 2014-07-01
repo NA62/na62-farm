@@ -8,6 +8,7 @@
 #include "HandleFrameTask.h"
 
 #include <asm-generic/errno-base.h>
+#include <bits/atomic_base.h>
 #include <eventBuilding/SourceIDManager.h>
 #include <exceptions/UnknownCREAMSourceIDFound.h>
 #include <exceptions/UnknownSourceIDFound.h>
@@ -27,16 +28,20 @@
 #include <structs/Network.h>
 #include <sys/types.h>
 #include <zmq.hpp>
+#include <atomic>
 #include <cstdbool>
 #include <cstdint>
 #include <iostream>
 #include <vector>
 
+#include "../eventBuilding/BuildL1Task.h"
 #include "../eventBuilding/EventBuilder.h"
+#include "../options/MyOptions.h"
+#include "PacketHandler.h"
 
 namespace na62 {
 
-HandleFrameTask::HandleFrameTask(DataContainer&& _container):
+HandleFrameTask::HandleFrameTask(DataContainer&& _container) :
 		container(std::move(_container)) {
 
 }
@@ -60,153 +65,133 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 	}
 }
 
-
 tbb::task* HandleFrameTask::execute() {
-		 const uint16_t L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
-		 	const uint16_t CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
+	const uint16_t L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
+	const uint16_t CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
 
-		 	const uint16_t EOB_BROADCAST_PORT = Options::GetInt(
-		 	OPTION_EOB_BROADCAST_PORT);
+	const uint16_t EOB_BROADCAST_PORT = Options::GetInt(
+	OPTION_EOB_BROADCAST_PORT);
 
-		 	try {
-		 		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
-		 		uint16_t etherType = ntohs(hdr->eth.ether_type);
-		 		uint8_t ipProto = hdr->ip.protocol;
-		 		uint16_t destPort = ntohs(hdr->udp.dest);
+	try {
+		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
+		uint16_t etherType = ntohs(hdr->eth.ether_type);
+		uint8_t ipProto = hdr->ip.protocol;
+		uint16_t destPort = ntohs(hdr->udp.dest);
 
-		 		/*
-		 		 * Check if we received an ARP request
-		 		 */
-		 		if (etherType != ETHERTYPE_IP || ipProto != IPPROTO_UDP) {
-		 			if (etherType == ETHERTYPE_ARP) {
-		 				processARPRequest((struct ARP_HDR*) container.data);
-		 			}
+		/*
+		 * Check if we received an ARP request
+		 */
+		if (etherType != ETHERTYPE_IP || ipProto != IPPROTO_UDP) {
+			if (etherType == ETHERTYPE_ARP) {
+				processARPRequest((struct ARP_HDR*) container.data);
+			}
 
-		 			// Anyway delete the buffer afterwards
-		 			delete[] container.data;
-		 			return true;
-		 		}
+			// Anyway delete the buffer afterwards
+			delete[] container.data;
+			return nullptr;
+		}
 
-		 		/*
-		 		 * Check checksum errors
-		 		 */
-		 		if (!checkFrame(hdr, container.length)) {
-		 			delete[] container.data;
-		 			return true;
-		 		}
+		/*
+		 * Check checksum errors
+		 */
+		if (!checkFrame(hdr, container.length)) {
+			delete[] container.data;
+			return nullptr;
+		}
 
-		 		const char * UDPPayload = container.data + sizeof(struct UDP_HDR);
-		 		const uint16_t & dataLength = ntohs(hdr->udp.len)
-		 				- sizeof(struct udphdr);
+		const char * UDPPayload = container.data + sizeof(struct UDP_HDR);
+		const uint16_t & dataLength = ntohs(hdr->udp.len)
+				- sizeof(struct udphdr);
 
-		 		/*
-		 		 *  Now let's see what's insight the packet
-		 		 */
-		 		if (destPort == L0_Port) {
+		/*
+		 *  Now let's see what's insight the packet
+		 */
+		if (destPort == L0_Port) {
 
-		 			/*
-		 			 * L0 Data
-		 			 * * Length is hdr->ip.tot_len-sizeof(struct udphdr) and not container.length because of ethernet padding bytes!
-		 			 */
-		 			l0::MEP* mep = new l0::MEP(UDPPayload, dataLength, container.data);
+			/*
+			 * L0 Data
+			 * * Length is hdr->ip.tot_len-sizeof(struct udphdr) and not container.length because of ethernet padding bytes!
+			 */
+			l0::MEP* mep = new l0::MEP(UDPPayload, dataLength, container.data);
 
-		 			PacketHandler::MEPsReceivedBySourceID_[mep->getSourceID()]++;
-		 			PacketHandler::EventsReceivedBySourceID_[mep->getSourceID()] +=
-		 					mep->getNumberOfEvents();
-		 			PacketHandler::BytesReceivedBySourceID_[mep->getSourceID()] += container.length;
+			PacketHandler::MEPsReceivedBySourceID_[mep->getSourceID()]++;
+			PacketHandler::EventsReceivedBySourceID_[mep->getSourceID()] +=
+					mep->getNumberOfEvents();
+			PacketHandler::BytesReceivedBySourceID_[mep->getSourceID()] +=
+					container.length;
 
-		 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
-		 				l0::MEPEvent* event = mep->getEvent(i);
+			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
+				l0::MEPEvent* event = mep->getEvent(i);
+				BuildL1Task* task =
+						new (tbb::task::allocate_root()) BuildL1Task(event);
+				tbb::task::enqueue(task, tbb::priority_t::priority_low);
+			}
 
-		 				zmq::message_t zmqMessage((void*) event,
-		 						event->getEventLength(), (zmq::free_fn*) nullptr);
+		} else if (destPort == CREAM_Port) {
+			/*
+			 * CREAM Data
+			 * Length is hdr->ip.tot_len-sizeof(struct iphdr) and not container.length because of ethernet padding bytes!
+			 */
+			cream::LKRMEP* mep = new cream::LKRMEP(UDPPayload, dataLength,
+					container.data);
 
-		 				while (true) {
-		 					try {
-		 						EBL0sockets_[event->getEventNumber() % NUMBER_OF_EBS]->send(
-		 								zmqMessage);
-		 						break;
-		 					} catch (const zmq::error_t& ex) {
-		 						if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-		 							LOG(ERROR)<< ex.what();
-		 							for (uint i = 0; i < NUMBER_OF_EBS; i++) {
-		 								EBL0sockets_[i]->close();
-		 								EBLKrSockets_[i]->close();
-		 								delete EBL0sockets_[i];
-		 								delete EBLKrSockets_[i];
-		 							}
-		 							return false;
-		 						}
-		 					}
-		 				}
-		 			}
+			PacketHandler::MEPsReceivedBySourceID_[SOURCE_ID_LKr]++;
+			PacketHandler::EventsReceivedBySourceID_[SOURCE_ID_LKr] +=
+					mep->getNumberOfEvents();
+			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr] +=
+					container.length;
+			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
+				cream::LKREvent* event = mep->getEvent(i);
+				zmq::message_t zmqMessage((void*) event,
+						event->getEventLength(), (zmq::free_fn*) nullptr);
 
-		 		} else if (destPort == CREAM_Port) {
-		 			/*
-		 			 * CREAM Data
-		 			 * Length is hdr->ip.tot_len-sizeof(struct iphdr) and not container.length because of ethernet padding bytes!
-		 			 */
-		 			cream::LKRMEP* mep = new cream::LKRMEP(UDPPayload, dataLength,
-		 					container.data);
-
-		 			PacketHandler::MEPsReceivedBySourceID_[SOURCE_ID_LKr]++;
-		 			PacketHandler::EventsReceivedBySourceID_[SOURCE_ID_LKr] +=
-		 			mep->getNumberOfEvents();
-		 			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr] += container.length;
-		 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
-		 				cream::LKREvent* event = mep->getEvent(i);
-		 				zmq::message_t zmqMessage((void*) event,
-		 						event->getEventLength(), (zmq::free_fn*) nullptr);
-
-		 				while (true) {
-		 					try {
-		 						EBLKrSockets_[event->getEventNumber() % NUMBER_OF_EBS]->send(
-		 								zmqMessage);
-		 						break;
-		 					} catch (const zmq::error_t& ex) {
-		 						if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-		 							LOG(ERROR)<< ex.what();
-		 							for (uint i = 0; i < NUMBER_OF_EBS; i++) {
-		 								EBL0sockets_[i]->close();
-		 								EBLKrSockets_[i]->close();
-		 								delete EBL0sockets_[i];
-		 								delete EBLKrSockets_[i];
-		 							}
-		 							return false;
-		 						}
-		 					}
-		 				}
-		 			}
-		 		} else if (destPort == EOB_BROADCAST_PORT) {
-		 			if (dataLength != sizeof(struct EOB_FULL_FRAME) - sizeof(UDP_HDR)) {
-		 				LOG(ERROR)<<
-		 				"Unrecognizable packet received at EOB farm broadcast Port!";
-		 				delete[] container.data;
-		 				return true;
-		 			}
-		 			EOB_FULL_FRAME* pack = (struct EOB_FULL_FRAME*) container.data;
-		 			LOG(INFO) <<
-		 			"Received EOB Farm-Broadcast. Will increment BurstID now to " << pack->finishedBurstID + 1;
-		 			EventBuilder::SetNextBurstID(pack->finishedBurstID + 1);
-		 		} else {
-		 			/*
-		 			 * Packet with unknown UDP port received
-		 			 */
-		 			LOG(ERROR) <<"Packet with unknown UDP port received: " << destPort;
-		 			delete[] container.data;
-		 			return true;
-		 		}
-		 	} catch (UnknownSourceIDFound const& e) {
-		 		delete[] container.data;
-		 	} catch (UnknownCREAMSourceIDFound const&e) {
-		 		delete[] container.data;
-		 	} catch (NA62Error const& e) {
-		 		delete[] container.data;
-		 	}
-		 	return true;
-	 }
-
-
+				while (true) {
+					try {
+						EBLKrSockets_[event->getEventNumber() % NUMBER_OF_EBS]->send(
+								zmqMessage);
+						break;
+					} catch (const zmq::error_t& ex) {
+						if (ex.num() != EINTR) { // try again if EINTR (signal caught)
+							LOG(ERROR)<< ex.what();
+							for (uint i = 0; i < NUMBER_OF_EBS; i++) {
+								EBL0sockets_[i]->close();
+								EBLKrSockets_[i]->close();
+								delete EBL0sockets_[i];
+								delete EBLKrSockets_[i];
+							}
+							return nullptr;
+						}
+					}
+				}
+			}
+		} else if (destPort == EOB_BROADCAST_PORT) {
+			if (dataLength != sizeof(struct EOB_FULL_FRAME) - sizeof(UDP_HDR)) {
+				LOG(ERROR)<<
+				"Unrecognizable packet received at EOB farm broadcast Port!";
+				delete[] container.data;
+				return nullptr;
+			}
+			EOB_FULL_FRAME* pack = (struct EOB_FULL_FRAME*) container.data;
+			LOG(INFO) <<
+			"Received EOB Farm-Broadcast. Will increment BurstID now to " << pack->finishedBurstID + 1;
+			EventBuilder::SetNextBurstID(pack->finishedBurstID + 1);
+		} else {
+			/*
+			 * Packet with unknown UDP port received
+			 */
+			LOG(ERROR) <<"Packet with unknown UDP port received: " << destPort;
+			delete[] container.data;
+			return nullptr;
+		}
+	} catch (UnknownSourceIDFound const& e) {
+		delete[] container.data;
+	} catch (UnknownCREAMSourceIDFound const&e) {
+		delete[] container.data;
+	} catch (NA62Error const& e) {
+		delete[] container.data;
+	}
+	return nullptr;
+}
 
 bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
 	/*
@@ -248,4 +233,5 @@ bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
 	return true;
 }
 
-} /* namespace na62 */
+}
+/* namespace na62 */

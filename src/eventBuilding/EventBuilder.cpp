@@ -40,7 +40,8 @@
 #include "../socket/ZMQHandler.h"
 
 namespace na62 {
-std::vector<EventBuilder*> EventBuilder::Instances_;
+std::vector<Event*> EventBuilder::unusedEvents_;
+std::vector<Event*> EventBuilder::eventPool_;
 
 std::atomic<uint64_t>* EventBuilder::L1Triggers_;
 std::atomic<uint64_t>* EventBuilder::L2Triggers_;
@@ -50,17 +51,11 @@ std::atomic<uint64_t> EventBuilder::EventsSentToStorage_(0);
 
 boost::timer::cpu_timer EventBuilder::EOBReceivedTime_;
 
-uint32_t EventBuilder::currentBurstID_ = 0;
-
 uint EventBuilder::NUMBER_OF_EBS = 0;
 
 EventBuilder::EventBuilder() :
 		L0Socket_(ZMQHandler::GenerateSocket(ZMQ_PULL)), LKrSocket_(
-				ZMQHandler::GenerateSocket(ZMQ_PULL)), changeBurstID_(
-		false), threadCurrentBurstID_(0), L1processor_(new L1TriggerProcessor), L2processor_(
-				new L2TriggerProcessor(threadNum_)) {
-
-	Instances_.push_back(this);
+				ZMQHandler::GenerateSocket(ZMQ_PULL)) {
 }
 
 EventBuilder::~EventBuilder() {
@@ -78,20 +73,28 @@ void EventBuilder::Initialize() {
 		L1Triggers_[i] = 0;
 		L2Triggers_[i] = 0;
 	}
-}
 
-void EventBuilder::thread() {
 	eventPool_.resize(
 			Options::GetInt(OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED));
 	for (uint i = 0; i != Options::GetInt(
 	OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED) / NUMBER_OF_EBS; ++i) {
 		unusedEvents_.push_back(new Event(0));
 	}
+}
 
-	threadCurrentBurstID_ = Options::GetInt(OPTION_FIRST_BURST_ID);
+tbb::task* EventBuilder::execute() {
+	boost::this_thread::interruption_point();
 
-	ZMQHandler::BindInproc(L0Socket_, ZMQHandler::GetEBL0Address(threadNum_));
-	ZMQHandler::BindInproc(LKrSocket_, ZMQHandler::GetEBLKrAddress(threadNum_));
+	if (items[0].revents & ZMQ_POLLIN) { // L0 data
+		L0Socket_->recv(&message);
+		handleL0Data((l0::MEPEvent*) message.data());
+	} else if (changeBurstID_) {
+		if (EOBReceivedTime_.elapsed().wall > 100E6) {
+			LOG(INFO)<< "EB "<<threadNum_ <<" changed burst number to " << burstToBeSet << " (" << (EOBReceivedTime_.elapsed().wall*1E6) << " ms after receiving the EOB)";
+			currentBurstID_ = burstToBeSet;
+			changeBurstID_ = false;
+		}
+	}
 
 	zmq::pollitem_t items[] = { { *L0Socket_, 0, ZMQ_POLLIN, 0 }, { *LKrSocket_,
 			0, ZMQ_POLLIN, 0 } };
@@ -221,7 +224,7 @@ void EventBuilder::processL1(Event *event) {
 	 * Changing the BurstID will now be done by the dim interface
 	 */
 	if (event->isLastEventOfBurst()) {
-		SendEOBBroadcast(event->getEventNumber(), threadCurrentBurstID_);
+		SendEOBBroadcast(event->getEventNumber(), currentBurstID_);
 	}
 
 	/*
