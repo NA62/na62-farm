@@ -84,11 +84,6 @@ int StorageHandler::SendEvent(const uint16_t& threadNum, Event* event) {
 	 * TODO: Use multimessage instead of creating a separate buffer and copying the MEP data into it
 	 */
 
-//	std::cout << event->getL0BuildingTime() << "\t"
-//			<< event->getL1ProcessingTime() << "\t"
-//			<< event->getL1BuildingTime() << "\t"
-//			<< event->getL2ProcessingTime() << "\t"
-//			<< event->getTimeSinceFirstMEPReceived() << std::endl;
 	uint eventBufferSize = InitialEventBufferSize_;
 	char* eventBuffer = new char[InitialEventBufferSize_];
 

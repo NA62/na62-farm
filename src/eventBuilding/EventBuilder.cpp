@@ -43,12 +43,6 @@ namespace na62 {
 std::vector<Event*> EventBuilder::unusedEvents_;
 std::vector<Event*> EventBuilder::eventPool_;
 
-std::atomic<uint64_t>* EventBuilder::L1Triggers_;
-std::atomic<uint64_t>* EventBuilder::L2Triggers_;
-
-std::atomic<uint64_t> EventBuilder::BytesSentToStorage_(0);
-std::atomic<uint64_t> EventBuilder::EventsSentToStorage_(0);
-
 boost::timer::cpu_timer EventBuilder::EOBReceivedTime_;
 
 uint EventBuilder::NUMBER_OF_EBS = 0;
@@ -66,7 +60,6 @@ EventBuilder::~EventBuilder() {
 
 void EventBuilder::Initialize() {
 	NUMBER_OF_EBS = Options::GetInt(OPTION_NUMBER_OF_EBS);
-	L1Triggers_ = new std::atomic<uint64_t>[0xFF + 1];
 	L2Triggers_ = new std::atomic<uint64_t>[0xFF + 1];
 
 	for (int i = 0; i <= 0xFF; i++) {
@@ -135,6 +128,7 @@ tbb::task* EventBuilder::execute() {
 	ZMQHandler::DestroySocket(LKrSocket_);
 }
 
+<<<<<<< HEAD
 Event* EventBuilder::getNewEvent(uint32_t eventNumber) {
 	if (!unusedEvents_.empty()) {
 		Event *event;
@@ -325,6 +319,9 @@ void EventBuilder::SendEOBBroadcast(uint32_t eventNumber,
 
 	EventBuilder::SetNextBurstID(EOBPacket.finishedBurstID + 1);
 }
+=======
+
+>>>>>>> BuildL2Task added
 
 }
 /* namespace na62 */

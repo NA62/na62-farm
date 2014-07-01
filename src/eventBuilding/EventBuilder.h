@@ -49,13 +49,6 @@ public:
 	virtual ~EventBuilder();
 	static void Initialize();
 
-	static inline const std::atomic<uint64_t>* GetL1TriggerStats() {
-		return L1Triggers_;
-	}
-
-	static inline const std::atomic<uint64_t>* GetL2TriggerStats() {
-		return L2Triggers_;
-	}
 
 	static inline const uint64_t GetBytesSentToStorage() {
 		return BytesSentToStorage_;
@@ -74,6 +67,7 @@ public:
 	tbb::task* execute();
 
 private:
+<<<<<<< HEAD
 
 	void handleL0Data(l0::MEPFragment * MEPFragment);
 	void handleLKRData(cream::LKREvent * lkrEvent);
@@ -83,6 +77,8 @@ private:
 
 	Event* getNewEvent(uint32_t eventNumber);
 
+=======
+>>>>>>> BuildL2Task added
 	/*
 	 * @return <true> if any packet has been sent (time has passed)
 	 */
@@ -97,7 +93,6 @@ private:
 	static std::vector<Event*> unusedEvents_;
 	static std::vector<Event*> eventPool_;
 
-	static std::atomic<uint64_t>* L1Triggers_;
 	static std::atomic<uint64_t>* L2Triggers_;
 
 	static std::atomic<uint64_t> BytesSentToStorage_;
