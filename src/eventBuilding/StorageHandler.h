@@ -8,10 +8,13 @@
 #ifndef STORAGEHANDLER_H_
 #define STORAGEHANDLER_H_
 
-#include <zmq.hpp>
+#include <sys/types.h>
 #include <atomic>
-#include <cstdint>
-#include <vector>
+#include <thread>
+
+namespace zmq {
+class socket_t;
+} /* namespace zmq */
 
 namespace na62 {
 class Event;
@@ -24,14 +27,16 @@ public:
 	static void Initialize();
 	static void OnShutDown();
 
-	static int SendEvent(const uint16_t& thredNum, Event* event);
+	static int SendEvent(Event* event);
 
 private:
-	static char* ResizeBuffer(char* buffer, const int oldLength, const int newLength);
+	static char* ResizeBuffer(char* buffer, const int oldLength,
+			const int newLength);
 	/*
 	 * One Socket for every EventBuilder
 	 */
-	static std::vector<zmq::socket_t*> MergerSockets_;
+	static zmq::socket_t* MergerSocket_;
+	static std::mutex sendMutex_;
 
 	static std::atomic<uint> InitialEventBufferSize_;
 	static int TotalNumberOfDetectors_;

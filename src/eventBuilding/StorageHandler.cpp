@@ -17,22 +17,21 @@
 #include <l0/MEPFragment.h>
 #include <l0/Subevent.h>
 #include <LKr/LKREvent.h>
-#include "../options/MyOptions.h"
-
 #include <structs/Event.h>
-#include <sys/types.h>
 #include <zmq.h>
+#include <zmq.hpp>
 #include <cstdbool>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 #include <string>
 
+//#include "../options/MyOptions.h"
 #include "../socket/ZMQHandler.h"
-#include "EventBuilder.h"
-
+//#include "EventBuilder.h"
 namespace na62 {
 
-std::vector<zmq::socket_t*> StorageHandler::MergerSockets_;
+zmq::socket_t* StorageHandler::MergerSocket_;
 
 std::atomic<uint> StorageHandler::InitialEventBufferSize_;
 int StorageHandler::TotalNumberOfDetectors_;
@@ -43,11 +42,8 @@ void freeZmqMessage(void *data, void *hint) {
 
 void StorageHandler::Initialize() {
 	LOG(INFO)<< "Connecting to merger: " << ZMQHandler::GetMergerAddress().c_str();
-	for (int i = 0; i < Options::GetInt(OPTION_NUMBER_OF_EBS); i++) {
-		zmq::socket_t* sock = ZMQHandler::GenerateSocket(ZMQ_PUSH);
-		MergerSockets_.push_back(sock);
-		sock->connect(ZMQHandler::GetMergerAddress().c_str());
-	}
+	MergerSocket_ = ZMQHandler::GenerateSocket(ZMQ_PUSH);
+	MergerSocket_->connect(ZMQHandler::GetMergerAddress().c_str());
 
 	/*
 	 * L0 sources + LKr
@@ -63,12 +59,8 @@ void StorageHandler::Initialize() {
 }
 
 void StorageHandler::OnShutDown() {
-	std::cout << "Shutting down StorageHandler"<<std::endl;
-	for (auto socket : MergerSockets_) {
-		if (socket != nullptr) {
-			ZMQHandler::DestroySocket(socket);
-		}
-	}
+	MergerSocket_->close();
+	delete MergerSocket_;
 }
 
 char* StorageHandler::ResizeBuffer(char* buffer, const int oldLength,
@@ -79,7 +71,7 @@ char* StorageHandler::ResizeBuffer(char* buffer, const int oldLength,
 	return newBuffer;
 }
 
-int StorageHandler::SendEvent(const uint16_t& threadNum, Event* event) {
+int StorageHandler::SendEvent(Event* event) {
 	/*
 	 * TODO: Use multimessage instead of creating a separate buffer and copying the MEP data into it
 	 */
@@ -221,18 +213,16 @@ int StorageHandler::SendEvent(const uint16_t& threadNum, Event* event) {
 
 	while (ZMQHandler::IsRunning()) {
 		try {
-			MergerSockets_[threadNum]->send(zmqMessage);
+			 std::lock_guard<std::mutex> lock(sendMutex_);
+			MergerSocket_->send(zmqMessage);
 			break;
 		} catch (const zmq::error_t& ex) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
 				LOG(ERROR)<< ex.what();
 
-				for (auto socket : MergerSockets_) {
-					if (socket != nullptr) {
-						std::cout << "StorageHandler received EINTR signal"<<std::endl;
-						ZMQHandler::DestroySocket(socket);
-					}
-				}
+				 std::lock_guard<std::mutex> lock(sendMutex_);
+				MergerSocket_->close();
+				delete MergerSocket_;
 				return 0;
 			}
 		}
