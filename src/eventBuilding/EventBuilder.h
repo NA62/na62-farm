@@ -10,14 +10,16 @@
 #define EVENTBUILDER_H_
 
 #include <boost/timer/timer.hpp>
+#include <eventBuilding/Event.h>
 #include <glog/logging.h>
+#include <sys/types.h>
 #include <atomic>
+#include <cstdbool>
 #include <cstdint>
 #include <iostream>
 #include <vector>
 
-#include <utils/AExecutable.h>
-#include <eventBuilding/Event.h>
+#include <tbb/task.h>
 
 namespace na62 {
 class Event;
@@ -39,7 +41,7 @@ class socket_t;
 
 namespace na62 {
 
-class EventBuilder: public AExecutable {
+class EventBuilder:  public tbb::task {
 public:
 	EventBuilder();
 	virtual ~EventBuilder();
@@ -61,24 +63,15 @@ public:
 		return EventsSentToStorage_;
 	}
 
-	static void SetNextBurstID(uint32_t nextBurstID) {
-		currentBurstID_ = nextBurstID;
-
-		EOBReceivedTime_.start();
-		LOG(INFO)<<"Changing BurstID to " << nextBurstID;
-		for (unsigned int i = 0; i < Instances_.size(); i++) {
-			Instances_[i]->setNextBurstID(nextBurstID);
-		}
-	}
-
 	static uint32_t getCurrentBurstId() {
-		return currentBurstID_;
+		return burstToBeSet;
 	}
 
 	static uint NUMBER_OF_EBS;
 
+	tbb::task* execute();
+
 private:
-	void thread();
 
 	void handleL0Data(l0::MEPEvent * mepEvent);
 	void handleLKRData(cream::LKREvent * lkrEvent);
@@ -96,31 +89,11 @@ private:
 	static void SendEOBBroadcast(uint32_t eventNumber,
 			uint32_t finishedBurstID);
 
-	inline uint32_t getCurrentBurstID() {
-		return threadCurrentBurstID_;
-	}
-
-	/*
-	 * The burst ID will be changed as soon as the next L0 element is received. This way we can still receive CREAM data.
-	 */
-	inline void setNextBurstID(uint32_t nextBurstID) {
-		changeBurstID_ = true;
-	}
-
 	zmq::socket_t* L0Socket_;
 	zmq::socket_t* LKrSocket_;
 
-	std::vector<Event*> unusedEvents_;
-	std::vector<Event*> eventPool_;
-
-	bool changeBurstID_;
-	static uint32_t currentBurstID_;
-	uint32_t threadCurrentBurstID_;
-
-	L1TriggerProcessor* L1processor_;
-	L2TriggerProcessor* L2processor_;
-
-	static std::vector<EventBuilder*> Instances_;
+	static std::vector<Event*> unusedEvents_;
+	static std::vector<Event*> eventPool_;
 
 	static std::atomic<uint64_t>* L1Triggers_;
 	static std::atomic<uint64_t>* L2Triggers_;

@@ -38,7 +38,8 @@
 #include "../socket/ZMQHandler.h"
 
 namespace na62 {
-std::vector<EventBuilder*> EventBuilder::Instances_;
+std::vector<Event*> EventBuilder::unusedEvents_;
+std::vector<Event*> EventBuilder::eventPool_;
 
 std::atomic<uint64_t>* EventBuilder::L1Triggers_;
 std::atomic<uint64_t>* EventBuilder::L2Triggers_;
@@ -48,17 +49,11 @@ std::atomic<uint64_t> EventBuilder::EventsSentToStorage_(0);
 
 boost::timer::cpu_timer EventBuilder::EOBReceivedTime_;
 
-uint32_t EventBuilder::currentBurstID_ = 0;
-
 uint EventBuilder::NUMBER_OF_EBS = 0;
 
 EventBuilder::EventBuilder() :
 		L0Socket_(ZMQHandler::GenerateSocket(ZMQ_PULL)), LKrSocket_(
-				ZMQHandler::GenerateSocket(ZMQ_PULL)), changeBurstID_(
-		false), threadCurrentBurstID_(0), L1processor_(new L1TriggerProcessor), L2processor_(
-				new L2TriggerProcessor(threadNum_)) {
-
-	Instances_.push_back(this);
+				ZMQHandler::GenerateSocket(ZMQ_PULL)) {
 }
 
 EventBuilder::~EventBuilder() {
@@ -77,61 +72,34 @@ void EventBuilder::Initialize() {
 		L1Triggers_[i] = 0;
 		L2Triggers_[i] = 0;
 	}
-}
 
-void EventBuilder::thread() {
 	eventPool_.resize(
 			Options::GetInt(OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED));
-	for (uint i = 0;
-			i
-					!= Options::GetInt(
-							OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED)
-							/ NUMBER_OF_EBS; ++i) {
+	for (uint i = 0; i != Options::GetInt(
+	OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED) / NUMBER_OF_EBS; ++i) {
 		unusedEvents_.push_back(new Event(0));
 	}
+}
 
-	threadCurrentBurstID_ = Options::GetInt(OPTION_FIRST_BURST_ID);
+tbb::task* EventBuilder::execute() {
+	boost::this_thread::interruption_point();
 
-	ZMQHandler::BindInproc(L0Socket_, ZMQHandler::GetEBL0Address(threadNum_));
-	ZMQHandler::BindInproc(LKrSocket_, ZMQHandler::GetEBLKrAddress(threadNum_));
-
-	zmq::pollitem_t items[] = { { *L0Socket_, 0, ZMQ_POLLIN, 0 }, { *LKrSocket_,
-			0, ZMQ_POLLIN, 0 } };
-
-	while (1) {
-		try {
-			boost::this_thread::interruption_point();
-
-			zmq::message_t message;
-			zmq::poll(&items[0], 2, 1000); // Poll only blocks for 1 s so that we pass interruption_point
-
-			if (items[0].revents & ZMQ_POLLIN) { // L0 data
-				L0Socket_->recv(&message);
-				handleL0Data((l0::MEPEvent*) message.data());
-			} else if (changeBurstID_) {
-				if (EOBReceivedTime_.elapsed().wall > 100E6) {
-					LOG(INFO)<< "EB "<<threadNum_ <<" changed burst number to " << currentBurstID_ << " (" << (EOBReceivedTime_.elapsed().wall*1E6) << " ms after receiving the EOB)";
-					threadCurrentBurstID_ = currentBurstID_;
-					changeBurstID_ = false;
-				}
-			}
-
-			if (items[1].revents & ZMQ_POLLIN) { // LKr data
-				LKrSocket_->recv(&message);
-				handleLKRData((cream::LKREvent*) message.data());
-			}
-		} catch (NA62Error &e) {
-// Continue... Message will be printed automatically
-		} catch (const zmq::error_t& ex) {
-			if (ex.num() != EINTR) {
-				L0Socket_->close();
-				LKrSocket_->close();
-				delete L0Socket_;
-				delete LKrSocket_;
-				return;
-			}
+	if (items[0].revents & ZMQ_POLLIN) { // L0 data
+		L0Socket_->recv(&message);
+		handleL0Data((l0::MEPEvent*) message.data());
+	} else if (changeBurstID_) {
+		if (EOBReceivedTime_.elapsed().wall > 100E6) {
+			LOG(INFO)<< "EB "<<threadNum_ <<" changed burst number to " << burstToBeSet << " (" << (EOBReceivedTime_.elapsed().wall*1E6) << " ms after receiving the EOB)";
+			currentBurstID_ = burstToBeSet;
+			changeBurstID_ = false;
 		}
 	}
+
+	if (items[1].revents & ZMQ_POLLIN) { // LKr data
+		LKrSocket_->recv(&message);
+		handleLKRData((cream::LKREvent*) message.data());
+	}
+	return nullptr;
 }
 
 Event* EventBuilder::getNewEvent(uint32_t eventNumber) {
@@ -146,37 +114,6 @@ Event* EventBuilder::getNewEvent(uint32_t eventNumber) {
 	}
 }
 
-void EventBuilder::handleL0Data(l0::MEPEvent *mepEvent) {
-	/*
-	 * Receiver only pushes MEPEVENT::eventNum%EBNum events. To fill all holes in eventPool we need divide by the number of event builder
-	 */
-	const uint32_t eventPoolIndex = (mepEvent->getEventNumber() / NUMBER_OF_EBS);
-	Event *event;
-
-	if (eventPoolIndex >= eventPool_.size()) { // Memory overflow
-		eventPool_.resize(eventPoolIndex * 2);
-		event = getNewEvent(mepEvent->getEventNumber());
-		eventPool_[eventPoolIndex] = event;
-	} else {
-		event = eventPool_[eventPoolIndex];
-		if (event == nullptr) { // An event with a higher eventPoolIndex has been received before this one
-			event = getNewEvent(mepEvent->getEventNumber());
-			eventPool_[eventPoolIndex] = event;
-		}
-	}
-
-	/*
-	 * Add new packet to Event
-	 */
-	if (!event->addL0Event(mepEvent, getCurrentBurstID())) {
-		return;
-	} else {
-		/*
-		 * This event is complete -> process it
-		 */
-		processL1(event);
-	}
-}
 
 void EventBuilder::handleLKRData(cream::LKREvent *lkrEvent) {
 	/*
@@ -222,7 +159,7 @@ void EventBuilder::processL1(Event *event) {
 	 * Changing the BurstID will now be done by the dim interface
 	 */
 	if (event->isLastEventOfBurst()) {
-		SendEOBBroadcast(event->getEventNumber(), threadCurrentBurstID_);
+		SendEOBBroadcast(event->getEventNumber(), currentBurstID_);
 	}
 
 	/*

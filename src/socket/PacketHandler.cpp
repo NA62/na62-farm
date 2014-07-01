@@ -43,6 +43,7 @@
 
 #include "../socket/ZMQHandler.h"
 #include "../eventBuilding/EventBuilder.h"
+#include "HandleFrameTask.h"
 
 namespace na62 {
 
@@ -77,11 +78,8 @@ void PacketHandler::Initialize() {
 }
 
 void PacketHandler::thread() {
-	connectZMQ();
-
 	DataContainer container;
 
-	std::queue<DataContainer> dataContainers;
 	register char* data; // = new char[MTU];
 	struct pfring_pkthdr hdr;
 	memset(&hdr, 0, sizeof(hdr));
@@ -100,9 +98,12 @@ void PacketHandler::thread() {
 			char* buff = new char[hdr.len];
 			memcpy(buff, data, hdr.len);
 			container = {buff, (uint16_t) hdr.len};
-			dataContainers.push(std::move(container));
 			sleepMicros = 1;
-		} else if (dataContainers.empty()) {
+
+			HandleFrameTask* task = new (tbb::task::allocate_root()) HandleFrameTask(
+					std::move(container));
+			tbb::task::enqueue(task, tbb::priority_t::priority_high);
+		} else {
 			/*
 			 * Use the time to send some packets
 			 */
@@ -114,12 +115,6 @@ void PacketHandler::thread() {
 			if (sleepMicros < 10000) {
 				sleepMicros *= 2;
 			}
-		} else {
-			if (!processPacket(dataContainers.front())) {
-				dataContainers.pop();
-				return; // stop running
-			}
-			dataContainers.pop();
 		}
 	}
 }
