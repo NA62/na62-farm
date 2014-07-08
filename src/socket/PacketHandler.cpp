@@ -265,7 +265,7 @@ bool PacketHandler::processPacket(DataContainer container) {
 				l0::MEPEvent* event = mep->getEvent(i);
 
 				zmq::message_t zmqMessage((void*) event,
-						event->getEventLength(), (zmq::free_fn*) nullptr);
+						event->getDataLength(), (zmq::free_fn*) nullptr);
 
 				while (true) {
 					try {

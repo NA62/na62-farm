@@ -110,7 +110,7 @@ void EventBuilder::thread() {
 				handleL0Data((l0::MEPEvent*) message.data());
 			} else if (changeBurstID_) {
 				if (EOBReceivedTime_.elapsed().wall > 100E6) {
-					LOG(INFO)<< "EB "<<threadNum_ <<" changed burst number to " << currentBurstID_ << " (" << (EOBReceivedTime_.elapsed().wall*1E6) << " ms after receiving the EOB)";
+					LOG(INFO)<< "EB "<<threadNum_ <<" changed burst number to " << currentBurstID_ << " (" << (EOBReceivedTime_.elapsed().wall/1E6) << " ms after receiving the EOB)";
 					threadCurrentBurstID_ = currentBurstID_;
 					changeBurstID_ = false;
 				}

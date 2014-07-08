@@ -135,8 +135,8 @@ int StorageHandler::SendEvent(const uint16_t& threadNum, Event* event) {
 		int payloadLength;
 		for (int i = subevent->getNumberOfParts() - 1; i >= 0; i--) {
 			l0::MEPEvent* e = subevent->getPart(i);
-			payloadLength = e->getEventLength()
-					- sizeof(struct l0::MEPEVENT_RAW_HDR)
+			payloadLength = e->getDataLength()
+					- sizeof(struct l0::MEPEVENT_HDR)
 					+ sizeof(struct L0_BLOCK_HDR);
 			if (eventOffset + payloadLength > eventBufferSize) {
 				eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
