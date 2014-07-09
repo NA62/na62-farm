@@ -31,6 +31,7 @@ by the network (10 Gb/s) and by the writing spead of the tape heads at the data 
 ## Design of the framework
 The framework consists of following components:
   * na62-farm-lib (static library)
+  * na62-farm-lib-networking (static library)
   * na62-trigger-algorithms (static library)
   * na62-farm
   * na62-merger
@@ -39,6 +40,9 @@ The framework consists of following components:
 ### na62-farm-lib
 This static library is used by all other software components. It stores all data types for the communications protocols
 and usefull helper classes.
+
+### na62-farm-lib-networking
+This library is only used by projects that use pf_ring for network communications.
 
 ### na62-trigger-algorithms
 Here all L1 and L2 trigger algorithms are implemented. These are executed with the incoming raw data received by the na62-farm.
