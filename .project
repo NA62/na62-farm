@@ -5,6 +5,7 @@
 	<projects>
 		<project>na62-farm-lib</project>
 		<project>na62-trigger-algorithms</project>
+		<project>na62-farm-lib-networking</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
