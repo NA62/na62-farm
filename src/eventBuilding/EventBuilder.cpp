@@ -10,7 +10,9 @@
 #include <arpa/inet.h>
 #include <asm-generic/errno-base.h>
 #include <boost/thread/detail/thread.hpp>
-#include <glog/logging.h>
+#ifdef USE_GLOG
+	#include <glog/logging.h>
+#endif
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <zmq.h>

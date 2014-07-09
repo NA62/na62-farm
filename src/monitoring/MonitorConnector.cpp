@@ -14,7 +14,9 @@
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/date_time/time_duration.hpp>
 #include <boost/lexical_cast.hpp>
-#include <glog/logging.h>
+#ifdef USE_GLOG
+	#include <glog/logging.h>
+#endif
 #include <iostream>
 
 #include <eventBuilding/SourceIDManager.h>

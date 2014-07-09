@@ -11,7 +11,9 @@
 #include <bits/atomic_base.h>
 #include <eventBuilding/Event.h>
 #include <eventBuilding/SourceIDManager.h>
-#include <glog/logging.h>
+#ifdef USE_GLOG
+	#include <glog/logging.h>
+#endif
 #include <l0/MEPEvent.h>
 #include <l0/Subevent.h>
 #include <LKr/LKREvent.h>

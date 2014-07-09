@@ -11,7 +11,9 @@
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/date_time/time_duration.hpp>
 #include <boost/thread/pthread/thread_data.hpp>
+#ifdef USE_GLOG
 #include <glog/logging.h>
+#endif
 #include <linux/pf_ring.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
@@ -264,8 +266,8 @@ bool PacketHandler::processPacket(DataContainer container) {
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
 				l0::MEPEvent* event = mep->getEvent(i);
 
-				zmq::message_t zmqMessage((void*) event,
-						event->getDataLength(), (zmq::free_fn*) nullptr);
+				zmq::message_t zmqMessage((void*) event, event->getDataLength(),
+						(zmq::free_fn*) nullptr);
 
 				while (true) {
 					try {

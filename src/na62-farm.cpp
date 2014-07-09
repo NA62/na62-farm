@@ -6,7 +6,9 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <eventBuilding/SourceIDManager.h>
+#ifdef USE_GLOG
 #include <glog/logging.h>
+#endif
 #include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
 #include <options/Options.h>

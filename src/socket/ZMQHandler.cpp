@@ -11,7 +11,9 @@
 #include <boost/date_time/time_duration.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/pthread/thread_data.hpp>
-#include <glog/logging.h>
+#ifdef USE_GLOG
+	#include <glog/logging.h>
+#endif
 #include <zmq.h>
 #include <zmq.hpp>
 #include <iostream>

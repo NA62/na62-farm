@@ -10,7 +10,9 @@
 #define EVENTBUILDER_H_
 
 #include <boost/timer/timer.hpp>
-#include <glog/logging.h>
+#ifdef USE_GLOG
+	#include <glog/logging.h>
+#endif
 #include <atomic>
 #include <cstdint>
 #include <iostream>
