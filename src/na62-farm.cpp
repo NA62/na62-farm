@@ -35,9 +35,6 @@ std::vector<EventBuilder*> eventBuilders;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
 	if (!error) {
-		std::cout << "Received signal " << signal_number << "! Shutting down"
-				<< std::endl;
-
 		AExecutable::InterruptAll();
 		AExecutable::JoinAll();
 

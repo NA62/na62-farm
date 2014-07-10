@@ -33,7 +33,7 @@
 #include <exceptions/UnknownCREAMSourceIDFound.h>
 #include <exceptions/UnknownSourceIDFound.h>
 #include <l0/MEP.h>
-#include <l0/MEPEvent.h>
+#include <l0/MEPFragment.h>
 #include <LKr/L1DistributionHandler.h>
 #include <LKr/LKREvent.h>
 #include <LKr/LKRMEP.h>
@@ -264,7 +264,7 @@ bool PacketHandler::processPacket(DataContainer container) {
 			BytesReceivedBySourceID_[mep->getSourceID()] += container.length;
 
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
-				l0::MEPEvent* event = mep->getEvent(i);
+				l0::MEPFragment* event = mep->getEvent(i);
 
 				zmq::message_t zmqMessage((void*) event, event->getDataLength(),
 						(zmq::free_fn*) nullptr);

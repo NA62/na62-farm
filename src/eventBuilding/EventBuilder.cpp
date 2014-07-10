@@ -23,7 +23,7 @@
 #include <string>
 
 #include <exceptions/NA62Error.h>
-#include <l0/MEPEvent.h>
+#include <l0/MEPFragment.h>
 #include <LKr/L1DistributionHandler.h>
 #include <LKr/LKREvent.h>
 #include <socket/EthernetUtils.h>
@@ -109,7 +109,7 @@ void EventBuilder::thread() {
 
 			if (items[0].revents & ZMQ_POLLIN) { // L0 data
 				L0Socket_->recv(&message);
-				handleL0Data((l0::MEPEvent*) message.data());
+				handleL0Data((l0::MEPFragment*) message.data());
 			} else if (changeBurstID_) {
 				if (EOBReceivedTime_.elapsed().wall > 100E6) {
 					LOG(INFO)<< "EB "<<threadNum_ <<" changed burst number to " << currentBurstID_ << " (" << (EOBReceivedTime_.elapsed().wall/1E6) << " ms after receiving the EOB)";
@@ -148,21 +148,21 @@ Event* EventBuilder::getNewEvent(uint32_t eventNumber) {
 	}
 }
 
-void EventBuilder::handleL0Data(l0::MEPEvent *mepEvent) {
+void EventBuilder::handleL0Data(l0::MEPFragment *MEPFragment) {
 	/*
-	 * Receiver only pushes MEPEVENT::eventNum%EBNum events. To fill all holes in eventPool we need divide by the number of event builder
+	 * Receiver only pushes MEPFragment::eventNum%EBNum events. To fill all holes in eventPool we need divide by the number of event builder
 	 */
-	const uint32_t eventPoolIndex = (mepEvent->getEventNumber() / NUMBER_OF_EBS);
+	const uint32_t eventPoolIndex = (MEPFragment->getEventNumber() / NUMBER_OF_EBS);
 	Event *event;
 
 	if (eventPoolIndex >= eventPool_.size()) { // Memory overflow
 		eventPool_.resize(eventPoolIndex * 2);
-		event = getNewEvent(mepEvent->getEventNumber());
+		event = getNewEvent(MEPFragment->getEventNumber());
 		eventPool_[eventPoolIndex] = event;
 	} else {
 		event = eventPool_[eventPoolIndex];
 		if (event == nullptr) { // An event with a higher eventPoolIndex has been received before this one
-			event = getNewEvent(mepEvent->getEventNumber());
+			event = getNewEvent(MEPFragment->getEventNumber());
 			eventPool_[eventPoolIndex] = event;
 		}
 	}
@@ -170,7 +170,7 @@ void EventBuilder::handleL0Data(l0::MEPEvent *mepEvent) {
 	/*
 	 * Add new packet to Event
 	 */
-	if (!event->addL0Event(mepEvent, getCurrentBurstID())) {
+	if (!event->addL0Event(MEPFragment, getCurrentBurstID())) {
 		return;
 	} else {
 		/*
@@ -182,7 +182,7 @@ void EventBuilder::handleL0Data(l0::MEPEvent *mepEvent) {
 
 void EventBuilder::handleLKRData(cream::LKREvent *lkrEvent) {
 	/*
-	 * Receiver only pushes MEPEVENT::eventNum%EBNum events. To fill all holes in eventPool we need divide by the number of event builder
+	 * Receiver only pushes MEPFragment::eventNum%EBNum events. To fill all holes in eventPool we need divide by the number of event builder
 	 */
 	const uint32_t eventPoolIndex = (lkrEvent->getEventNumber() / NUMBER_OF_EBS);
 
@@ -194,7 +194,7 @@ void EventBuilder::handleLKRData(cream::LKREvent *lkrEvent) {
 	}
 
 	/*
-	 * Get the corresponding Event object. It may NOT be NULL (don't delete, call Event::destroy() instead) but may be empty if mepEvent is the first part of this Event.
+	 * Get the corresponding Event object. It may NOT be NULL (don't delete, call Event::destroy() instead) but may be empty if MEPFragment is the first part of this Event.
 	 */
 	Event *event = eventPool_[eventPoolIndex];
 

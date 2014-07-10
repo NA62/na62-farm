@@ -31,7 +31,7 @@ class LKREvent;
 } /* namespace cream */
 
 namespace l0 {
-class MEPEvent;
+class MEPFragment;
 } /* namespace l0 */
 } /* namespace na62 */
 
@@ -82,7 +82,7 @@ public:
 private:
 	void thread();
 
-	void handleL0Data(l0::MEPEvent * mepEvent);
+	void handleL0Data(l0::MEPFragment * MEPFragment);
 	void handleLKRData(cream::LKREvent * lkrEvent);
 
 	void processL1(Event *event);

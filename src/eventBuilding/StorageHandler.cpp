@@ -14,7 +14,7 @@
 #ifdef USE_GLOG
 	#include <glog/logging.h>
 #endif
-#include <l0/MEPEvent.h>
+#include <l0/MEPFragment.h>
 #include <l0/Subevent.h>
 #include <LKr/LKREvent.h>
 #include "../options/MyOptions.h"
@@ -136,9 +136,9 @@ int StorageHandler::SendEvent(const uint16_t& threadNum, Event* event) {
 		 */
 		int payloadLength;
 		for (int i = subevent->getNumberOfParts() - 1; i >= 0; i--) {
-			l0::MEPEvent* e = subevent->getPart(i);
+			l0::MEPFragment* e = subevent->getPart(i);
 			payloadLength = e->getDataLength()
-					- sizeof(struct l0::MEPEVENT_HDR)
+					- sizeof(struct l0::MEPFragment_HDR)
 					+ sizeof(struct L0_BLOCK_HDR);
 			if (eventOffset + payloadLength > eventBufferSize) {
 				eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
