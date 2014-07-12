@@ -11,8 +11,10 @@
 #include <bits/atomic_base.h>
 #include <eventBuilding/Event.h>
 #include <eventBuilding/SourceIDManager.h>
-#include <glog/logging.h>
-#include <l0/MEPEvent.h>
+#ifdef USE_GLOG
+	#include <glog/logging.h>
+#endif
+#include <l0/MEPFragment.h>
 #include <l0/Subevent.h>
 #include <LKr/LKREvent.h>
 #include "../options/MyOptions.h"
@@ -134,9 +136,9 @@ int StorageHandler::SendEvent(const uint16_t& threadNum, Event* event) {
 		 */
 		int payloadLength;
 		for (int i = subevent->getNumberOfParts() - 1; i >= 0; i--) {
-			l0::MEPEvent* e = subevent->getPart(i);
-			payloadLength = e->getEventLength()
-					- sizeof(struct l0::MEPEVENT_RAW_HDR)
+			l0::MEPFragment* e = subevent->getPart(i);
+			payloadLength = e->getDataLength()
+					- sizeof(struct l0::MEPFragment_HDR)
 					+ sizeof(struct L0_BLOCK_HDR);
 			if (eventOffset + payloadLength > eventBufferSize) {
 				eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,

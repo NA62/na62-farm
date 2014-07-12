@@ -11,7 +11,9 @@
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/date_time/time_duration.hpp>
 #include <boost/thread/pthread/thread_data.hpp>
+#ifdef USE_GLOG
 #include <glog/logging.h>
+#endif
 #include <linux/pf_ring.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
@@ -31,7 +33,7 @@
 #include <exceptions/UnknownCREAMSourceIDFound.h>
 #include <exceptions/UnknownSourceIDFound.h>
 #include <l0/MEP.h>
-#include <l0/MEPEvent.h>
+#include <l0/MEPFragment.h>
 #include <LKr/L1DistributionHandler.h>
 #include <LKr/LKREvent.h>
 #include <LKr/LKRMEP.h>
@@ -40,7 +42,6 @@
 #include <structs/Network.h>
 #include <socket/EthernetUtils.h>
 #include <socket/PFringHandler.h>
-#include <monitoring/BurstIdHandler.h>
 
 #include "../socket/ZMQHandler.h"
 #include "../eventBuilding/EventBuilder.h"
@@ -211,7 +212,7 @@ void PacketHandler::processARPRequest(struct ARP_HDR* arp) {
 bool PacketHandler::processPacket(DataContainer container) {
 	const uint16_t L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
 	const uint16_t CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
-	const uint16_t Straw_Port = Options::GetInt(OPTION_STRAW_PORT);
+
 	const uint16_t EOB_BROADCAST_PORT = Options::GetInt(
 	OPTION_EOB_BROADCAST_PORT);
 
@@ -263,10 +264,10 @@ bool PacketHandler::processPacket(DataContainer container) {
 			BytesReceivedBySourceID_[mep->getSourceID()] += container.length;
 
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
-				l0::MEPEvent* event = mep->getEvent(i);
+				l0::MEPFragment* event = mep->getEvent(i);
 
-				zmq::message_t zmqMessage((void*) event,
-						event->getEventLength(), (zmq::free_fn*) nullptr);
+				zmq::message_t zmqMessage((void*) event, event->getDataLength(),
+						(zmq::free_fn*) nullptr);
 
 				while (true) {
 					try {
@@ -335,10 +336,6 @@ bool PacketHandler::processPacket(DataContainer container) {
 			LOG(INFO) <<
 			"Received EOB Farm-Broadcast. Will increment BurstID now to " << pack->finishedBurstID + 1;
 			EventBuilder::SetNextBurstID(pack->finishedBurstID + 1);
-			BurstIdHandler::SetNextBurstID(pack->finishedBurstID + 1);
-		} else if (destPort == Straw_Port) {
-			zmq::message_t zmqMessage((void*) container.data, container.length, (zmq::free_fn*) nullptr);
-			strawSocket_->send(zmqMessage);
 		} else {
 			/*
 			 * Packet with unknown UDP port received

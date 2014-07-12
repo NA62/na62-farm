@@ -6,7 +6,9 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <eventBuilding/SourceIDManager.h>
+#ifdef USE_GLOG
 #include <glog/logging.h>
+#endif
 #include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
 #include <options/Options.h>
@@ -33,9 +35,6 @@ std::vector<EventBuilder*> eventBuilders;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
 	if (!error) {
-		std::cout << "Received signal " << signal_number << "! Shutting down"
-				<< std::endl;
-
 		AExecutable::InterruptAll();
 		AExecutable::JoinAll();
 

@@ -9,7 +9,10 @@
 #ifndef EVENTBUILDER_H_
 #define EVENTBUILDER_H_
 
-#include <glog/logging.h>
+#include <boost/timer/timer.hpp>
+#ifdef USE_GLOG
+	#include <glog/logging.h>
+#endif
 #include <atomic>
 #include <cstdint>
 #include <iostream>
@@ -28,7 +31,7 @@ class LKREvent;
 } /* namespace cream */
 
 namespace l0 {
-class MEPEvent;
+class MEPFragment;
 } /* namespace l0 */
 } /* namespace na62 */
 
@@ -61,9 +64,17 @@ public:
 	}
 
 	static void SetNextBurstID(uint32_t nextBurstID) {
+		currentBurstID_ = nextBurstID;
+
+		EOBReceivedTime_.start();
+		LOG(INFO)<<"Changing BurstID to " << nextBurstID;
 		for (unsigned int i = 0; i < Instances_.size(); i++) {
-			Instances_[i]->setNextBurstID();
+			Instances_[i]->setNextBurstID(nextBurstID);
 		}
+	}
+
+	static uint32_t getCurrentBurstId() {
+		return currentBurstID_;
 	}
 
 	static uint NUMBER_OF_EBS;
@@ -71,7 +82,7 @@ public:
 private:
 	void thread();
 
-	void handleL0Data(l0::MEPEvent * mepEvent);
+	void handleL0Data(l0::MEPFragment * MEPFragment);
 	void handleLKRData(cream::LKREvent * lkrEvent);
 
 	void processL1(Event *event);
@@ -94,7 +105,7 @@ private:
 	/*
 	 * The burst ID will be changed as soon as the next L0 element is received. This way we can still receive CREAM data.
 	 */
-	inline void setNextBurstID() {
+	inline void setNextBurstID(uint32_t nextBurstID) {
 		changeBurstID_ = true;
 	}
 
@@ -105,6 +116,7 @@ private:
 	std::vector<Event*> eventPool_;
 
 	bool changeBurstID_;
+	static uint32_t currentBurstID_;
 	uint32_t threadCurrentBurstID_;
 
 	L1TriggerProcessor* L1processor_;
@@ -117,6 +129,8 @@ private:
 
 	static std::atomic<uint64_t> BytesSentToStorage_;
 	static std::atomic<uint64_t> EventsSentToStorage_;
+
+	static boost::timer::cpu_timer EOBReceivedTime_;
 };
 
 }

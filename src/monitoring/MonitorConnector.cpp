@@ -14,7 +14,9 @@
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/date_time/time_duration.hpp>
 #include <boost/lexical_cast.hpp>
-#include <glog/logging.h>
+#ifdef USE_GLOG
+	#include <glog/logging.h>
+#endif
 #include <iostream>
 
 #include <eventBuilding/SourceIDManager.h>
@@ -22,7 +24,6 @@
 #include <socket/PFringHandler.h>
 #include <utils/Utils.h>
 #include <monitoring/IPCHandler.h>
-#include <monitoring/BurstIdHandler.h>
 
 #include "../socket/PacketHandler.h"
 #include "../eventBuilding/EventBuilder.h"
@@ -169,7 +170,7 @@ void MonitorConnector::handleUpdate() {
 			boost::lexical_cast<std::string>(
 					cream::L1DistributionHandler::GetL1TriggersSent()));
 
-	LOG(INFO)<<"BurstID:\t" << BurstIdHandler::getCurrentBurstId();
+	LOG(INFO)<<"BurstID:\t" << EventBuilder::getCurrentBurstId();
 
 	PFringHandler::PrintStats();
 }
