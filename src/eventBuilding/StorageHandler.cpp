@@ -12,7 +12,7 @@
 #include <eventBuilding/Event.h>
 #include <eventBuilding/SourceIDManager.h>
 #ifdef USE_GLOG
-	#include <glog/logging.h>
+#include <glog/logging.h>
 #endif
 #include <l0/MEPFragment.h>
 #include <l0/Subevent.h>
@@ -30,7 +30,6 @@
 #include "../socket/ZMQHandler.h"
 #include "EventBuilder.h"
 
-
 namespace na62 {
 
 std::vector<zmq::socket_t*> StorageHandler::MergerSockets_;
@@ -39,7 +38,7 @@ std::atomic<uint> StorageHandler::InitialEventBufferSize_;
 int StorageHandler::TotalNumberOfDetectors_;
 
 void freeZmqMessage(void *data, void *hint) {
-	delete[]((char*)data);
+	delete[] ((char*) data);
 }
 
 void StorageHandler::Initialize() {
@@ -64,10 +63,10 @@ void StorageHandler::Initialize() {
 }
 
 void StorageHandler::OnShutDown() {
+	std::cout << "Shutting down StorageHandler"<<std::endl;
 	for (auto socket : MergerSockets_) {
 		if (socket != nullptr) {
-			socket->close();
-			delete socket;
+			ZMQHandler::DestroySocket(socket);
 		}
 	}
 }
@@ -225,7 +224,7 @@ int StorageHandler::SendEvent(const uint16_t& threadNum, Event* event) {
 	zmq::message_t zmqMessage((void*) eventBuffer, eventLength,
 			(zmq::free_fn*) freeZmqMessage);
 
-	while (true) {
+	while (ZMQHandler::IsRunning()) {
 		try {
 			MergerSockets_[threadNum]->send(zmqMessage);
 			break;
@@ -233,9 +232,11 @@ int StorageHandler::SendEvent(const uint16_t& threadNum, Event* event) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
 				LOG(ERROR)<< ex.what();
 
-				for (uint i = 0; i !=EventBuilder::NUMBER_OF_EBS; i++) {
-					MergerSockets_[i]->close();
-					delete MergerSockets_[i];
+				for (auto socket : MergerSockets_) {
+					if (socket != nullptr) {
+						std::cout << "StorageHandler received EINTR signal"<<std::endl;
+						ZMQHandler::DestroySocket(socket);
+					}
 				}
 				return 0;
 			}

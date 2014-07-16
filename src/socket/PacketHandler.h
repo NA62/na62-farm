@@ -50,6 +50,7 @@ private:
 	void processARPRequest(struct ARP_HDR* arp);
 	void thread();
 	void connectZMQ();
+	void destroyZMQSockets();
 
 	/**
 	 * @return <true> If no checksum errors have been found

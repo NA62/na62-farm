@@ -35,6 +35,7 @@ std::vector<EventBuilder*> eventBuilders;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
 	if (!error) {
+		ZMQHandler::Stop();
 		AExecutable::InterruptAll();
 		AExecutable::JoinAll();
 
@@ -48,7 +49,7 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 
 		StorageHandler::OnShutDown();
 
-		ZMQHandler::Destroy();
+		ZMQHandler::Shutdown();
 
 		std::cout << "Cleanly shut down na62-farm" << std::endl;
 	}

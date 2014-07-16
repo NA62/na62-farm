@@ -12,7 +12,7 @@
 #include <boost/thread/locks.hpp>
 #include <boost/thread/pthread/thread_data.hpp>
 #ifdef USE_GLOG
-	#include <glog/logging.h>
+#include <glog/logging.h>
 #endif
 #include <zmq.h>
 #include <zmq.hpp>
@@ -24,14 +24,23 @@
 namespace na62 {
 
 zmq::context_t* ZMQHandler::context_;
+bool ZMQHandler::running_ = true;
+std::atomic<int> ZMQHandler::numberOfActiveSockets_;
 std::set<std::string> ZMQHandler::boundAddresses_;
 boost::mutex ZMQHandler::connectMutex_;
 
 void ZMQHandler::Initialize(const int numberOfIOThreads) {
 	context_ = new zmq::context_t(numberOfIOThreads);
 }
+void ZMQHandler::Stop() {
+	running_ = false;
+}
 
-void ZMQHandler::Destroy() {
+void ZMQHandler::Shutdown() {
+	while (numberOfActiveSockets_ != 0) {
+		usleep(1000);
+	}
+
 	delete context_;
 }
 
@@ -41,8 +50,18 @@ zmq::socket_t* ZMQHandler::GenerateSocket(int socketType, int highWaterMark) {
 	socket->setsockopt(ZMQ_LINGER, &linger, sizeof(linger));
 
 	socket->setsockopt(ZMQ_SNDHWM, &highWaterMark, sizeof(highWaterMark));
-
+	numberOfActiveSockets_++;
 	return socket;
+}
+
+void ZMQHandler::DestroySocket(zmq::socket_t* socket) {
+	if(socket==nullptr){
+		return;
+	}
+	socket->close();
+	delete socket;
+	numberOfActiveSockets_--;
+	std::cout << "Closed ZMQ socket: "<< numberOfActiveSockets_<< " remaining)" << std::endl;
 }
 
 std::string ZMQHandler::GetEBL0Address(int threadNum) {

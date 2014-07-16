@@ -11,7 +11,7 @@
 #include <asm-generic/errno-base.h>
 #include <boost/thread/detail/thread.hpp>
 #ifdef USE_GLOG
-	#include <glog/logging.h>
+#include <glog/logging.h>
 #endif
 #include <netinet/ip.h>
 #include <netinet/udp.h>
@@ -64,10 +64,9 @@ EventBuilder::EventBuilder() :
 }
 
 EventBuilder::~EventBuilder() {
-	L0Socket_->close();
-	LKrSocket_->close();
-	delete L0Socket_;
-	delete LKrSocket_;
+	std::cout << "Destructing EventBuilder"<<std::endl;
+	ZMQHandler::DestroySocket(L0Socket_);
+	ZMQHandler::DestroySocket(LKrSocket_);
 }
 
 void EventBuilder::Initialize() {
@@ -84,11 +83,8 @@ void EventBuilder::Initialize() {
 void EventBuilder::thread() {
 	eventPool_.resize(
 			Options::GetInt(OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED));
-	for (uint i = 0;
-			i
-					!= Options::GetInt(
-							OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED)
-							/ NUMBER_OF_EBS; ++i) {
+	for (uint i = 0; i != Options::GetInt(
+	OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED) / NUMBER_OF_EBS; ++i) {
 		unusedEvents_.push_back(new Event(0));
 	}
 
@@ -100,7 +96,7 @@ void EventBuilder::thread() {
 	zmq::pollitem_t items[] = { { *L0Socket_, 0, ZMQ_POLLIN, 0 }, { *LKrSocket_,
 			0, ZMQ_POLLIN, 0 } };
 
-	while (1) {
+	while (ZMQHandler::IsRunning()) {
 		try {
 			boost::this_thread::interruption_point();
 
@@ -126,14 +122,14 @@ void EventBuilder::thread() {
 // Continue... Message will be printed automatically
 		} catch (const zmq::error_t& ex) {
 			if (ex.num() != EINTR) {
-				L0Socket_->close();
-				LKrSocket_->close();
-				delete L0Socket_;
-				delete LKrSocket_;
-				return;
+				std::cout << "EventBuilder received EINTR signal"<<std::endl;
+				break;
 			}
 		}
 	}
+	std::cout << "Stopping EventBuilder thread"<<std::endl;
+	ZMQHandler::DestroySocket(L0Socket_);
+	ZMQHandler::DestroySocket(LKrSocket_);
 }
 
 Event* EventBuilder::getNewEvent(uint32_t eventNumber) {
@@ -152,7 +148,8 @@ void EventBuilder::handleL0Data(l0::MEPFragment *MEPFragment) {
 	/*
 	 * Receiver only pushes MEPFragment::eventNum%EBNum events. To fill all holes in eventPool we need divide by the number of event builder
 	 */
-	const uint32_t eventPoolIndex = (MEPFragment->getEventNumber() / NUMBER_OF_EBS);
+	const uint32_t eventPoolIndex = (MEPFragment->getEventNumber()
+			/ NUMBER_OF_EBS);
 	Event *event;
 
 	if (eventPoolIndex >= eventPool_.size()) { // Memory overflow

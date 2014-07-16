@@ -59,20 +59,8 @@ PacketHandler::PacketHandler() {
 }
 
 PacketHandler::~PacketHandler() {
-	std::cout << "Deleting PacketHandler " << threadNum_ << std::endl;
-	for (auto socket : EBL0sockets_) {
-		if (socket != nullptr) {
-			socket->close();
-			delete socket;
-		}
-	}
-
-	for (auto socket : EBLKrSockets_) {
-		if (socket != nullptr) {
-			socket->close();
-			delete socket;
-		}
-	}
+	std::cout << "Destructing PacketHandler " << threadNum_ << std::endl;
+	destroyZMQSockets();
 }
 
 void PacketHandler::Initialize() {
@@ -106,6 +94,20 @@ void PacketHandler::connectZMQ() {
 	}
 }
 
+void PacketHandler::destroyZMQSockets() {
+	for (auto socket : EBL0sockets_) {
+		if (socket != nullptr) {
+			ZMQHandler::DestroySocket(socket);
+		}
+	}
+
+	for (auto socket : EBLKrSockets_) {
+		if (socket != nullptr) {
+			ZMQHandler::DestroySocket(socket);
+		}
+	}
+}
+
 void PacketHandler::thread() {
 	connectZMQ();
 
@@ -117,7 +119,8 @@ void PacketHandler::thread() {
 	memset(&hdr, 0, sizeof(hdr));
 	register int result = 0;
 	int sleepMicros = 1;
-	while (true) {
+	while (ZMQHandler::IsRunning()) {
+		std::cout << "PacketHandler running" << std::endl;
 		boost::this_thread::interruption_point();
 		result = 0;
 		data = NULL;
@@ -152,6 +155,8 @@ void PacketHandler::thread() {
 			dataContainers.pop();
 		}
 	}
+	std::cout << "Stopping PacketHandler thread " << threadNum_ << std::endl;
+	destroyZMQSockets();
 }
 
 bool PacketHandler::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
@@ -269,20 +274,16 @@ bool PacketHandler::processPacket(DataContainer container) {
 				zmq::message_t zmqMessage((void*) event, event->getDataLength(),
 						(zmq::free_fn*) nullptr);
 
-				while (true) {
+				while (ZMQHandler::IsRunning()) {
 					try {
 						EBL0sockets_[event->getEventNumber() % NUMBER_OF_EBS]->send(
 								zmqMessage);
 						break;
 					} catch (const zmq::error_t& ex) {
 						if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-							LOG(ERROR)<< ex.what();
-							for (uint i = 0; i < NUMBER_OF_EBS; i++) {
-								EBL0sockets_[i]->close();
-								EBLKrSockets_[i]->close();
-								delete EBL0sockets_[i];
-								delete EBLKrSockets_[i];
-							}
+							std::cout << "PacketHandler " << threadNum_
+									<< " received EINTR signal " << std::endl;
+							destroyZMQSockets();
 							return false;
 						}
 					}
@@ -299,7 +300,7 @@ bool PacketHandler::processPacket(DataContainer container) {
 
 			MEPsReceivedBySourceID_[SOURCE_ID_LKr]++;
 			EventsReceivedBySourceID_[SOURCE_ID_LKr] +=
-			mep->getNumberOfEvents();
+					mep->getNumberOfEvents();
 			BytesReceivedBySourceID_[SOURCE_ID_LKr] += container.length;
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
 				cream::LKREvent* event = mep->getEvent(i);
@@ -313,13 +314,9 @@ bool PacketHandler::processPacket(DataContainer container) {
 						break;
 					} catch (const zmq::error_t& ex) {
 						if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-							LOG(ERROR)<< ex.what();
-							for (uint i = 0; i < NUMBER_OF_EBS; i++) {
-								EBL0sockets_[i]->close();
-								EBLKrSockets_[i]->close();
-								delete EBL0sockets_[i];
-								delete EBLKrSockets_[i];
-							}
+							std::cout << "PacketHandler " << threadNum_
+									<< " received EINTR signal " << std::endl;
+							destroyZMQSockets();
 							return false;
 						}
 					}
