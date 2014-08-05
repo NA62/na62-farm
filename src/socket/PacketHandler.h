@@ -13,15 +13,15 @@
 #include <atomic>
 #include <cstdint>
 #include <vector>
-
+#include <tbb/task.h>
 #include <utils/AExecutable.h>
 
 namespace na62 {
 struct DataContainer;
 
-class PacketHandler: public AExecutable {
+class PacketHandler: public tbb::task{
 public:
-	PacketHandler();
+	PacketHandler(int threadNum);
 	virtual ~PacketHandler();
 
 	static void Initialize();
@@ -43,10 +43,11 @@ public:
 	static std::atomic<uint64_t>* BytesReceivedBySourceID_;
 
 private:
+	int threadNum_;
 	/**
 	 * @return <true> In case of success, false in case of a serious error (we should stop the thread in this case)
 	 */
-	void thread();
+	tbb::task* execute();
 };
 
 } /* namespace na62 */

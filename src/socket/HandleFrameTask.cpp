@@ -37,7 +37,7 @@
 
 namespace na62 {
 
-HandleFrameTask::HandleFrameTask(DataContainer&& _container) :
+HandleFrameTask::HandleFrameTask(DataContainer _container) :
 		container(std::move(_container)) {
 
 }

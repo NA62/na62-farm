@@ -124,7 +124,8 @@ void BuildL1Task::sendEOBBroadcast(uint32_t eventNumber,
 	EOBPacket.udp.udp.check = EthernetUtils::GenerateUDPChecksum(&EOBPacket.udp,
 			sizeof(struct EOB_FULL_FRAME));
 
-	PFringHandler::AsyncSendFrame( std::move({(char*) &EOBPacket, sizeof(struct EOB_FULL_FRAME)}));
+	DataContainer container = {(char*) &EOBPacket, sizeof(struct EOB_FULL_FRAME)};
+	PFringHandler::AsyncSendFrame( std::move(container));
 
 	setNextBurstID(EOBPacket.finishedBurstID + 1);
 }

@@ -6,6 +6,8 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <eventBuilding/SourceIDManager.h>
+#include <tbb/task.h>
+
 #ifdef USE_GLOG
 #include <glog/logging.h>
 #endif
@@ -50,6 +52,23 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 	}
 }
 
+class PacketHandlerStarter: public tbb::task {
+private:
+	tbb::task* execute() {
+		unsigned int numberOfPacketHandler = PFringHandler::GetNumberOfQueues();
+		std::cout << "Starting " << numberOfPacketHandler
+				<< " PacketHandler threads" << std::endl;
+
+		tbb::task_list packetHandlerGroup;
+		for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
+			PacketHandler* handler = new PacketHandler(i);
+			packetHandlers.push_back(handler);
+			packetHandlerGroup.push_back(*handler);
+		}
+		spawn_and_wait_for_all(packetHandlerGroup);
+	}
+};
+
 int main(int argc, char* argv[]) {
 	/*
 	 * Signals
@@ -71,7 +90,8 @@ int main(int argc, char* argv[]) {
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
-			Options::GetIntPairList(OPTION_CREAM_CRATES), Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES));
+			Options::GetIntPairList(OPTION_CREAM_CRATES),
+			Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES));
 
 	PacketHandler::Initialize();
 
@@ -100,24 +120,17 @@ int main(int argc, char* argv[]) {
 	monitor.startThread("MonitorConnector");
 
 	/*
-	 * Packet Handler
-	 */
-	unsigned int numberOfPacketHandler = PFringHandler::GetNumberOfQueues();
-	std::cout << "Starting " << numberOfPacketHandler
-			<< " PacketHandler threads" << std::endl;
-
-	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
-		packetHandlers.push_back(new PacketHandler());
-		LOG(INFO)<< "Binding PacketHandler " << i << " to core " << i << "!";
-		packetHandlers[i]->startThread(i, "PacketHandler" + std::to_string(i),
-				i, 15);
-	}
-
-	/*
 	 * L1 Distribution handler
 	 */
 	cream::L1DistributionHandler l1Handler;
 	l1Handler.startThread("L1DistributionHandler");
+
+	/*
+	 * Packet Handler
+	 */
+	PacketHandlerStarter& starter =
+			*new (tbb::task::allocate_root()) PacketHandlerStarter();
+	tbb::task::spawn_root_and_wait(starter);
 
 	AExecutable::JoinAll();
 	return 0;

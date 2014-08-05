@@ -16,7 +16,7 @@ namespace na62 {
 
 class HandleFrameTask: public tbb::task {
 private:
-	DataContainer&& container;
+	DataContainer container;
 
 	void processARPRequest(struct ARP_HDR* arp);
 
@@ -26,7 +26,7 @@ private:
 	bool checkFrame(struct UDP_HDR* hdr, uint16_t length);
 
 public:
-	HandleFrameTask(DataContainer&& _container);
+	HandleFrameTask(DataContainer  _container);
 	virtual ~HandleFrameTask();
 
 	tbb::task* execute();

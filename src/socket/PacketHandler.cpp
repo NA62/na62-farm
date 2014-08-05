@@ -53,7 +53,7 @@ std::atomic<uint64_t>* PacketHandler::MEPsReceivedBySourceID_;
 std::atomic<uint64_t>* PacketHandler::EventsReceivedBySourceID_;
 std::atomic<uint64_t>* PacketHandler::BytesReceivedBySourceID_;
 
-PacketHandler::PacketHandler() {
+PacketHandler::PacketHandler(int threadNum): threadNum_(threadNum) {
 	NUMBER_OF_EBS = Options::GetInt(OPTION_NUMBER_OF_EBS);
 }
 
@@ -77,9 +77,7 @@ void PacketHandler::Initialize() {
 	}
 }
 
-void PacketHandler::thread() {
-	DataContainer container;
-
+tbb::task*  PacketHandler::execute() {
 	register char* data; // = new char[MTU];
 	struct pfring_pkthdr hdr;
 	memset(&hdr, 0, sizeof(hdr));
@@ -97,12 +95,13 @@ void PacketHandler::thread() {
 		if (result == 1) {
 			char* buff = new char[hdr.len];
 			memcpy(buff, data, hdr.len);
-			container = {buff, (uint16_t) hdr.len};
-			sleepMicros = 1;
 
-			HandleFrameTask* task = new (tbb::task::allocate_root()) HandleFrameTask(
-					std::move(container));
+			DataContainer container = {buff, (uint16_t) hdr.len};
+			HandleFrameTask* task = new (tbb::task::allocate_root()) HandleFrameTask(container);
+
 			tbb::task::enqueue(*task, tbb::priority_t::priority_high);
+
+			sleepMicros = 1;
 		} else {
 			/*
 			 * Use the time to send some packets
