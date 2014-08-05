@@ -120,7 +120,6 @@ void PacketHandler::thread() {
 	register int result = 0;
 	int sleepMicros = 1;
 	while (ZMQHandler::IsRunning()) {
-		std::cout << "PacketHandler running" << std::endl;
 		boost::this_thread::interruption_point();
 		result = 0;
 		data = NULL;
