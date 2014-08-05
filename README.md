@@ -19,7 +19,7 @@ from every readout board (each board is defined by a unique sourceID). This proc
 As soon as the event is complete, the L1 trigger algorithms will be executed with the built event.
 
 As the LKr detector only sends a reduced data set after the L0 trigger, the PC farm requests the full data set 
-in case of a positive L1 trigger. Thereby a multicas UDP datagram is sent to the LKr readout boards (CREAMs) and 
+in case of a positive L1 trigger. Thereby a multicast UDP datagram is sent to the LKr readout boards (CREAMs) and 
 those boards response with the requested event data.
 As soon as all CREAMs have sent the requested data to the PC which has sent the request, this PC will execute the L2 
 trigger algorithms with the now complete event. If the event passes the L2 algorithms it will be passed to the 
@@ -31,6 +31,7 @@ by the network (10 Gb/s) and by the writing spead of the tape heads at the data 
 ## Design of the framework
 The framework consists of following components:
   * na62-farm-lib (static library)
+  * na62-farm-lib-networking (static library)
   * na62-trigger-algorithms (static library)
   * na62-farm
   * na62-merger
@@ -39,6 +40,9 @@ The framework consists of following components:
 ### na62-farm-lib
 This static library is used by all other software components. It stores all data types for the communications protocols
 and usefull helper classes.
+
+### na62-farm-lib-networking
+This library is only used by projects that use pf_ring for network communications.
 
 ### na62-trigger-algorithms
 Here all L1 and L2 trigger algorithms are implemented. These are executed with the incoming raw data received by the na62-farm.
