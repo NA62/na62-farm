@@ -7,14 +7,12 @@
 
 #include "HandleFrameTask.h"
 
-#include <asm-generic/errno-base.h>
-#include <bits/atomic_base.h>
 #include <eventBuilding/SourceIDManager.h>
 #include <exceptions/UnknownCREAMSourceIDFound.h>
 #include <exceptions/UnknownSourceIDFound.h>
 #include <glog/logging.h>
 #include <l0/MEP.h>
-#include <l0/MEPEvent.h>
+#include <l0/MEPFragment.h>
 #include <LKr/LKREvent.h>
 #include <LKr/LKRMEP.h>
 #include <net/ethernet.h>
@@ -24,10 +22,8 @@
 #include <netinet/udp.h>
 #include <options/Options.h>
 #include <socket/PFringHandler.h>
-#include <structs/Event.h>
 #include <structs/Network.h>
-#include <sys/types.h>
-#include <zmq.hpp>
+#include <algorithm>
 #include <atomic>
 #include <cstdbool>
 #include <cstdint>
@@ -35,7 +31,7 @@
 #include <vector>
 
 #include "../eventBuilding/BuildL1Task.h"
-#include "../eventBuilding/EventBuilder.h"
+#include "../eventBuilding/BuildL2Task.h"
 #include "../options/MyOptions.h"
 #include "PacketHandler.h"
 
@@ -66,6 +62,9 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 }
 
 tbb::task* HandleFrameTask::execute() {
+	/*
+	 * TODO read options only once at startup
+	 */
 	const uint16_t L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
 	const uint16_t CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
 
@@ -121,12 +120,11 @@ tbb::task* HandleFrameTask::execute() {
 					container.length;
 
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
-				l0::MEPEvent* event = mep->getEvent(i);
+				l0::MEPFragment* event = mep->getEvent(i);
 				BuildL1Task* task =
 						new (tbb::task::allocate_root()) BuildL1Task(event);
-				tbb::task::enqueue(task, tbb::priority_t::priority_low);
+				tbb::task::enqueue(*task, tbb::priority_t::priority_low);
 			}
-
 		} else if (destPort == CREAM_Port) {
 			/*
 			 * CREAM Data
@@ -140,29 +138,15 @@ tbb::task* HandleFrameTask::execute() {
 					mep->getNumberOfEvents();
 			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr] +=
 					container.length;
-			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
-				cream::LKREvent* event = mep->getEvent(i);
-				zmq::message_t zmqMessage((void*) event,
-						event->getEventLength(), (zmq::free_fn*) nullptr);
 
-				while (true) {
-					try {
-						EBLKrSockets_[event->getEventNumber() % NUMBER_OF_EBS]->send(
-								zmqMessage);
-						break;
-					} catch (const zmq::error_t& ex) {
-						if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-							LOG(ERROR)<< ex.what();
-							for (uint i = 0; i < NUMBER_OF_EBS; i++) {
-								EBL0sockets_[i]->close();
-								EBLKrSockets_[i]->close();
-								delete EBL0sockets_[i];
-								delete EBLKrSockets_[i];
-							}
-							return nullptr;
-						}
-					}
-				}
+			/*
+			 * Start builder tasks for every MEP fragment
+			 */
+			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
+				BuildL2Task* task =
+						new (tbb::task::allocate_root()) BuildL2Task(
+								mep->getEvent(i));
+				tbb::task::enqueue(*task, tbb::priority_t::priority_low);
 			}
 		} else if (destPort == EOB_BROADCAST_PORT) {
 			if (dataLength != sizeof(struct EOB_FULL_FRAME) - sizeof(UDP_HDR)) {
@@ -174,7 +158,7 @@ tbb::task* HandleFrameTask::execute() {
 			EOB_FULL_FRAME* pack = (struct EOB_FULL_FRAME*) container.data;
 			LOG(INFO) <<
 			"Received EOB Farm-Broadcast. Will increment BurstID now to " << pack->finishedBurstID + 1;
-			EventBuilder::SetNextBurstID(pack->finishedBurstID + 1);
+			BuildL1Task::setNextBurstID(pack->finishedBurstID + 1);
 		} else {
 			/*
 			 * Packet with unknown UDP port received

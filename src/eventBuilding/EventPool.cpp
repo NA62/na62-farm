@@ -8,8 +8,6 @@
 #include "EventPool.h"
 
 #include <eventBuilding/Event.h>
-#include <cstdint>
-#include <vector>
 
 namespace na62 {
 
@@ -22,7 +20,7 @@ EventPool::EventPool() {
 EventPool::~EventPool() {
 }
 
-static Event* EventPool::GetEvent(uint32_t eventNumber) {
+Event* EventPool::GetEvent(uint32_t eventNumber) {
 	Event* event;
 	if (eventNumber >= events_.size()) { // Memory overflow
 		events_.resize(eventNumber * 2);
@@ -41,7 +39,7 @@ static Event* EventPool::GetEvent(uint32_t eventNumber) {
 Event* EventPool::getNewEvent(uint32_t eventNumber) {
 	if (!unusedEvents_.empty()) {
 		Event *event;
-		event = unusedEvents_.back();s
+		event = unusedEvents_.back();
 		unusedEvents_.pop_back();
 		event->setEventNumber(eventNumber);
 		return event;

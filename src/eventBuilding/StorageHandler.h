@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <atomic>
 #include <thread>
+#include <mutex>
 
 namespace zmq {
 class socket_t;

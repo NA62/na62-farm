@@ -8,9 +8,11 @@
 #ifndef EVENTPOOL_H_
 #define EVENTPOOL_H_
 
-#include <bits/stl_bvector.h>
+#include <vector>
+#include <cstdint>
 
 namespace na62 {
+class Event;
 
 class EventPool {
 private:

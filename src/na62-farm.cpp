@@ -20,7 +20,6 @@
 #include <l1/L1TriggerProcessor.h>
 #include <l2/L2TriggerProcessor.h>
 
-#include "eventBuilding/EventBuilder.h"
 #include "eventBuilding/StorageHandler.h"
 #include "monitoring/MonitorConnector.h"
 #include "options/MyOptions.h"
@@ -82,8 +81,6 @@ int main(int argc, char* argv[]) {
 
 	StorageHandler::Initialize();
 
-	EventBuilder::Initialize();
-
 	L1TriggerProcessor::Initialize(Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR));
 
 	L2TriggerProcessor::Initialize(Options::GetInt(OPTION_L2_DOWNSCALE_FACTOR));
@@ -116,19 +113,6 @@ int main(int argc, char* argv[]) {
 		LOG(INFO)<< "Binding PacketHandler " << i << " to core " << i << "!";
 		packetHandlers[i]->startThread(i, "PacketHandler" + std::to_string(i),
 				i, 15);
-	}
-
-	/*
-	 * Event Builder
-	 */
-	unsigned int numberOfEB = Options::GetInt(OPTION_NUMBER_OF_EBS);
-	LOG(INFO)<< "Starting " << numberOfEB << " EventBuilder threads"
-	<< std::endl;
-
-	for (unsigned int i = 0; i < numberOfEB; i++) {
-		eventBuilders.push_back(new EventBuilder());
-		eventBuilders[i]->startThread(i, "EventBuilder" + std::to_string(i), -1,
-				15);
 	}
 
 	/*

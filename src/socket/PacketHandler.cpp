@@ -11,6 +11,7 @@
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/date_time/time_duration.hpp>
 #include <boost/thread/pthread/thread_data.hpp>
+#include <tbb/task.h>
 #ifdef USE_GLOG
 #include <glog/logging.h>
 #endif
@@ -42,9 +43,9 @@
 #include <structs/Network.h>
 #include <socket/EthernetUtils.h>
 #include <socket/PFringHandler.h>
+#include <eventBuilding/SourceIDManager.h>
 
 #include "../socket/ZMQHandler.h"
-#include "../eventBuilding/EventBuilder.h"
 #include "HandleFrameTask.h"
 
 namespace na62 {
@@ -104,7 +105,7 @@ void PacketHandler::thread() {
 
 			HandleFrameTask* task = new (tbb::task::allocate_root()) HandleFrameTask(
 					std::move(container));
-			tbb::task::enqueue(task, tbb::priority_t::priority_high);
+			tbb::task::enqueue(*task, tbb::priority_t::priority_high);
 		} else {
 			/*
 			 * Use the time to send some packets

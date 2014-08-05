@@ -25,6 +25,8 @@
 #include <cstring>
 #include <iostream>
 #include <string>
+#include <thread>
+#include <mutex>
 
 //#include "../options/MyOptions.h"
 #include "../socket/ZMQHandler.h"
@@ -35,6 +37,8 @@ zmq::socket_t* StorageHandler::MergerSocket_;
 
 std::atomic<uint> StorageHandler::InitialEventBufferSize_;
 int StorageHandler::TotalNumberOfDetectors_;
+
+std::mutex StorageHandler::sendMutex_;
 
 void freeZmqMessage(void *data, void *hint) {
 	delete[] ((char*) data);

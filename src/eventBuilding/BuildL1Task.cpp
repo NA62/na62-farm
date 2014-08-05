@@ -7,11 +7,10 @@
 
 #include "BuildL1Task.h"
 
-#include <arpa/inet.h>
 #include <eventBuilding/Event.h>
 #include <eventBuilding/SourceIDManager.h>
 #include <glog/logging.h>
-#include <l0/MEPEvent.h>
+#include <l0/MEPFragment.h>
 #include <l1/L1TriggerProcessor.h>
 #include <LKr/L1DistributionHandler.h>
 #include <netinet/ip.h>
@@ -19,22 +18,22 @@
 #include <options/Options.h>
 #include <socket/EthernetUtils.h>
 #include <socket/PFringHandler.h>
-#include <structs/Event.h>
 #include <structs/Network.h>
 #include <cstdbool>
-#include <cstdint>
 #include <iostream>
-#include <string>
 
-#include "EventBuilder.h"
+#include "../options/MyOptions.h"
+#include "BuildL2Task.h"
+#include "EventPool.h"
 
 namespace na62 {
 
 std::atomic<uint64_t>* BuildL1Task::L1Triggers_ = new std::atomic<uint64_t>[0xFF
 		+ 1];
+uint32_t BuildL1Task::currentBurstID_ = 0;
 
-BuildL1Task::BuildL1Task(l0::MEPEvent* event) :
-		mepEvent_(event) {
+BuildL1Task::BuildL1Task(l0::MEPFragment* event) :
+		MEPFragment_(event) {
 
 }
 
@@ -43,14 +42,14 @@ BuildL1Task::~BuildL1Task() {
 
 tbb::task* BuildL1Task::execute() {
 	/*
-	 * Receiver only pushes MEPEVENT::eventNum%EBNum events. To fill all holes in eventPool we need divide by the number of event builder
+	 * Receiver only pushes MEPFragment::eventNum%EBNum events. To fill all holes in eventPool we need divide by the number of event builder
 	 */
-	Event *event = EventPool::GetEvent(mepEvent_->getEventNumber());
+	Event *event = EventPool::GetEvent(MEPFragment_->getEventNumber());
 
 	/*
 	 * Add new packet to Event
 	 */
-	if (!event->addL0Event(mepEvent_, getCurrentBurstID())) {
+	if (!event->addL0Event(MEPFragment_, getCurrentBurstID())) {
 		return nullptr;
 	} else {
 		/*
@@ -124,10 +123,9 @@ void BuildL1Task::sendEOBBroadcast(uint32_t eventNumber,
 	EOBPacket.udp.udp.check = EthernetUtils::GenerateUDPChecksum(&EOBPacket.udp,
 			sizeof(struct EOB_FULL_FRAME));
 
-	PFringHandler::SendFrame((char*) &EOBPacket, sizeof(struct EOB_FULL_FRAME),
-			true, false);
+	PFringHandler::AsyncSendFrame( {(char*) &EOBPacket, sizeof(struct EOB_FULL_FRAME)});
 
-	BuildL1Task::setNextBurstID(EOBPacket.finishedBurstID + 1);
+	setNextBurstID(EOBPacket.finishedBurstID + 1);
 }
 
 }

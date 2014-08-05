@@ -20,12 +20,6 @@ class LKREvent;
 } /* namespace na62 */
 
 namespace na62 {
-namespace l0 {
-class MEPEvent;
-} /* namespace l0 */
-} /* namespace na62 */
-
-namespace na62 {
 
 class BuildL2Task: public tbb::task {
 private:
@@ -33,8 +27,8 @@ private:
 
 	static std::atomic<uint64_t>* L2Triggers_;
 
-	std::atomic<uint64_t> BytesSentToStorage_;
-	std::atomic<uint64_t> EventsSentToStorage_;
+	static std::atomic<uint64_t> BytesSentToStorage_;
+	static std::atomic<uint64_t> EventsSentToStorage_;
 
 	uint32_t getCurrentBurstID() {
 		return 0;
@@ -42,6 +36,13 @@ private:
 
 	void setNextBurstID(uint32_t) {
 	}
+
+public:
+	BuildL2Task(cream::LKREvent* event);
+	virtual ~BuildL2Task();
+
+	tbb::task* execute();
+	static void processL2(Event *event);
 
 	static inline const std::atomic<uint64_t>* GetL2TriggerStats() {
 		return L2Triggers_;
@@ -54,12 +55,6 @@ private:
 	static inline const uint64_t GetEventsSentToStorage() {
 		return EventsSentToStorage_;
 	}
-public:
-	BuildL2Task(l0::MEPEvent* event);
-	virtual ~BuildL2Task();
-
-	tbb::task* execute();
-	static void processL2(Event *event);
 };
 
 } /* namespace na62 */
