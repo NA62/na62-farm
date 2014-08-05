@@ -96,7 +96,7 @@ public:
 				"Defines the expected sourceIDs within the data packets from the CREAMs. The format is $crateID1:$CREAMIDs,$crateID1:$CREAMIDs,$crateID2:$CREAMIDs... E.g. 1:2-4,1:11-13,2:2-5,2:7 for two crates (1 and 2) with following IDs (2,3,4,11,12,13 and 2,3,4,5,7).")
 
 		(OPTION_INACTIVE_CREAM_CRATES, po::value<std::string>()->default_value(""),
-				"Defines a list of CREAMs that appear in the "+std::string(OPTION_CREAM_CRATES)+" list but should not be activated")
+				"Defines a list of CREAMs that must appear in the normal creamCrate list but should not be activated")
 
 		(OPTION_TS_SOURCEID, po::value<std::string>()->required(),
 				"Source ID of the detector which timestamp should be written into the final event and sent to the LKr for L1-triggers.")
