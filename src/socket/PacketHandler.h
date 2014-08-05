@@ -10,16 +10,12 @@
 #define PACKETHANDLER_H_
 
 #include <sys/types.h>
-#include <zmq.hpp>
 #include <atomic>
 #include <cstdint>
 #include <vector>
 
 #include <utils/AExecutable.h>
 
-namespace zmq {
-class socket_t;
-}
 namespace na62 {
 struct DataContainer;
 

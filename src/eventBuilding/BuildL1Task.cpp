@@ -30,6 +30,7 @@ namespace na62 {
 
 std::atomic<uint64_t>* BuildL1Task::L1Triggers_ = new std::atomic<uint64_t>[0xFF
 		+ 1];
+
 uint32_t BuildL1Task::currentBurstID_ = 0;
 
 BuildL1Task::BuildL1Task(l0::MEPFragment* event) :
@@ -104,7 +105,7 @@ void BuildL1Task::sendEOBBroadcast(uint32_t eventNumber,
 	LOG(INFO)<<"Sending EOB broadcast to "
 	<< Options::GetString(OPTION_EOB_BROADCAST_IP) << ":"
 	<< Options::GetInt(OPTION_EOB_BROADCAST_PORT);
-	EOB_FULL_FRAME EOBPacket;
+	EOB_FULL_FRAME EOBPacket = *(new EOB_FULL_FRAME);
 
 	EOBPacket.finishedBurstID = finishedBurstID;
 	EOBPacket.lastEventNum = eventNumber;
@@ -123,7 +124,7 @@ void BuildL1Task::sendEOBBroadcast(uint32_t eventNumber,
 	EOBPacket.udp.udp.check = EthernetUtils::GenerateUDPChecksum(&EOBPacket.udp,
 			sizeof(struct EOB_FULL_FRAME));
 
-	PFringHandler::AsyncSendFrame( {(char*) &EOBPacket, sizeof(struct EOB_FULL_FRAME)});
+	PFringHandler::AsyncSendFrame( std::move({(char*) &EOBPacket, sizeof(struct EOB_FULL_FRAME)}));
 
 	setNextBurstID(EOBPacket.finishedBurstID + 1);
 }

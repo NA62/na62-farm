@@ -55,9 +55,7 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 				PFringHandler::GetMyIP(), arp->sourceIPAddr,
 				ARPOP_REPLY);
 		// FIXME: Which thread should we use to send data?
-		PFringHandler::SendFrameConcurrently(0, responseArp.data,
-				responseArp.length);
-		delete[] responseArp.data;
+		PFringHandler::AsyncSendFrame(std::move(responseArp));
 	}
 }
 
@@ -82,12 +80,12 @@ tbb::task* HandleFrameTask::execute() {
 		 */
 		if (etherType != ETHERTYPE_IP || ipProto != IPPROTO_UDP) {
 			if (etherType == ETHERTYPE_ARP) {
+				// this will delete the data
 				processARPRequest((struct ARP_HDR*) container.data);
+			} else {
+				delete[] container.data;
+				return nullptr;
 			}
-
-			// Anyway delete the buffer afterwards
-			delete[] container.data;
-			return nullptr;
 		}
 
 		/*

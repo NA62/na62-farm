@@ -22,8 +22,6 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <sys/types.h>
-#include <zmq.h>
-#include <zmq.hpp>
 #include <algorithm>
 #include <cstdbool>
 #include <cstdint>
@@ -45,7 +43,6 @@
 #include <socket/PFringHandler.h>
 #include <eventBuilding/SourceIDManager.h>
 
-#include "../socket/ZMQHandler.h"
 #include "HandleFrameTask.h"
 
 namespace na62 {
@@ -88,7 +85,7 @@ void PacketHandler::thread() {
 	memset(&hdr, 0, sizeof(hdr));
 	register int result = 0;
 	int sleepMicros = 1;
-	while (ZMQHandler::IsRunning()) {
+	while (true) {
 		boost::this_thread::interruption_point();
 		result = 0;
 		data = NULL;

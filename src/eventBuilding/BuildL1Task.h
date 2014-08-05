@@ -58,6 +58,12 @@ public:
 	static inline const std::atomic<uint64_t>* GetL1TriggerStats() {
 		return L1Triggers_;
 	}
+
+	static void Initialize() {
+		for (int i = 0; i != 0xFF + 1; i++) {
+			L1Triggers_[i] = 0;
+		}
+	}
 };
 
 } /* namespace na62 */

@@ -20,6 +20,7 @@
 #include <l1/L1TriggerProcessor.h>
 #include <l2/L2TriggerProcessor.h>
 
+#include "eventBuilding/BuildL1Task.h"
 #include "eventBuilding/StorageHandler.h"
 #include "monitoring/MonitorConnector.h"
 #include "options/MyOptions.h"
@@ -30,17 +31,12 @@ using namespace std;
 using namespace na62;
 
 std::vector<PacketHandler*> packetHandlers;
-std::vector<EventBuilder*> eventBuilders;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
 	if (!error) {
 		ZMQHandler::Stop();
 		AExecutable::InterruptAll();
 		AExecutable::JoinAll();
-
-		for (auto eventBuilder : eventBuilders) {
-			delete eventBuilder;
-		}
 
 		for (auto packetHandler : packetHandlers) {
 			delete packetHandler;
@@ -84,6 +80,8 @@ int main(int argc, char* argv[]) {
 	L1TriggerProcessor::Initialize(Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR));
 
 	L2TriggerProcessor::Initialize(Options::GetInt(OPTION_L2_DOWNSCALE_FACTOR));
+
+	BuildL1Task::Initialize();
 
 	cream::L1DistributionHandler::Initialize(
 			Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP),
