@@ -138,10 +138,12 @@ void PacketHandler::thread() {
 			/*
 			 * Use the time to send some packets
 			 */
-			if (cream::L1DistributionHandler::DoSendMRP(threadNum_)) {
+			if (cream::L1DistributionHandler::DoSendMRP(threadNum_)
+					|| PFringHandler::DoSendQueuedFrames(threadNum_) != 0) {
 				sleepMicros = 1;
 				continue;
 			}
+
 			boost::this_thread::sleep(boost::posix_time::microsec(sleepMicros));
 			if (sleepMicros < 10000) {
 				sleepMicros *= 2;

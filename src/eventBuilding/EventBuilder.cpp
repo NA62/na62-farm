@@ -64,7 +64,7 @@ EventBuilder::EventBuilder() :
 }
 
 EventBuilder::~EventBuilder() {
-	std::cout << "Destructing EventBuilder"<<std::endl;
+	std::cout << "Destructing EventBuilder" << std::endl;
 	ZMQHandler::DestroySocket(L0Socket_);
 	ZMQHandler::DestroySocket(LKrSocket_);
 }
@@ -122,12 +122,12 @@ void EventBuilder::thread() {
 // Continue... Message will be printed automatically
 		} catch (const zmq::error_t& ex) {
 			if (ex.num() != EINTR) {
-				std::cout << "EventBuilder received EINTR signal"<<std::endl;
+				std::cout << "EventBuilder received EINTR signal" << std::endl;
 				break;
 			}
 		}
 	}
-	std::cout << "Stopping EventBuilder thread"<<std::endl;
+	std::cout << "Stopping EventBuilder thread" << std::endl;
 	ZMQHandler::DestroySocket(L0Socket_);
 	ZMQHandler::DestroySocket(LKrSocket_);
 }
@@ -318,8 +318,7 @@ void EventBuilder::SendEOBBroadcast(uint32_t eventNumber,
 	EOBPacket.udp.udp.check = EthernetUtils::GenerateUDPChecksum(&EOBPacket.udp,
 			sizeof(struct EOB_FULL_FRAME));
 
-	PFringHandler::SendFrame((char*) &EOBPacket, sizeof(struct EOB_FULL_FRAME),
-			true, false);
+	PFringHandler::AsyncSendFrame( {(char*) &EOBPacket, sizeof(struct EOB_FULL_FRAME)});
 
 	EventBuilder::SetNextBurstID(EOBPacket.finishedBurstID + 1);
 }
