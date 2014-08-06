@@ -61,7 +61,7 @@ void ZMQHandler::DestroySocket(zmq::socket_t* socket) {
 	socket->close();
 	delete socket;
 	numberOfActiveSockets_--;
-	std::cout << "Closed ZMQ socket: "<< numberOfActiveSockets_<< " remaining)" << std::endl;
+	std::cout << "Closed ZMQ socket ("<< numberOfActiveSockets_<< " remaining)" << std::endl;
 }
 
 std::string ZMQHandler::GetEBL0Address(int threadNum) {

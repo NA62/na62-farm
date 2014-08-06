@@ -53,7 +53,7 @@ std::atomic<uint64_t>* PacketHandler::MEPsReceivedBySourceID_;
 std::atomic<uint64_t>* PacketHandler::EventsReceivedBySourceID_;
 std::atomic<uint64_t>* PacketHandler::BytesReceivedBySourceID_;
 
-PacketHandler::PacketHandler(int threadNum): threadNum_(threadNum) {
+PacketHandler::PacketHandler(int threadNum): threadNum_(threadNum), running_(true) {
 	NUMBER_OF_EBS = Options::GetInt(OPTION_NUMBER_OF_EBS);
 }
 
@@ -83,7 +83,7 @@ tbb::task*  PacketHandler::execute() {
 	memset(&hdr, 0, sizeof(hdr));
 	register int result = 0;
 	int sleepMicros = 1;
-	while (true) {
+	while (running_) {
 		boost::this_thread::interruption_point();
 		result = 0;
 		data = NULL;

@@ -19,10 +19,14 @@
 namespace na62 {
 struct DataContainer;
 
-class PacketHandler: public tbb::task{
+class PacketHandler: public tbb::task {
 public:
 	PacketHandler(int threadNum);
 	virtual ~PacketHandler();
+
+	void stopRunning() {
+		running_ = false;
+	}
 
 	static void Initialize();
 
@@ -43,7 +47,7 @@ public:
 	static std::atomic<uint64_t>* BytesReceivedBySourceID_;
 
 private:
-	int threadNum_;
+	int threadNum_; bool running_;
 	/**
 	 * @return <true> In case of success, false in case of a serious error (we should stop the thread in this case)
 	 */

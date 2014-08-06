@@ -42,6 +42,10 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 		AExecutable::InterruptAll();
 		AExecutable::JoinAll();
 
+		for(auto& handler: packetHandlers){
+			handler->stopRunning();
+		}
+
 		StorageHandler::OnShutDown();
 
 		ZMQHandler::Shutdown();
@@ -117,7 +121,7 @@ int main(int argc, char* argv[]) {
 			<< " PacketHandler threads" << std::endl;
 
 	tbb::task* dummy = new (tbb::task::allocate_root()) tbb::empty_task;
-	dummy->set_ref_count(numberOfPacketHandler + 1);
+	dummy->set_ref_count(numberOfPacketHandler);
 
 	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
 		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
@@ -129,8 +133,9 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Join PacketHandler and other threads
 	 */
-	dummy->wait_for_all();
-	dummy->destroy(*dummy);
+//	dummy->wait_for_all();
+//	dummy->destroy(*dummy);
 	AExecutable::JoinAll();
+	dummy->destroy(*dummy);
 	return 0;
 }

@@ -63,8 +63,7 @@ void StorageHandler::Initialize() {
 }
 
 void StorageHandler::OnShutDown() {
-	MergerSocket_->close();
-	delete MergerSocket_;
+	ZMQHandler::DestroySocket(MergerSocket_);
 }
 
 char* StorageHandler::ResizeBuffer(char* buffer, const int oldLength,
@@ -225,14 +224,11 @@ int StorageHandler::SendEvent(Event* event) {
 				LOG(ERROR)<< ex.what();
 
 				 std::lock_guard<std::mutex> lock(sendMutex_);
-				MergerSocket_->close();
-				delete MergerSocket_;
+				 ZMQHandler::DestroySocket(MergerSocket_);
 				return 0;
 			}
 		}
 	}
-
-	ZMQHandler::DestroySocket(MergerSocket_);
 
 	return header->length * 4;
 }

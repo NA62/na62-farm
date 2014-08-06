@@ -38,7 +38,6 @@ void EventPool::Initialize() {
 					numberOfEventsStored_
 					/ std::thread::hardware_concurrency()),
 			[](const tbb::blocked_range<uint32_t>& r) {
-				std::cout << "Spawned parallel_for thread" << std::endl;
 				for(size_t eventNumber=r.begin();eventNumber!=r.end(); ++eventNumber) {
 					events_[eventNumber] = new Event(eventNumber);
 				}
@@ -50,8 +49,6 @@ void EventPool::Initialize() {
 		events_[eventNumber] = new Event(eventNumber);
 	}
 #endif
-
-	std::cout << "Finished Initializing EventPool " << std::endl;
 }
 
 Event* EventPool::GetEvent(uint32_t eventNumber) {
