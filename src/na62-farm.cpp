@@ -37,12 +37,14 @@ using namespace na62;
 std::vector<PacketHandler*> packetHandlers;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
+	std::cout << "Received signal " << signal_number << " - Shutting down"
+			<< std::endl;
 	if (!error) {
 		ZMQHandler::Stop();
 		AExecutable::InterruptAll();
 		AExecutable::JoinAll();
 
-		for(auto& handler: packetHandlers){
+		for (auto& handler : packetHandlers) {
 			handler->stopRunning();
 		}
 

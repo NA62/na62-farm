@@ -11,7 +11,8 @@
 #include <sys/types.h>
 #include <atomic>
 #include <thread>
-#include <mutex>
+#include <tbb/spin_mutex.h>
+#include <tbb/mutex.h>
 
 namespace zmq {
 class socket_t;
@@ -37,7 +38,7 @@ private:
 	 * One Socket for every EventBuilder
 	 */
 	static zmq::socket_t* MergerSocket_;
-	static std::mutex sendMutex_;
+	static tbb::spin_mutex sendMutex_;
 
 	static std::atomic<uint> InitialEventBufferSize_;
 	static int TotalNumberOfDetectors_;

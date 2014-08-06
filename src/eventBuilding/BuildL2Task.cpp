@@ -7,11 +7,12 @@
 
 #include "BuildL2Task.h"
 
-#include <bits/atomic_base.h>
 #include <eventBuilding/Event.h>
 #include <exceptions/NA62Error.h>
 #include <l2/L2TriggerProcessor.h>
 #include <LKr/LKREvent.h>
+#include <iostream>
+#include <string>
 
 #include "EventPool.h"
 #include "StorageHandler.h"

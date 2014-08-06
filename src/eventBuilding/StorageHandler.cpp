@@ -38,7 +38,7 @@ zmq::socket_t* StorageHandler::MergerSocket_;
 std::atomic<uint> StorageHandler::InitialEventBufferSize_;
 int StorageHandler::TotalNumberOfDetectors_;
 
-std::mutex StorageHandler::sendMutex_;
+tbb::spin_mutex StorageHandler::sendMutex_;
 
 void freeZmqMessage(void *data, void *hint) {
 	delete[] ((char*) data);
@@ -216,14 +216,14 @@ int StorageHandler::SendEvent(Event* event) {
 
 	while (ZMQHandler::IsRunning()) {
 		try {
-			 std::lock_guard<std::mutex> lock(sendMutex_);
+			 tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
 			MergerSocket_->send(zmqMessage);
 			break;
 		} catch (const zmq::error_t& ex) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
 				LOG(ERROR)<< ex.what();
 
-				 std::lock_guard<std::mutex> lock(sendMutex_);
+				 tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
 				 ZMQHandler::DestroySocket(MergerSocket_);
 				return 0;
 			}
