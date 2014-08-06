@@ -23,6 +23,7 @@
 #include <l2/L2TriggerProcessor.h>
 
 #include "eventBuilding/BuildL1Task.h"
+#include "eventBuilding/BuildL2Task.h"
 #include "eventBuilding/StorageHandler.h"
 #include "monitoring/MonitorConnector.h"
 #include "options/MyOptions.h"
@@ -51,23 +52,6 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 		std::cout << "Cleanly shut down na62-farm" << std::endl;
 	}
 }
-
-class PacketHandlerStarter: public tbb::task {
-private:
-	tbb::task* execute() {
-		unsigned int numberOfPacketHandler = PFringHandler::GetNumberOfQueues();
-		std::cout << "Starting " << numberOfPacketHandler
-				<< " PacketHandler threads" << std::endl;
-
-		tbb::task_list packetHandlerGroup;
-		for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
-			PacketHandler* handler = new PacketHandler(i);
-			packetHandlers.push_back(handler);
-			packetHandlerGroup.push_back(*handler);
-		}
-		spawn_and_wait_for_all(packetHandlerGroup);
-	}
-};
 
 int main(int argc, char* argv[]) {
 	/*
@@ -102,6 +86,7 @@ int main(int argc, char* argv[]) {
 	L2TriggerProcessor::Initialize(Options::GetInt(OPTION_L2_DOWNSCALE_FACTOR));
 
 	BuildL1Task::Initialize();
+	BuildL2Task::Initialize();
 
 	cream::L1DistributionHandler::Initialize(
 			Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP),
@@ -128,10 +113,25 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Packet Handler
 	 */
-	PacketHandlerStarter& starter =
-			*new (tbb::task::allocate_root()) PacketHandlerStarter();
-	tbb::task::spawn_root_and_wait(starter);
+	unsigned int numberOfPacketHandler = PFringHandler::GetNumberOfQueues();
+	std::cout << "Starting " << numberOfPacketHandler
+			<< " PacketHandler threads" << std::endl;
 
+	tbb::task* dummy = new (tbb::task::allocate_root()) tbb::empty_task;
+	dummy->set_ref_count(numberOfPacketHandler + 1);
+
+	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
+		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
+				i);
+		packetHandlers.push_back(handler);
+		dummy->spawn(*handler);
+	}
+
+	/*
+	 * Join PacketHandler and other threads
+	 */
+	dummy->wait_for_all();
+	dummy->destroy(*dummy);
 	AExecutable::JoinAll();
 	return 0;
 }

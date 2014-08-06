@@ -119,6 +119,7 @@ tbb::task*  PacketHandler::execute() {
 		}
 	}
 	std::cout << "Stopping PacketHandler thread " << threadNum_ << std::endl;
+	return nullptr;
 }
 }
 /* namespace na62 */

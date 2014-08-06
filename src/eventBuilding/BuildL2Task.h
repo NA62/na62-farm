@@ -55,6 +55,12 @@ public:
 	static inline const uint64_t GetEventsSentToStorage() {
 		return EventsSentToStorage_;
 	}
+
+	static void Initialize() {
+		for (int i = 0; i != 0xFF + 1; i++) {
+			L2Triggers_[i] = 0;
+		}
+	}
 };
 
 } /* namespace na62 */
