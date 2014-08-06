@@ -8,8 +8,9 @@
 #ifndef EVENTPOOL_H_
 #define EVENTPOOL_H_
 
-#include <vector>
+#include <eventBuilding/Event.h>
 #include <cstdint>
+#include <vector>
 
 namespace na62 {
 class Event;
@@ -17,15 +18,10 @@ class Event;
 class EventPool {
 private:
 	static std::vector<Event*> events_;
-	static std::vector<Event*> unusedEvents_;
+	static uint32_t numberOfEventsStored_;
 public:
-	EventPool();
-	virtual ~EventPool();
-
+	static void Initialize();
 	static Event* GetEvent(uint32_t eventNumber);
-
-	static Event* getNewEvent(uint32_t eventNumber);
-
 };
 
 } /* namespace na62 */

@@ -48,6 +48,14 @@ tbb::task* BuildL1Task::execute() {
 	Event *event = EventPool::GetEvent(MEPFragment_->getEventNumber());
 
 	/*
+	 * If the event number is too large event is null an we have to drop the data
+	 */
+	if(event == nullptr){
+		delete MEPFragment_;
+		return nullptr;
+	}
+
+	/*
 	 * Add new packet to Event
 	 */
 	if (!event->addL0Event(MEPFragment_, getCurrentBurstID())) {
@@ -105,29 +113,27 @@ void BuildL1Task::sendEOBBroadcast(uint32_t eventNumber,
 	LOG(INFO)<<"Sending EOB broadcast to "
 	<< Options::GetString(OPTION_EOB_BROADCAST_IP) << ":"
 	<< Options::GetInt(OPTION_EOB_BROADCAST_PORT);
-	EOB_FULL_FRAME EOBPacket = *(new EOB_FULL_FRAME);
-
-	EOBPacket.finishedBurstID = finishedBurstID;
-	EOBPacket.lastEventNum = eventNumber;
-
-	EthernetUtils::GenerateUDP((const char*) &EOBPacket,
+	const char* buff = new char[sizeof(EOB_FULL_FRAME)];
+	EOB_FULL_FRAME* EOBPacket = (struct EOB_FULL_FRAME*) buff;
+	EOBPacket->finishedBurstID = finishedBurstID;
+	EOBPacket->lastEventNum = eventNumber;
+	EthernetUtils::GenerateUDP(buff,
 			EthernetUtils::StringToMAC("FF:FF:FF:FF:FF:FF"),
 			inet_addr(Options::GetString(OPTION_EOB_BROADCAST_IP).data()),
 			Options::GetInt(OPTION_EOB_BROADCAST_PORT),
 			Options::GetInt(OPTION_EOB_BROADCAST_PORT));
-
-	EOBPacket.udp.setPayloadSize(
+	EOBPacket->udp.setPayloadSize(
 			sizeof(struct EOB_FULL_FRAME) - sizeof(struct UDP_HDR));
-	EOBPacket.udp.ip.check = 0;
-	EOBPacket.udp.ip.check = EthernetUtils::GenerateChecksum(
-			(const char*) (&EOBPacket.udp.ip), sizeof(struct iphdr));
-	EOBPacket.udp.udp.check = EthernetUtils::GenerateUDPChecksum(&EOBPacket.udp,
+	EOBPacket->udp.ip.check = 0;
+	EOBPacket->udp.ip.check = EthernetUtils::GenerateChecksum(
+			(const char*) (&EOBPacket->udp.ip), sizeof(struct iphdr));
+	EOBPacket->udp.udp.check = EthernetUtils::GenerateUDPChecksum(&EOBPacket->udp,
 			sizeof(struct EOB_FULL_FRAME));
 
-	DataContainer container = {(char*) &EOBPacket, sizeof(struct EOB_FULL_FRAME)};
+	DataContainer container = {(char*)buff, sizeof(struct EOB_FULL_FRAME)};
 	PFringHandler::AsyncSendFrame( std::move(container));
 
-	setNextBurstID(EOBPacket.finishedBurstID + 1);
+	setNextBurstID(finishedBurstID + 1);
 }
 
 }

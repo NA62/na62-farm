@@ -38,7 +38,7 @@
 #define OPTION_CREAM_MULTICAST_PORT (char*)"creamMulticastPort"
 #define OPTION_MAX_TRIGGERS_PER_L1MRP (char*)"maxTriggerPerL1MRP"
 
-#define OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED (char*)"numberOfEventsPerBurstExpected"
+#define OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST (char*)"maxNumberOfEventsPerBurst"
 
 /*
  * Triggering
@@ -123,9 +123,9 @@ public:
 		(OPTION_MAX_TRIGGERS_PER_L1MRP, po::value<int>()->default_value(100),
 				"Maximum number of Triggers per L1 MRP")
 
-		(OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED,
+		(OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST,
 				po::value<int>()->default_value(10000000),
-				"Expected number of events per burst and PC")
+				"The number of events this pc should be able to receive. The system will ignore events with event numbers larger than this value")
 
 		(OPTION_MERGER_HOST_NAME, po::value<std::string>()->required(),
 				"IP or hostname of the merger PC.")

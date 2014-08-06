@@ -8,44 +8,40 @@
 #include "EventPool.h"
 
 #include <eventBuilding/Event.h>
+#include <options/Options.h>
+#include <tbb/tbb.h>
+#include <glog/logging.h>
+
+#include "../options/MyOptions.h"
 
 namespace na62 {
 
 std::vector<Event*> EventPool::events_;
-std::vector<Event*> EventPool::unusedEvents_;
+uint32_t EventPool::numberOfEventsStored_;
 
-EventPool::EventPool() {
-}
+void EventPool::Initialize() {
+	numberOfEventsStored_ = Options::GetInt(
+	OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST);
+	events_.resize(numberOfEventsStored_);
 
-EventPool::~EventPool() {
+	/*
+	 * Fill the pool with empty events. Do it with parallel_for using tbb
+	 */
+	tbb::parallel_for(tbb::blocked_range<uint32_t>(0, numberOfEventsStored_),
+			[](const tbb::blocked_range<uint32_t>& r) {
+				for(size_t eventNumber=r.begin();eventNumber!=r.end(); ++eventNumber)
+				events_[eventNumber] = new Event(eventNumber);
+			});
 }
 
 Event* EventPool::GetEvent(uint32_t eventNumber) {
-	Event* event;
-	if (eventNumber >= events_.size()) { // Memory overflow
-		events_.resize(eventNumber * 2);
-		event = getNewEvent(eventNumber);
-		events_[eventNumber] = event;
-	} else {
-		event = events_[eventNumber];
-		if (event == nullptr) { // An event with a higher eventPoolIndex has been received before this one
-			event = getNewEvent(eventNumber);
-			events_[eventNumber] = event;
-		}
+	if (eventNumber >= numberOfEventsStored_) {
+		LOG(ERROR) << "Received Event with event number " << eventNumber
+				<< " which is higher than configured by --"
+				<< OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST << std::endl;
+		return nullptr;
 	}
-	return event;
-}
-
-Event* EventPool::getNewEvent(uint32_t eventNumber) {
-	if (!unusedEvents_.empty()) {
-		Event *event;
-		event = unusedEvents_.back();
-		unusedEvents_.pop_back();
-		event->setEventNumber(eventNumber);
-		return event;
-	} else {
-		return new Event(eventNumber);
-	}
+	return events_[eventNumber];
 }
 
 } /* namespace na62 */

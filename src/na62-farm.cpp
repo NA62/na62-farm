@@ -29,6 +29,7 @@
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
 #include "socket/ZMQHandler.h"
+#include "eventBuilding/EventPool.h"
 
 using namespace std;
 using namespace na62;
@@ -87,6 +88,8 @@ int main(int argc, char* argv[]) {
 
 	BuildL1Task::Initialize();
 	BuildL2Task::Initialize();
+
+	EventPool::Initialize();
 
 	cream::L1DistributionHandler::Initialize(
 			Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP),
