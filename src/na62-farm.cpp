@@ -42,10 +42,6 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 		AExecutable::InterruptAll();
 		AExecutable::JoinAll();
 
-		for (auto packetHandler : packetHandlers) {
-			delete packetHandler;
-		}
-
 		StorageHandler::OnShutDown();
 
 		ZMQHandler::Shutdown();

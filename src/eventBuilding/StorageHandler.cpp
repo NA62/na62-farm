@@ -232,6 +232,8 @@ int StorageHandler::SendEvent(Event* event) {
 		}
 	}
 
+	ZMQHandler::DestroySocket(MergerSocket_);
+
 	return header->length * 4;
 }
 } /* namespace na62 */

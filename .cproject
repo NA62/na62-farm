@@ -34,6 +34,7 @@
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.1391815591" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_GLOG"/>
+									<listOptionValue builtIn="false" value="HAVE_TCMALLOC"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1619664570" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
@@ -160,6 +161,7 @@
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.1515787549" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_GLOG"/>
+									<listOptionValue builtIn="false" value="HAVE_TCMALLOC"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1591196732" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
@@ -193,6 +195,7 @@
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="boost_program_options"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="boost_system"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="tbb"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="tcmalloc"/>
 								</option>
 								<option id="gnu.cpp.link.option.paths.1371079621" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib-networking/Debug}&quot;"/>
