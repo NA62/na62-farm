@@ -122,14 +122,11 @@ int main(int argc, char* argv[]) {
 	std::cout << "Starting " << numberOfPacketHandler
 			<< " PacketHandler threads" << std::endl;
 
-	tbb::task* dummy = new (tbb::task::allocate_root()) tbb::empty_task;
-	dummy->set_ref_count(numberOfPacketHandler);
-
 	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
 		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
 				i);
 		packetHandlers.push_back(handler);
-		dummy->spawn(*handler);
+		tbb::task::enqueue(*handler, tbb::priority_t::priority_high);
 	}
 
 	/*
@@ -138,6 +135,5 @@ int main(int argc, char* argv[]) {
 //	dummy->wait_for_all();
 //	dummy->destroy(*dummy);
 	AExecutable::JoinAll();
-	dummy->destroy(*dummy);
 	return 0;
 }

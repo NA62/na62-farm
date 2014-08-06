@@ -26,7 +26,7 @@ private:
 	bool checkFrame(struct UDP_HDR* hdr, uint16_t length);
 
 public:
-	HandleFrameTask(DataContainer  _container);
+	HandleFrameTask(DataContainer&&  _container);
 	virtual ~HandleFrameTask();
 
 	tbb::task* execute();

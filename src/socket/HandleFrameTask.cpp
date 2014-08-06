@@ -7,9 +7,7 @@
 
 #include "HandleFrameTask.h"
 
-#include <eventBuilding/SourceIDManager.h>
-#include <exceptions/UnknownCREAMSourceIDFound.h>
-#include <exceptions/UnknownSourceIDFound.h>
+
 #include <glog/logging.h>
 #include <l0/MEP.h>
 #include <l0/MEPFragment.h>
@@ -20,15 +18,20 @@
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
-#include <options/Options.h>
-#include <socket/PFringHandler.h>
-#include <structs/Network.h>
 #include <algorithm>
 #include <atomic>
 #include <cstdbool>
 #include <cstdint>
 #include <iostream>
 #include <vector>
+
+#include <eventBuilding/SourceIDManager.h>
+#include <exceptions/UnknownCREAMSourceIDFound.h>
+#include <exceptions/UnknownSourceIDFound.h>
+#include <utils/DataDumper.h>
+#include <options/Options.h>
+#include <socket/PFringHandler.h>
+#include <structs/Network.h>
 
 #include "../eventBuilding/BuildL1Task.h"
 #include "../eventBuilding/BuildL2Task.h"
@@ -37,9 +40,8 @@
 
 namespace na62 {
 
-HandleFrameTask::HandleFrameTask(DataContainer _container) :
-		container(std::move(_container)) {
-
+HandleFrameTask::HandleFrameTask(DataContainer&& _container) :
+		container(_container) {
 }
 
 HandleFrameTask::~HandleFrameTask() {
@@ -54,7 +56,6 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 				PFringHandler::GetMyMac().data(), arp->sourceHardwAddr,
 				PFringHandler::GetMyIP(), arp->sourceIPAddr,
 				ARPOP_REPLY);
-		// FIXME: Which thread should we use to send data?
 		PFringHandler::AsyncSendFrame(std::move(responseArp));
 	}
 }
@@ -82,7 +83,9 @@ tbb::task* HandleFrameTask::execute() {
 			if (etherType == ETHERTYPE_ARP) {
 				// this will delete the data
 				processARPRequest((struct ARP_HDR*) container.data);
+				return nullptr;
 			} else {
+				// Just ignore this frame as it's not IP nor ARP
 				delete[] container.data;
 				return nullptr;
 			}
@@ -144,7 +147,7 @@ tbb::task* HandleFrameTask::execute() {
 				BuildL2Task* task =
 						new (tbb::task::allocate_root()) BuildL2Task(
 								mep->getEvent(i));
-				tbb::task::enqueue(*task, tbb::priority_t::priority_low);
+				tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 			}
 		} else if (destPort == EOB_BROADCAST_PORT) {
 			if (dataLength != sizeof(struct EOB_FULL_FRAME) - sizeof(UDP_HDR)) {

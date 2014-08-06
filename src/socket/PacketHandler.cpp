@@ -12,6 +12,8 @@
 #include <boost/date_time/time_duration.hpp>
 #include <boost/thread/pthread/thread_data.hpp>
 #include <tbb/task.h>
+#include <tbb/tick_count.h>
+#include <tbb/tbb_thread.h>
 #ifdef USE_GLOG
 #include <glog/logging.h>
 #endif
@@ -53,7 +55,8 @@ std::atomic<uint64_t>* PacketHandler::MEPsReceivedBySourceID_;
 std::atomic<uint64_t>* PacketHandler::EventsReceivedBySourceID_;
 std::atomic<uint64_t>* PacketHandler::BytesReceivedBySourceID_;
 
-PacketHandler::PacketHandler(int threadNum): threadNum_(threadNum), running_(true) {
+PacketHandler::PacketHandler(int threadNum) :
+		threadNum_(threadNum), running_(true) {
 	NUMBER_OF_EBS = Options::GetInt(OPTION_NUMBER_OF_EBS);
 }
 
@@ -77,7 +80,7 @@ void PacketHandler::Initialize() {
 	}
 }
 
-tbb::task*  PacketHandler::execute() {
+tbb::task* PacketHandler::execute() {
 	register char* data; // = new char[MTU];
 	struct pfring_pkthdr hdr;
 	memset(&hdr, 0, sizeof(hdr));
@@ -96,10 +99,11 @@ tbb::task*  PacketHandler::execute() {
 			char* buff = new char[hdr.len];
 			memcpy(buff, data, hdr.len);
 
-			DataContainer container = {buff, (uint16_t) hdr.len};
-			HandleFrameTask* task = new (tbb::task::allocate_root()) HandleFrameTask(container);
+			DataContainer container = { buff, (uint16_t) hdr.len };
+			HandleFrameTask* task =
+					new (tbb::task::allocate_root()) HandleFrameTask(std::move(container));
 
-			tbb::task::enqueue(*task, tbb::priority_t::priority_high);
+			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 
 			sleepMicros = 1;
 		} else {
@@ -112,7 +116,12 @@ tbb::task*  PacketHandler::execute() {
 				continue;
 			}
 
-			boost::this_thread::sleep(boost::posix_time::microsec(sleepMicros));
+			/*
+			 * Allow other threads to execute
+			 */
+			tbb::this_tbb_thread::yield();
+			tbb::this_tbb_thread::sleep(tbb::	tick_count::interval_t(sleepMicros*1E-6));
+
 			if (sleepMicros < 10000) {
 				sleepMicros *= 2;
 			}

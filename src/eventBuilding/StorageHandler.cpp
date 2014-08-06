@@ -28,9 +28,7 @@
 #include <thread>
 #include <mutex>
 
-//#include "../options/MyOptions.h"
 #include "../socket/ZMQHandler.h"
-//#include "EventBuilder.h"
 namespace na62 {
 
 zmq::socket_t* StorageHandler::MergerSocket_;
@@ -52,7 +50,6 @@ void StorageHandler::Initialize() {
 	/*
 	 * L0 sources + LKr
 	 */
-	// TODO: Delete this as soon as the LKR is running
 	if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT == 0) {
 		TotalNumberOfDetectors_ = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES;
 	} else {
@@ -211,20 +208,23 @@ int StorageHandler::SendEvent(Event* event) {
 
 	header->length = eventLength / 4;
 
+	/*
+	 * Send the event to the merger
+	 */
 	zmq::message_t zmqMessage((void*) eventBuffer, eventLength,
 			(zmq::free_fn*) freeZmqMessage);
 
 	while (ZMQHandler::IsRunning()) {
 		try {
-			 tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
+			tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
 			MergerSocket_->send(zmqMessage);
 			break;
 		} catch (const zmq::error_t& ex) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
 				LOG(ERROR)<< ex.what();
 
-				 tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
-				 ZMQHandler::DestroySocket(MergerSocket_);
+				tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
+				ZMQHandler::DestroySocket(MergerSocket_);
 				return 0;
 			}
 		}

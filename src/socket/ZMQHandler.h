@@ -37,7 +37,8 @@ public:
 	static std::string GetMergerAddress();
 	static void Stop();
 	static void DestroySocket(zmq::socket_t* socket);
-	static bool IsRunning() {
+
+	static inline bool IsRunning() {
 		return running_;
 	}
 
