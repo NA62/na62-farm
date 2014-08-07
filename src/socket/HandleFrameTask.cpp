@@ -30,7 +30,7 @@
 #include <exceptions/UnknownSourceIDFound.h>
 #include <utils/DataDumper.h>
 #include <options/Options.h>
-#include <socket/PCapHandler.h>
+#include <socket/NetworkHandler.h>
 #include <structs/Network.h>
 
 #include "../eventBuilding/BuildL1Task.h"
@@ -51,12 +51,12 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 	/*
 	 * Look for ARP requests asking for my IP
 	 */
-	if (arp->targetIPAddr == PCapHandler::GetMyIP()) { // This is asking for me
+	if (arp->targetIPAddr == NetworkHandler::GetMyIP()) { // This is asking for me
 		struct DataContainer responseArp = EthernetUtils::GenerateARPv4(
-				PCapHandler::GetMyMac().data(), arp->sourceHardwAddr,
-				PCapHandler::GetMyIP(), arp->sourceIPAddr,
+				NetworkHandler::GetMyMac().data(), arp->sourceHardwAddr,
+				NetworkHandler::GetMyIP(), arp->sourceIPAddr,
 				ARPOP_REPLY);
-		PCapHandler::AsyncSendFrame(std::move(responseArp));
+		NetworkHandler::AsyncSendFrame(std::move(responseArp));
 	}
 }
 

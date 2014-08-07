@@ -18,7 +18,7 @@
 #include <netinet/udp.h>
 #include <options/Options.h>
 #include <socket/EthernetUtils.h>
-#include <socket/PCapHandler.h>
+#include <socket/NetworkHandler.h>
 #include <structs/Network.h>
 #include <algorithm>
 #include <cstdbool>
@@ -134,7 +134,7 @@ void BuildL1Task::sendEOBBroadcast(uint32_t eventNumber,
 			sizeof(struct EOB_FULL_FRAME));
 
 	DataContainer container = {(char*)buff, sizeof(struct EOB_FULL_FRAME)};
-	PCapHandler::AsyncSendFrame( std::move(container));
+	NetworkHandler::AsyncSendFrame( std::move(container));
 
 	setNextBurstID(finishedBurstID + 1);
 }

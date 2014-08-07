@@ -7,10 +7,6 @@
 
 #include "PacketHandler.h"
 
-#include <asm-generic/errno-base.h>
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
-#include <boost/date_time/time_duration.hpp>
-#include <boost/thread/pthread/thread_data.hpp>
 #include <tbb/task.h>
 #include <tbb/tick_count.h>
 #include <tbb/tbb_thread.h>
@@ -42,7 +38,7 @@
 #include <structs/Event.h>
 #include <structs/Network.h>
 #include <socket/EthernetUtils.h>
-#include <socket/PCapHandler.h>
+#include <socket/NetworkHandler.h>
 #include <eventBuilding/SourceIDManager.h>
 
 #include "HandleFrameTask.h"
@@ -94,24 +90,25 @@ tbb::task* PacketHandler::execute() {
 		 * The actual  polling!
 		 * Do not wait for incoming packets as this will block the ring and make sending impossible
 		 */
-		result = PCapHandler::GetNextFrame(&hdr, &data, 0, false, threadNum_);
-		if (result>0) {
+		result = NetworkHandler::GetNextFrame(&hdr, &data, 0, false, threadNum_);
+		if (result > 0) {
 			char* buff = new char[hdr.len];
 			memcpy(buff, data, hdr.len);
 
 			DataContainer container = { buff, (uint16_t) hdr.len };
 			HandleFrameTask* task =
-					new (tbb::task::allocate_root()) HandleFrameTask(std::move(container));
+					new (tbb::task::allocate_root()) HandleFrameTask(
+							std::move(container));
 
 			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 
 			sleepMicros = 1;
-		}
+		} else {
 			/*
 			 * Use the time to send some packets
 			 */
 			if (cream::L1DistributionHandler::DoSendMRP(threadNum_)
-					|| PCapHandler::DoSendQueuedFrames(threadNum_) != 0) {
+					|| NetworkHandler::DoSendQueuedFrames(threadNum_) != 0) {
 				sleepMicros = 1;
 				continue;
 			}
@@ -120,11 +117,13 @@ tbb::task* PacketHandler::execute() {
 			 * Allow other threads to execute
 			 */
 			tbb::this_tbb_thread::yield();
-			tbb::this_tbb_thread::sleep(tbb::	tick_count::interval_t(sleepMicros*1E-6));
+			tbb::this_tbb_thread::sleep(
+					tbb::tick_count::interval_t(sleepMicros * 1E-6));
 
 			if (sleepMicros < 10000) {
 				sleepMicros *= 2;
 			}
+		}
 	}
 	std::cout << "Stopping PacketHandler thread " << threadNum_ << std::endl;
 	return nullptr;
