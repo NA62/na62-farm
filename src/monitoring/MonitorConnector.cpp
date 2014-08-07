@@ -22,7 +22,7 @@
 
 #include <eventBuilding/SourceIDManager.h>
 #include <LKr/L1DistributionHandler.h>
-#include <socket/PFringHandler.h>
+#include <socket/PCapHandler.h>
 #include <utils/Utils.h>
 #include <monitoring/IPCHandler.h>
 
@@ -66,8 +66,8 @@ void MonitorConnector::handleUpdate() {
 
 	IPCHandler::updateState(RUNNING);
 
-	setDifferentialData("BytesReceived", PFringHandler::GetBytesReceived());
-	setDifferentialData("FramesReceived", PFringHandler::GetFramesReceived());
+	setDifferentialData("BytesReceived", PCapHandler::GetBytesReceived());
+	setDifferentialData("FramesReceived", PCapHandler::GetFramesReceived());
 
 	/*
 	 * Number of Events and data rate from all detectors
@@ -174,7 +174,7 @@ void MonitorConnector::handleUpdate() {
 
 	LOG(INFO)<<"BurstID:\t" << BuildL1Task::getCurrentBurstId();
 
-	PFringHandler::PrintStats();
+	PCapHandler::PrintStats();
 }
 
 float MonitorConnector::setDifferentialData(std::string key, uint64_t value) {

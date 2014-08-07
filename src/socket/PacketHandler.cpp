@@ -42,7 +42,7 @@
 #include <structs/Event.h>
 #include <structs/Network.h>
 #include <socket/EthernetUtils.h>
-#include <socket/PFringHandler.h>
+#include <socket/PCapHandler.h>
 #include <eventBuilding/SourceIDManager.h>
 
 #include "HandleFrameTask.h"
@@ -81,7 +81,7 @@ void PacketHandler::Initialize() {
 }
 
 tbb::task* PacketHandler::execute() {
-	register char* data; // = new char[MTU];
+	const u_char* data; // = new char[MTU];
 	struct pfring_pkthdr hdr;
 	memset(&hdr, 0, sizeof(hdr));
 	register int result = 0;
@@ -94,8 +94,8 @@ tbb::task* PacketHandler::execute() {
 		 * The actual  polling!
 		 * Do not wait for incoming packets as this will block the ring and make sending impossible
 		 */
-		result = PFringHandler::GetNextFrame(&hdr, &data, 0, false, threadNum_);
-		if (result == 1) {
+		result = PCapHandler::GetNextFrame(&hdr, &data, 0, false, threadNum_);
+		if (result>0) {
 			char* buff = new char[hdr.len];
 			memcpy(buff, data, hdr.len);
 
@@ -106,12 +106,12 @@ tbb::task* PacketHandler::execute() {
 			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 
 			sleepMicros = 1;
-		} else {
+		}
 			/*
 			 * Use the time to send some packets
 			 */
 			if (cream::L1DistributionHandler::DoSendMRP(threadNum_)
-					|| PFringHandler::DoSendQueuedFrames(threadNum_) != 0) {
+					|| PCapHandler::DoSendQueuedFrames(threadNum_) != 0) {
 				sleepMicros = 1;
 				continue;
 			}
@@ -125,7 +125,6 @@ tbb::task* PacketHandler::execute() {
 			if (sleepMicros < 10000) {
 				sleepMicros *= 2;
 			}
-		}
 	}
 	std::cout << "Stopping PacketHandler thread " << threadNum_ << std::endl;
 	return nullptr;

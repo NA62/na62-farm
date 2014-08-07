@@ -14,7 +14,7 @@
 #include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
 #include <options/Options.h>
-#include <socket/PFringHandler.h>
+#include <socket/PCapHandler.h>
 #include <unistd.h>
 #include <csignal>
 #include <iostream>
@@ -73,7 +73,11 @@ int main(int argc, char* argv[]) {
 
 	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
 
-	PFringHandler pfRingHandler("dna0");
+	/*
+	 * Initialize NIC handler and start gratuitous ARP request sending thread
+	 */
+	PCapHandler pcapHandler(Options::GetString(OPTION_ETH_DEVICE_NAME));
+	pcapHandler.startThread("ArpSender");
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
@@ -118,7 +122,7 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Packet Handler
 	 */
-	unsigned int numberOfPacketHandler = PFringHandler::GetNumberOfQueues();
+	unsigned int numberOfPacketHandler = PCapHandler::GetNumberOfQueues();
 	std::cout << "Starting " << numberOfPacketHandler
 			<< " PacketHandler threads" << std::endl;
 

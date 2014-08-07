@@ -7,6 +7,7 @@
 
 #include "BuildL1Task.h"
 
+#include <arpa/inet.h>
 #include <eventBuilding/Event.h>
 #include <eventBuilding/SourceIDManager.h>
 #include <glog/logging.h>
@@ -17,10 +18,12 @@
 #include <netinet/udp.h>
 #include <options/Options.h>
 #include <socket/EthernetUtils.h>
-#include <socket/PFringHandler.h>
+#include <socket/PCapHandler.h>
 #include <structs/Network.h>
+#include <algorithm>
 #include <cstdbool>
 #include <iostream>
+#include <string>
 
 #include "../options/MyOptions.h"
 #include "BuildL2Task.h"
@@ -131,7 +134,7 @@ void BuildL1Task::sendEOBBroadcast(uint32_t eventNumber,
 			sizeof(struct EOB_FULL_FRAME));
 
 	DataContainer container = {(char*)buff, sizeof(struct EOB_FULL_FRAME)};
-	PFringHandler::AsyncSendFrame( std::move(container));
+	PCapHandler::AsyncSendFrame( std::move(container));
 
 	setNextBurstID(finishedBurstID + 1);
 }
