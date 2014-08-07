@@ -16,6 +16,8 @@
 /*
  * Listening Ports
  */
+#define OPTION_ETH_DEVICE_NAME (char*)"ethDeviceName"
+
 #define OPTION_L0_RECEIVER_PORT (char*)"L0Port"
 #define OPTION_CREAM_RECEIVER_PORT (char*)"CREAMPort"
 #define OPTION_EOB_BROADCAST_IP (char*)"EOBBroadcastIP"
@@ -38,7 +40,7 @@
 #define OPTION_CREAM_MULTICAST_PORT (char*)"creamMulticastPort"
 #define OPTION_MAX_TRIGGERS_PER_L1MRP (char*)"maxTriggerPerL1MRP"
 
-#define OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED (char*)"numberOfEventsPerBurstExpected"
+#define OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST (char*)"maxNumberOfEventsPerBurst"
 
 /*
  * Triggering
@@ -72,6 +74,9 @@ public:
 				po::value<std::string>()->default_value("/etc/na62-farm.cfg"),
 				"Config file for the options shown here")
 
+		(OPTION_ETH_DEVICE_NAME, po::value<std::string>()->default_value("dna0"),
+				"Name of the device to be used for receiving data")
+
 		(OPTION_L0_RECEIVER_PORT, po::value<int>()->default_value(58913),
 				"UDP-Port for L1 data reception")
 
@@ -95,7 +100,8 @@ public:
 		(OPTION_CREAM_CRATES, po::value<std::string>()->required(),
 				"Defines the expected sourceIDs within the data packets from the CREAMs. The format is $crateID1:$CREAMIDs,$crateID1:$CREAMIDs,$crateID2:$CREAMIDs... E.g. 1:2-4,1:11-13,2:2-5,2:7 for two crates (1 and 2) with following IDs (2,3,4,11,12,13 and 2,3,4,5,7).")
 
-		(OPTION_INACTIVE_CREAM_CRATES, po::value<std::string>()->default_value(""),
+		(OPTION_INACTIVE_CREAM_CRATES,
+				po::value<std::string>()->default_value(""),
 				"Defines a list of CREAMs that must appear in the normal creamCrate list but should not be activated")
 
 		(OPTION_TS_SOURCEID, po::value<std::string>()->required(),
@@ -123,9 +129,9 @@ public:
 		(OPTION_MAX_TRIGGERS_PER_L1MRP, po::value<int>()->default_value(100),
 				"Maximum number of Triggers per L1 MRP")
 
-		(OPTION_NUMBER_OF_EVENTS_PER_BURST_EXPECTED,
+		(OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST,
 				po::value<int>()->default_value(10000000),
-				"Expected number of events per burst and PC")
+				"The number of events this pc should be able to receive. The system will ignore events with event numbers larger than this value")
 
 		(OPTION_MERGER_HOST_NAME, po::value<std::string>()->required(),
 				"IP or hostname of the merger PC.")

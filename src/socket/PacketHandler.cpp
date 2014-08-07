@@ -7,10 +7,9 @@
 
 #include "PacketHandler.h"
 
-#include <asm-generic/errno-base.h>
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
-#include <boost/date_time/time_duration.hpp>
-#include <boost/thread/pthread/thread_data.hpp>
+#include <tbb/task.h>
+#include <tbb/tick_count.h>
+#include <tbb/tbb_thread.h>
 #ifdef USE_GLOG
 #include <glog/logging.h>
 #endif
@@ -21,8 +20,6 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <sys/types.h>
-#include <zmq.h>
-#include <zmq.hpp>
 #include <algorithm>
 #include <cstdbool>
 #include <cstdint>
@@ -41,10 +38,10 @@
 #include <structs/Event.h>
 #include <structs/Network.h>
 #include <socket/EthernetUtils.h>
-#include <socket/PFringHandler.h>
+#include <socket/NetworkHandler.h>
+#include <eventBuilding/SourceIDManager.h>
 
-#include "../socket/ZMQHandler.h"
-#include "../eventBuilding/EventBuilder.h"
+#include "HandleFrameTask.h"
 
 namespace na62 {
 
@@ -54,13 +51,12 @@ std::atomic<uint64_t>* PacketHandler::MEPsReceivedBySourceID_;
 std::atomic<uint64_t>* PacketHandler::EventsReceivedBySourceID_;
 std::atomic<uint64_t>* PacketHandler::BytesReceivedBySourceID_;
 
-PacketHandler::PacketHandler() {
+PacketHandler::PacketHandler(int threadNum) :
+		threadNum_(threadNum), running_(true) {
 	NUMBER_OF_EBS = Options::GetInt(OPTION_NUMBER_OF_EBS);
 }
 
 PacketHandler::~PacketHandler() {
-	std::cout << "Destructing PacketHandler " << threadNum_ << std::endl;
-	destroyZMQSockets();
 }
 
 void PacketHandler::Initialize() {
@@ -80,46 +76,13 @@ void PacketHandler::Initialize() {
 	}
 }
 
-void PacketHandler::connectZMQ() {
-	for (uint i = 0; i < NUMBER_OF_EBS; i++) {
-		EBL0sockets_.push_back(ZMQHandler::GenerateSocket(ZMQ_PUSH));
-		ZMQHandler::ConnectInproc(EBL0sockets_[i],
-				ZMQHandler::GetEBL0Address(i));
-	}
-
-	for (uint i = 0; i < NUMBER_OF_EBS; i++) {
-		EBLKrSockets_.push_back(ZMQHandler::GenerateSocket(ZMQ_PUSH));
-		ZMQHandler::ConnectInproc(EBLKrSockets_[i],
-				ZMQHandler::GetEBLKrAddress(i));
-	}
-}
-
-void PacketHandler::destroyZMQSockets() {
-	for (auto socket : EBL0sockets_) {
-		if (socket != nullptr) {
-			ZMQHandler::DestroySocket(socket);
-		}
-	}
-
-	for (auto socket : EBLKrSockets_) {
-		if (socket != nullptr) {
-			ZMQHandler::DestroySocket(socket);
-		}
-	}
-}
-
-void PacketHandler::thread() {
-	connectZMQ();
-
-	DataContainer container;
-
-	std::queue<DataContainer> dataContainers;
-	register char* data; // = new char[MTU];
+tbb::task* PacketHandler::execute() {
+	const u_char* data; // = new char[MTU];
 	struct pfring_pkthdr hdr;
 	memset(&hdr, 0, sizeof(hdr));
 	register int result = 0;
 	int sleepMicros = 1;
-	while (ZMQHandler::IsRunning()) {
+	while (running_) {
 		boost::this_thread::interruption_point();
 		result = 0;
 		data = NULL;
@@ -127,229 +90,43 @@ void PacketHandler::thread() {
 		 * The actual  polling!
 		 * Do not wait for incoming packets as this will block the ring and make sending impossible
 		 */
-		result = PFringHandler::GetNextFrame(&hdr, &data, 0, false, threadNum_);
-		if (result == 1) {
+		result = NetworkHandler::GetNextFrame(&hdr, &data, 0, false, threadNum_);
+		if (result > 0) {
 			char* buff = new char[hdr.len];
 			memcpy(buff, data, hdr.len);
-			container = {buff, (uint16_t) hdr.len};
-			dataContainers.push(std::move(container));
+
+			DataContainer container = { buff, (uint16_t) hdr.len };
+			HandleFrameTask* task =
+					new (tbb::task::allocate_root()) HandleFrameTask(
+							std::move(container));
+
+			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
+
 			sleepMicros = 1;
-		} else if (dataContainers.empty()) {
+		} else {
 			/*
 			 * Use the time to send some packets
 			 */
 			if (cream::L1DistributionHandler::DoSendMRP(threadNum_)
-					|| PFringHandler::DoSendQueuedFrames(threadNum_) != 0) {
+					|| NetworkHandler::DoSendQueuedFrames(threadNum_) != 0) {
 				sleepMicros = 1;
 				continue;
 			}
 
-			boost::this_thread::sleep(boost::posix_time::microsec(sleepMicros));
+			/*
+			 * Allow other threads to execute
+			 */
+			tbb::this_tbb_thread::yield();
+			tbb::this_tbb_thread::sleep(
+					tbb::tick_count::interval_t(sleepMicros * 1E-6));
+
 			if (sleepMicros < 10000) {
 				sleepMicros *= 2;
 			}
-		} else {
-			if (!processPacket(dataContainers.front())) {
-				dataContainers.pop();
-				return; // stop running
-			}
-			dataContainers.pop();
 		}
 	}
 	std::cout << "Stopping PacketHandler thread " << threadNum_ << std::endl;
-	destroyZMQSockets();
-}
-
-bool PacketHandler::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
-	/*
-	 * Check IP-Header
-	 */
-	//				if (!EthernetUtils::CheckData((char*) &hdr->ip, sizeof(iphdr))) {
-	//					LOG(ERROR) << "Packet with broken IP-checksum received");
-	//					delete[] container.data;
-	//					continue;
-	//				}
-	if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) != length) {
-		/*
-		 * Does not need to be equal because of ethernet padding
-		 */
-		if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) > length) {
-			LOG(ERROR)<<
-			"Received IP-Packet with less bytes than ip.tot_len field! " << (ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length;
-			return false;
-		}
-	}
-
-	/*
-	 * Does not need to be equal because of ethernet padding
-	 */
-	if (ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)
-			> length) {
-		LOG(ERROR)<<"Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length;
-		return false;
-	}
-
-	//				/*
-	//				 * Check UDP checksum
-	//				 */
-	//				if (!EthernetUtils::CheckUDP(hdr, (const char *) (&hdr->udp) + sizeof(struct udphdr), ntohs(hdr->udp.len) - sizeof(struct udphdr))) {
-	//					LOG(ERROR) << "Packet with broken UDP-checksum received" );
-	//					delete[] container.data;
-	//					continue;
-	//				}
-	return true;
-}
-
-void PacketHandler::processARPRequest(struct ARP_HDR* arp) {
-	/*
-	 * Look for ARP requests asking for my IP
-	 */
-	if (arp->targetIPAddr == PFringHandler::GetMyIP()) { // This is asking for me
-		struct DataContainer responseArp = EthernetUtils::GenerateARPv4(
-				PFringHandler::GetMyMac().data(), arp->sourceHardwAddr,
-				PFringHandler::GetMyIP(), arp->sourceIPAddr,
-				ARPOP_REPLY);
-		PFringHandler::SendFrameConcurrently(threadNum_, responseArp.data,
-				responseArp.length);
-		delete[] responseArp.data;
-	}
-}
-
-bool PacketHandler::processPacket(DataContainer container) {
-	const uint16_t L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
-	const uint16_t CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
-
-	const uint16_t EOB_BROADCAST_PORT = Options::GetInt(
-	OPTION_EOB_BROADCAST_PORT);
-
-	try {
-		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
-		uint16_t etherType = ntohs(hdr->eth.ether_type);
-		uint8_t ipProto = hdr->ip.protocol;
-		uint16_t destPort = ntohs(hdr->udp.dest);
-
-		/*
-		 * Check if we received an ARP request
-		 */
-		if (etherType != ETHERTYPE_IP || ipProto != IPPROTO_UDP) {
-			if (etherType == ETHERTYPE_ARP) {
-				processARPRequest((struct ARP_HDR*) container.data);
-			}
-
-			// Anyway delete the buffer afterwards
-			delete[] container.data;
-			return true;
-		}
-
-		/*
-		 * Check checksum errors
-		 */
-		if (!checkFrame(hdr, container.length)) {
-			delete[] container.data;
-			return true;
-		}
-
-		const char * UDPPayload = container.data + sizeof(struct UDP_HDR);
-		const uint16_t & dataLength = ntohs(hdr->udp.len)
-				- sizeof(struct udphdr);
-
-		/*
-		 *  Now let's see what's insight the packet
-		 */
-		if (destPort == L0_Port) {
-
-			/*
-			 * L0 Data
-			 * * Length is hdr->ip.tot_len-sizeof(struct udphdr) and not container.length because of ethernet padding bytes!
-			 */
-			l0::MEP* mep = new l0::MEP(UDPPayload, dataLength, container.data);
-
-			MEPsReceivedBySourceID_[mep->getSourceID()]++;
-			EventsReceivedBySourceID_[mep->getSourceID()] +=
-					mep->getNumberOfEvents();
-			BytesReceivedBySourceID_[mep->getSourceID()] += container.length;
-
-			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
-				l0::MEPFragment* event = mep->getEvent(i);
-
-				zmq::message_t zmqMessage((void*) event, event->getDataLength(),
-						(zmq::free_fn*) nullptr);
-
-				while (ZMQHandler::IsRunning()) {
-					try {
-						EBL0sockets_[event->getEventNumber() % NUMBER_OF_EBS]->send(
-								zmqMessage);
-						break;
-					} catch (const zmq::error_t& ex) {
-						if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-							std::cout << "PacketHandler " << threadNum_
-									<< " received EINTR signal " << std::endl;
-							destroyZMQSockets();
-							return false;
-						}
-					}
-				}
-			}
-
-		} else if (destPort == CREAM_Port) {
-			/*
-			 * CREAM Data
-			 * Length is hdr->ip.tot_len-sizeof(struct iphdr) and not container.length because of ethernet padding bytes!
-			 */
-			cream::LKRMEP* mep = new cream::LKRMEP(UDPPayload, dataLength,
-					container.data);
-
-			MEPsReceivedBySourceID_[SOURCE_ID_LKr]++;
-			EventsReceivedBySourceID_[SOURCE_ID_LKr] +=
-					mep->getNumberOfEvents();
-			BytesReceivedBySourceID_[SOURCE_ID_LKr] += container.length;
-			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
-				cream::LKREvent* event = mep->getEvent(i);
-				zmq::message_t zmqMessage((void*) event,
-						event->getEventLength(), (zmq::free_fn*) nullptr);
-
-				while (true) {
-					try {
-						EBLKrSockets_[event->getEventNumber() % NUMBER_OF_EBS]->send(
-								zmqMessage);
-						break;
-					} catch (const zmq::error_t& ex) {
-						if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-							std::cout << "PacketHandler " << threadNum_
-									<< " received EINTR signal " << std::endl;
-							destroyZMQSockets();
-							return false;
-						}
-					}
-				}
-			}
-		} else if (destPort == EOB_BROADCAST_PORT) {
-			if (dataLength != sizeof(struct EOB_FULL_FRAME) - sizeof(UDP_HDR)) {
-				LOG(ERROR)<<
-				"Unrecognizable packet received at EOB farm broadcast Port!";
-				delete[] container.data;
-				return true;
-			}
-			EOB_FULL_FRAME* pack = (struct EOB_FULL_FRAME*) container.data;
-			LOG(INFO) <<
-			"Received EOB Farm-Broadcast. Will increment BurstID now to " << pack->finishedBurstID + 1;
-			EventBuilder::SetNextBurstID(pack->finishedBurstID + 1);
-		} else {
-			/*
-			 * Packet with unknown UDP port received
-			 */
-			LOG(ERROR) <<"Packet with unknown UDP port received: " << destPort;
-			delete[] container.data;
-			return true;
-		}
-	} catch (UnknownSourceIDFound const& e) {
-		delete[] container.data;
-	} catch (UnknownCREAMSourceIDFound const&e) {
-		delete[] container.data;
-	} catch (NA62Error const& e) {
-		delete[] container.data;
-	}
-	return true;
+	return nullptr;
 }
 }
 /* namespace na62 */

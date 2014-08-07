@@ -6,13 +6,15 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <eventBuilding/SourceIDManager.h>
+#include <tbb/task.h>
+
 #ifdef USE_GLOG
 #include <glog/logging.h>
 #endif
 #include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
 #include <options/Options.h>
-#include <socket/PFringHandler.h>
+#include <socket/NetworkHandler.h>
 #include <unistd.h>
 #include <csignal>
 #include <iostream>
@@ -20,31 +22,30 @@
 #include <l1/L1TriggerProcessor.h>
 #include <l2/L2TriggerProcessor.h>
 
-#include "eventBuilding/EventBuilder.h"
+#include "eventBuilding/BuildL1Task.h"
+#include "eventBuilding/BuildL2Task.h"
 #include "eventBuilding/StorageHandler.h"
 #include "monitoring/MonitorConnector.h"
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
 #include "socket/ZMQHandler.h"
+#include "eventBuilding/EventPool.h"
 
 using namespace std;
 using namespace na62;
 
 std::vector<PacketHandler*> packetHandlers;
-std::vector<EventBuilder*> eventBuilders;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
+	std::cout << "Received signal " << signal_number << " - Shutting down"
+			<< std::endl;
 	if (!error) {
 		ZMQHandler::Stop();
 		AExecutable::InterruptAll();
 		AExecutable::JoinAll();
 
-		for (auto eventBuilder : eventBuilders) {
-			delete eventBuilder;
-		}
-
-		for (auto packetHandler : packetHandlers) {
-			delete packetHandler;
+		for (auto& handler : packetHandlers) {
+			handler->stopRunning();
 		}
 
 		StorageHandler::OnShutDown();
@@ -72,21 +73,29 @@ int main(int argc, char* argv[]) {
 
 	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
 
-	PFringHandler pfRingHandler("dna0");
+	/*
+	 * Initialize NIC handler and start gratuitous ARP request sending thread
+	 */
+	NetworkHandler NetworkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME));
+	NetworkHandler.startThread("ArpSender");
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
-			Options::GetIntPairList(OPTION_CREAM_CRATES), Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES));
+			Options::GetIntPairList(OPTION_CREAM_CRATES),
+			Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES));
 
 	PacketHandler::Initialize();
 
 	StorageHandler::Initialize();
 
-	EventBuilder::Initialize();
-
 	L1TriggerProcessor::Initialize(Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR));
 
 	L2TriggerProcessor::Initialize(Options::GetInt(OPTION_L2_DOWNSCALE_FACTOR));
+
+	BuildL1Task::Initialize();
+	BuildL2Task::Initialize();
+
+	EventPool::Initialize();
 
 	cream::L1DistributionHandler::Initialize(
 			Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP),
@@ -105,38 +114,30 @@ int main(int argc, char* argv[]) {
 	monitor.startThread("MonitorConnector");
 
 	/*
-	 * Packet Handler
-	 */
-	unsigned int numberOfPacketHandler = PFringHandler::GetNumberOfQueues();
-	std::cout << "Starting " << numberOfPacketHandler
-			<< " PacketHandler threads" << std::endl;
-
-	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
-		packetHandlers.push_back(new PacketHandler());
-		LOG(INFO)<< "Binding PacketHandler " << i << " to core " << i << "!";
-		packetHandlers[i]->startThread(i, "PacketHandler" + std::to_string(i),
-				i, 15);
-	}
-
-	/*
-	 * Event Builder
-	 */
-	unsigned int numberOfEB = Options::GetInt(OPTION_NUMBER_OF_EBS);
-	LOG(INFO)<< "Starting " << numberOfEB << " EventBuilder threads"
-	<< std::endl;
-
-	for (unsigned int i = 0; i < numberOfEB; i++) {
-		eventBuilders.push_back(new EventBuilder());
-		eventBuilders[i]->startThread(i, "EventBuilder" + std::to_string(i), -1,
-				15);
-	}
-
-	/*
 	 * L1 Distribution handler
 	 */
 	cream::L1DistributionHandler l1Handler;
 	l1Handler.startThread("L1DistributionHandler");
 
+	/*
+	 * Packet Handler
+	 */
+	unsigned int numberOfPacketHandler = NetworkHandler::GetNumberOfQueues();
+	std::cout << "Starting " << numberOfPacketHandler
+			<< " PacketHandler threads" << std::endl;
+
+	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
+		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
+				i);
+		packetHandlers.push_back(handler);
+		tbb::task::enqueue(*handler, tbb::priority_t::priority_high);
+	}
+
+	/*
+	 * Join PacketHandler and other threads
+	 */
+//	dummy->wait_for_all();
+//	dummy->destroy(*dummy);
 	AExecutable::JoinAll();
 	return 0;
 }

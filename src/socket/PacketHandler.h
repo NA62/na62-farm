@@ -10,23 +10,23 @@
 #define PACKETHANDLER_H_
 
 #include <sys/types.h>
-#include <zmq.hpp>
 #include <atomic>
 #include <cstdint>
 #include <vector>
-
+#include <tbb/task.h>
 #include <utils/AExecutable.h>
 
-namespace zmq {
-class socket_t;
-}
 namespace na62 {
 struct DataContainer;
 
-class PacketHandler: public AExecutable {
+class PacketHandler: public tbb::task {
 public:
-	PacketHandler();
+	PacketHandler(int threadNum);
 	virtual ~PacketHandler();
+
+	void stopRunning() {
+		running_ = false;
+	}
 
 	static void Initialize();
 
@@ -42,27 +42,16 @@ public:
 		return BytesReceivedBySourceID_[sourceID];
 	}
 
-private:
-	/**
-	 * @return <true> In case of success, false in case of a serious error (we should stop the thread in this case)
-	 */
-	bool processPacket(DataContainer container);
-	void processARPRequest(struct ARP_HDR* arp);
-	void thread();
-	void connectZMQ();
-	void destroyZMQSockets();
-
-	/**
-	 * @return <true> If no checksum errors have been found
-	 */
-	bool checkFrame(struct UDP_HDR* hdr, uint16_t length);
-
-	std::vector<zmq::socket_t*> EBL0sockets_;
-	std::vector<zmq::socket_t*> EBLKrSockets_;
-
 	static std::atomic<uint64_t>* MEPsReceivedBySourceID_;
 	static std::atomic<uint64_t>* EventsReceivedBySourceID_;
 	static std::atomic<uint64_t>* BytesReceivedBySourceID_;
+
+private:
+	int threadNum_; bool running_;
+	/**
+	 * @return <true> In case of success, false in case of a serious error (we should stop the thread in this case)
+	 */
+	tbb::task* execute();
 };
 
 } /* namespace na62 */
