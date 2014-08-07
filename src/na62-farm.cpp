@@ -73,7 +73,11 @@ int main(int argc, char* argv[]) {
 
 	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
 
-	PFringHandler pfRingHandler("dna0");
+	/*
+	 * Initialize NIC handler and start gratuitous ARP request sending thread
+	 */
+	PFringHandler pfRingHandler(Options::GetString(OPTION_ETH_DEVICE_NAME));
+	pfRingHandler.startThread("ArpSender");
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
