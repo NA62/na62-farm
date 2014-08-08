@@ -26,7 +26,7 @@
 #include <string>
 
 #include "../options/MyOptions.h"
-#include "BuildL2Task.h"
+#include "L2Builder.h"
 #include "EventPool.h"
 
 namespace na62 {

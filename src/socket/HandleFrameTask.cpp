@@ -32,8 +32,8 @@
 #include <socket/NetworkHandler.h>
 #include <structs/Network.h>
 
-#include "../eventBuilding/BuildL1Task.h"
-#include "../eventBuilding/BuildL2Task.h"
+#include "../eventBuilding/L1Builder.h"
+#include "../eventBuilding/L2Builder.h"
 #include "../options/MyOptions.h"
 #include "PacketHandler.h"
 

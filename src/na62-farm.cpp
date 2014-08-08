@@ -22,8 +22,8 @@
 #include <l1/L1TriggerProcessor.h>
 #include <l2/L2TriggerProcessor.h>
 
-#include "eventBuilding/BuildL1Task.h"
-#include "eventBuilding/BuildL2Task.h"
+#include "eventBuilding/L1Builder.h"
+#include "eventBuilding/L2Builder.h"
 #include "eventBuilding/StorageHandler.h"
 #include "monitoring/MonitorConnector.h"
 #include "options/MyOptions.h"
@@ -95,8 +95,8 @@ int main(int argc, char* argv[]) {
 
 	L2TriggerProcessor::Initialize(Options::GetInt(OPTION_L2_DOWNSCALE_FACTOR));
 
-	BuildL1Task::Initialize();
-	BuildL2Task::Initialize();
+	L1Builder::Initialize();
+	L2Builder::Initialize();
 
 	EventPool::Initialize();
 

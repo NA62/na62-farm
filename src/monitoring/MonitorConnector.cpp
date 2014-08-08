@@ -26,8 +26,8 @@
 #include <utils/Utils.h>
 #include <monitoring/IPCHandler.h>
 
-#include "../eventBuilding/BuildL1Task.h"
-#include "../eventBuilding/BuildL2Task.h"
+#include "../eventBuilding/L1Builder.h"
+#include "../eventBuilding/L2Builder.h"
 #include "../socket/PacketHandler.h"
 
 using namespace boost::interprocess;
@@ -127,7 +127,7 @@ void MonitorConnector::handleUpdate() {
 		std::stringstream stream;
 		stream << std::hex << wordNum;
 
-		uint64_t L1Trigs = BuildL1Task::GetL1TriggerStats()[wordNum];
+		uint64_t L1Trigs = L1Builder::GetL1TriggerStats()[wordNum];
 		uint64_t L2Trigs = L2Builder::GetL2TriggerStats()[wordNum];
 
 		setDifferentialData("L1Triggers" + stream.str(), L1Trigs);
@@ -172,7 +172,7 @@ void MonitorConnector::handleUpdate() {
 			boost::lexical_cast<std::string>(
 					cream::L1DistributionHandler::GetL1TriggersSent()));
 
-	LOG(INFO)<<"BurstID:\t" << BuildL1Task::getCurrentBurstId();
+	LOG(INFO)<<"BurstID:\t" << L1Builder::getCurrentBurstId();
 
 	NetworkHandler::PrintStats();
 }
