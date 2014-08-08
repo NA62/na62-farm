@@ -26,11 +26,6 @@ private:
 	static std::atomic<uint64_t>* L1Triggers_;
 	static uint32_t currentBurstID_;
 
-	static uint32_t getCurrentBurstID() {
-		// TODO: to be implemented
-		return 0;
-	}
-
 	static void processL1(Event *event);
 
 	static void sendEOBBroadcast(uint32_t eventNumber,
@@ -42,15 +37,8 @@ private:
 	static void sendL1RequestToCREAMS(Event * event);
 
 public:
-	static void buildEvent(l0::MEPFragment* fragment);
+	static void buildEvent(l0::MEPFragment* fragment, uint32_t burstID);
 
-	static void setNextBurstID(uint32_t) {
-		// TODO to be implemented
-	}
-
-	static uint32_t getCurrentBurstId() {
-		return currentBurstID_;
-	}
 
 	static inline const std::atomic<uint64_t>* GetL1TriggerStats() {
 		return L1Triggers_;

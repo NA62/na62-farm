@@ -26,23 +26,22 @@
 #include <string>
 
 #include "../options/MyOptions.h"
-#include "L2Builder.h"
+#include "../socket/HandleFrameTask.h"
 #include "EventPool.h"
+#include "L2Builder.h"
 
 namespace na62 {
 
 std::atomic<uint64_t>* L1Builder::L1Triggers_ = new std::atomic<uint64_t>[0xFF
 		+ 1];
 
-uint32_t L1Builder::currentBurstID_ = 0;
-
-void L1Builder::buildEvent(l0::MEPFragment* fragment){
+void L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 	Event *event = EventPool::GetEvent(fragment->getEventNumber());
 
 	/*
 	 * If the event number is too large event is null an we have to drop the data
 	 */
-	if(event == nullptr){
+	if (event == nullptr) {
 		delete fragment;
 		return;
 	}
@@ -50,7 +49,7 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment){
 	/*
 	 * Add new packet to Event
 	 */
-	if (!event->addL0Event(fragment, getCurrentBurstID())) {
+	if (!event->addL0Event(fragment, burstID)) {
 		return;
 	} else {
 		/*
@@ -62,7 +61,7 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment){
 
 void L1Builder::processL1(Event *event) {
 	if (event->isLastEventOfBurst()) {
-		sendEOBBroadcast(event->getEventNumber(), getCurrentBurstID());
+		sendEOBBroadcast(event->getEventNumber(), event->getBurstID());
 	}
 
 	/*
@@ -123,7 +122,7 @@ void L1Builder::sendEOBBroadcast(uint32_t eventNumber,
 	DataContainer container = {(char*)buff, sizeof(struct EOB_FULL_FRAME)};
 	NetworkHandler::AsyncSendFrame( std::move(container));
 
-	setNextBurstID(finishedBurstID + 1);
+	HandleFrameTask::setNextBurstId(finishedBurstID + 1);
 }
 
 }

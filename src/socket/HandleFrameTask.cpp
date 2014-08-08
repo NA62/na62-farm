@@ -43,6 +43,8 @@ uint16_t HandleFrameTask::L0_Port;
 uint16_t HandleFrameTask::CREAM_Port;
 uint16_t HandleFrameTask::EOB_BROADCAST_PORT;
 
+uint32_t HandleFrameTask::currentBurstID_;
+uint32_t HandleFrameTask::nextBurstID_;
 HandleFrameTask::HandleFrameTask(DataContainer&& _container) :
 		container(_container) {
 }
@@ -55,6 +57,9 @@ void HandleFrameTask::Initialize() {
 	CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
 	EOB_BROADCAST_PORT = Options::GetInt(
 	OPTION_EOB_BROADCAST_PORT);
+
+	currentBurstID_ = Options::GetInt(OPTION_FIRST_BURST_ID);
+	nextBurstID_ = currentBurstID_;
 }
 
 void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
@@ -108,12 +113,19 @@ tbb::task* HandleFrameTask::execute() {
 		 *  Now let's see what's insight the packet
 		 */
 		if (destPort == L0_Port) {
-
 			/*
 			 * L0 Data
 			 * * Length is hdr->ip.tot_len-sizeof(struct udphdr) and not container.length because of ethernet padding bytes!
 			 */
 			l0::MEP* mep = new l0::MEP(UDPPayload, dataLength, container.data);
+
+			/*
+			 * If the event has a small number we should check if the burstID is already updated
+			 */
+			if (nextBurstID_ != currentBurstID_
+					&& mep->getFirstEventNum() < 1000) {
+				currentBurstID_ = nextBurstID_;
+			}
 
 			PacketHandler::MEPsReceivedBySourceID_[mep->getSourceID()]++;
 			PacketHandler::EventsReceivedBySourceID_[mep->getSourceID()] +=
@@ -122,7 +134,7 @@ tbb::task* HandleFrameTask::execute() {
 					container.length;
 
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
-				L1Builder::buildEvent(mep->getEvent(i));
+				L1Builder::buildEvent(mep->getEvent(i), currentBurstID_);
 			}
 		} else if (destPort == CREAM_Port) {
 			/*
@@ -154,7 +166,8 @@ tbb::task* HandleFrameTask::execute() {
 			EOB_FULL_FRAME* pack = (struct EOB_FULL_FRAME*) container.data;
 			LOG(INFO) <<
 			"Received EOB Farm-Broadcast. Will increment BurstID now to " << pack->finishedBurstID + 1;
-			L1Builder::setNextBurstID(pack->finishedBurstID + 1);
+
+			nextBurstID_ = pack->finishedBurstID + 1;
 		} else {
 			/*
 			 * Packet with unknown UDP port received

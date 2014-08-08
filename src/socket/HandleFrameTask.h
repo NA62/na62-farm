@@ -29,13 +29,30 @@ private:
 	static uint16_t CREAM_Port;
 	static uint16_t EOB_BROADCAST_PORT;
 
+	/*
+	 * Store the current Burst ID and the next one separately. As soon as an EOB event is
+	 * received the nextBurstID_ will be set. Then the currentBurstID will be updated later
+	 * to make sure currently enqueued frames in other threads are not processed with
+	 * the new burstID
+	 */
+	static uint32_t currentBurstID_;
+	static uint32_t nextBurstID_;
+
 public:
-	HandleFrameTask(DataContainer&&  _container);
+	HandleFrameTask(DataContainer&& _container);
 	virtual ~HandleFrameTask();
 
 	tbb::task* execute();
 
 	static void Initialize();
+
+	static uint32_t getCurrentBurstId() {
+		return currentBurstID_;
+	}
+
+	static void setNextBurstId(uint32_t burstID) {
+		nextBurstID_ = burstID;
+	}
 };
 
 } /* namespace na62 */
