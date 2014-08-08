@@ -22,14 +22,15 @@
 #include <l1/L1TriggerProcessor.h>
 #include <l2/L2TriggerProcessor.h>
 
-#include "eventBuilding/BuildL1Task.h"
-#include "eventBuilding/BuildL2Task.h"
+#include "eventBuilding/L1Builder.h"
+#include "eventBuilding/L2Builder.h"
 #include "eventBuilding/StorageHandler.h"
 #include "monitoring/MonitorConnector.h"
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
 #include "socket/ZMQHandler.h"
 #include "eventBuilding/EventPool.h"
+#include "socket/HandleFrameTask.h"
 
 using namespace std;
 using namespace na62;
@@ -86,14 +87,16 @@ int main(int argc, char* argv[]) {
 
 	PacketHandler::Initialize();
 
+	HandleFrameTask::Initialize();
+
 	StorageHandler::Initialize();
 
 	L1TriggerProcessor::Initialize(Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR));
 
 	L2TriggerProcessor::Initialize(Options::GetInt(OPTION_L2_DOWNSCALE_FACTOR));
 
-	BuildL1Task::Initialize();
-	BuildL2Task::Initialize();
+	L1Builder::Initialize();
+	L2Builder::Initialize();
 
 	EventPool::Initialize();
 

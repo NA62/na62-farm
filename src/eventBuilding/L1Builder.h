@@ -5,8 +5,8 @@
  *      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
-#ifndef BUILDL1TASK_H_
-#define BUILDL1TASK_H_
+#ifndef L1BUILDER_H_
+#define L1BUILDER_H_
 
 #include <tbb/task.h>
 #include <atomic>
@@ -21,18 +21,12 @@ class MEPFragment;
 
 namespace na62 {
 
-class BuildL1Task: public tbb::task {
+class L1Builder: public tbb::task {
 private:
-	l0::MEPFragment* MEPFragment_;
 	static std::atomic<uint64_t>* L1Triggers_;
 	static uint32_t currentBurstID_;
 
-	uint32_t getCurrentBurstID() {
-		// TODO: to be implemented
-		return 0;
-	}
-
-	void processL1(Event *event);
+	static void processL1(Event *event);
 
 	static void sendEOBBroadcast(uint32_t eventNumber,
 			uint32_t finishedBurstID);
@@ -40,20 +34,11 @@ private:
 	/*
 	 * @return <true> if any packet has been sent (time has passed)
 	 */
-	void sendL1RequestToCREAMS(Event * event);
+	static void sendL1RequestToCREAMS(Event * event);
+
 public:
-	BuildL1Task(l0::MEPFragment* event);
-	virtual ~BuildL1Task();
+	static void buildEvent(l0::MEPFragment* fragment, uint32_t burstID);
 
-	tbb::task* execute();
-
-	static void setNextBurstID(uint32_t) {
-		// TODO to be implemented
-	}
-
-	static uint32_t getCurrentBurstId() {
-		return currentBurstID_;
-	}
 
 	static inline const std::atomic<uint64_t>* GetL1TriggerStats() {
 		return L1Triggers_;
@@ -68,4 +53,4 @@ public:
 
 } /* namespace na62 */
 
-#endif /* BUILDL1TASK_H_ */
+#endif /* L1BUILDER_H_ */

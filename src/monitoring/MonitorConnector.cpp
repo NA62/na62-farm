@@ -14,6 +14,9 @@
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/date_time/time_duration.hpp>
 #include <boost/lexical_cast.hpp>
+#include <sstream>
+
+#include "../socket/HandleFrameTask.h"
 
 #ifdef USE_GLOG
 	#include <glog/logging.h>
@@ -26,8 +29,8 @@
 #include <utils/Utils.h>
 #include <monitoring/IPCHandler.h>
 
-#include "../eventBuilding/BuildL1Task.h"
-#include "../eventBuilding/BuildL2Task.h"
+#include "../eventBuilding/L1Builder.h"
+#include "../eventBuilding/L2Builder.h"
 #include "../socket/PacketHandler.h"
 
 using namespace boost::interprocess;
@@ -127,8 +130,8 @@ void MonitorConnector::handleUpdate() {
 		std::stringstream stream;
 		stream << std::hex << wordNum;
 
-		uint64_t L1Trigs = BuildL1Task::GetL1TriggerStats()[wordNum];
-		uint64_t L2Trigs = BuildL2Task::GetL2TriggerStats()[wordNum];
+		uint64_t L1Trigs = L1Builder::GetL1TriggerStats()[wordNum];
+		uint64_t L2Trigs = L2Builder::GetL2TriggerStats()[wordNum];
 
 		setDifferentialData("L1Triggers" + stream.str(), L1Trigs);
 		setDifferentialData("L2Triggers" + stream.str(), L2Trigs);
@@ -149,8 +152,8 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("L1TriggerData", L1Stats.str());
 	IPCHandler::sendStatistics("L2TriggerData", L2Stats.str());
 
-	uint32_t bytesToStorage = BuildL2Task::GetBytesSentToStorage();
-	uint32_t eventsToStorage = BuildL2Task::GetEventsSentToStorage();
+	uint32_t bytesToStorage = L2Builder::GetBytesSentToStorage();
+	uint32_t eventsToStorage = L2Builder::GetEventsSentToStorage();
 
 	setDifferentialData("BytesToMerger", bytesToStorage);
 	setDifferentialData("EventsToMerger", eventsToStorage);
@@ -172,7 +175,7 @@ void MonitorConnector::handleUpdate() {
 			boost::lexical_cast<std::string>(
 					cream::L1DistributionHandler::GetL1TriggersSent()));
 
-	LOG(INFO)<<"BurstID:\t" << BuildL1Task::getCurrentBurstId();
+	LOG(INFO)<<"BurstID:\t" << HandleFrameTask::getCurrentBurstId();
 
 	NetworkHandler::PrintStats();
 }

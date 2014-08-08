@@ -5,7 +5,7 @@
  *      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
-#include "BuildL1Task.h"
+#include "L1Builder.h"
 
 #include <arpa/inet.h>
 #include <eventBuilding/Event.h>
@@ -26,56 +26,42 @@
 #include <string>
 
 #include "../options/MyOptions.h"
-#include "BuildL2Task.h"
+#include "../socket/HandleFrameTask.h"
 #include "EventPool.h"
+#include "L2Builder.h"
 
 namespace na62 {
 
-std::atomic<uint64_t>* BuildL1Task::L1Triggers_ = new std::atomic<uint64_t>[0xFF
+std::atomic<uint64_t>* L1Builder::L1Triggers_ = new std::atomic<uint64_t>[0xFF
 		+ 1];
 
-uint32_t BuildL1Task::currentBurstID_ = 0;
-
-BuildL1Task::BuildL1Task(l0::MEPFragment* event) :
-		MEPFragment_(event) {
-
-}
-
-BuildL1Task::~BuildL1Task() {
-}
-
-tbb::task* BuildL1Task::execute() {
-	/*
-	 * Receiver only pushes MEPFragment::eventNum%EBNum events. To fill all holes in eventPool we need divide by the number of event builder
-	 */
-	Event *event = EventPool::GetEvent(MEPFragment_->getEventNumber());
+void L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
+	Event *event = EventPool::GetEvent(fragment->getEventNumber());
 
 	/*
 	 * If the event number is too large event is null an we have to drop the data
 	 */
-	if(event == nullptr){
-		delete MEPFragment_;
-		return nullptr;
+	if (event == nullptr) {
+		delete fragment;
+		return;
 	}
 
 	/*
 	 * Add new packet to Event
 	 */
-	if (!event->addL0Event(MEPFragment_, getCurrentBurstID())) {
-		return nullptr;
+	if (!event->addL0Event(fragment, burstID)) {
+		return;
 	} else {
 		/*
 		 * This event is complete -> process it
 		 */
 		processL1(event);
 	}
-
-	return nullptr;
 }
 
-void BuildL1Task::processL1(Event *event) {
+void L1Builder::processL1(Event *event) {
 	if (event->isLastEventOfBurst()) {
-		sendEOBBroadcast(event->getEventNumber(), getCurrentBurstID());
+		sendEOBBroadcast(event->getEventNumber(), event->getBurstID());
 	}
 
 	/*
@@ -94,7 +80,7 @@ void BuildL1Task::processL1(Event *event) {
 		}
 	} else {
 		if (L0L1Trigger != 0) {
-			BuildL2Task::processL2(event);
+			L2Builder::processL2(event);
 		}
 	}
 
@@ -106,12 +92,12 @@ void BuildL1Task::processL1(Event *event) {
 	}
 }
 
-void BuildL1Task::sendL1RequestToCREAMS(Event* event) {
+void L1Builder::sendL1RequestToCREAMS(Event* event) {
 	cream::L1DistributionHandler::Async_RequestLKRDataMulticast(event,
 	false);
 }
 
-void BuildL1Task::sendEOBBroadcast(uint32_t eventNumber,
+void L1Builder::sendEOBBroadcast(uint32_t eventNumber,
 		uint32_t finishedBurstID) {
 	LOG(INFO)<<"Sending EOB broadcast to "
 	<< Options::GetString(OPTION_EOB_BROADCAST_IP) << ":"
@@ -136,7 +122,7 @@ void BuildL1Task::sendEOBBroadcast(uint32_t eventNumber,
 	DataContainer container = {(char*)buff, sizeof(struct EOB_FULL_FRAME)};
 	NetworkHandler::AsyncSendFrame( std::move(container));
 
-	setNextBurstID(finishedBurstID + 1);
+	HandleFrameTask::setNextBurstId(finishedBurstID + 1);
 }
 
 }

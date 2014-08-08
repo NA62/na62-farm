@@ -215,15 +215,14 @@ int StorageHandler::SendEvent(Event* event) {
 			(zmq::free_fn*) freeZmqMessage);
 
 	while (ZMQHandler::IsRunning()) {
+		tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
 		try {
-			tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
 			MergerSocket_->send(zmqMessage);
 			break;
 		} catch (const zmq::error_t& ex) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
 				LOG(ERROR)<< ex.what();
 
-				tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
 				ZMQHandler::DestroySocket(MergerSocket_);
 				return 0;
 			}

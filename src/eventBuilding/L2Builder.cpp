@@ -5,7 +5,7 @@
  *      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
-#include "BuildL2Task.h"
+#include "L2Builder.h"
 
 #include <eventBuilding/Event.h>
 #include <exceptions/NA62Error.h>
@@ -19,34 +19,27 @@
 
 namespace na62 {
 
-std::atomic<uint64_t>* BuildL2Task::L2Triggers_ = new std::atomic<uint64_t>[0xFF
+std::atomic<uint64_t>* L2Builder::L2Triggers_ = new std::atomic<uint64_t>[0xFF
 		+ 1];
 
-std::atomic<uint64_t> BuildL2Task::BytesSentToStorage_(0);
-std::atomic<uint64_t> BuildL2Task::EventsSentToStorage_(0);
+std::atomic<uint64_t> L2Builder::BytesSentToStorage_(0);
+std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
 
-BuildL2Task::BuildL2Task(cream::LKREvent* event) :
-		lkrEvent_(event) {
-}
-
-BuildL2Task::~BuildL2Task() {
-}
-
-tbb::task* BuildL2Task::execute() {
-	Event *event = EventPool::GetEvent(lkrEvent_->getEventNumber());
+void L2Builder::buildEvent(cream::LKREvent* lkrEventFragment) {
+	Event *event = EventPool::GetEvent(lkrEventFragment->getEventNumber());
 
 	if (event == nullptr) {
 		throw na62::NA62Error(
 				"Received an LKrEvent with ID "
-						+ std::to_string(lkrEvent_->getEventNumber())
+						+ std::to_string(lkrEventFragment->getEventNumber())
 						+ " while there has not been any L0 data received for this event");
 	}
 	/*
 	 * Add new packet to EventCollector
 	 */
-	if (!event->addLKREvent(lkrEvent_)) {
+	if (!event->addLKREvent(lkrEventFragment)) {
 		// result == false -> subevents are still incomplete
-		return nullptr;
+		return;
 	} else {
 		// result == true -> Last missing packet received!
 		/*
@@ -54,10 +47,9 @@ tbb::task* BuildL2Task::execute() {
 		 */
 		processL2(event);
 	}
-	return nullptr;
 }
 
-void BuildL2Task::processL2(Event *event) {
+void L2Builder::processL2(Event *event) {
 	if (!event->isWaitingForNonZSuppressedLKrData()) {
 		/*
 		 * L1 already passed but non zero suppressed LKr data not yet requested -> Process Level 2 trigger

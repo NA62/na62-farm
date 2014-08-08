@@ -5,10 +5,9 @@
  *      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
-#ifndef BUILDL2TASK_H_
-#define BUILDL2TASK_H_
+#ifndef L2BUILDER_H_
+#define L2BUILDER_H_
 
-#include <tbb/task.h>
 #include <atomic>
 #include <cstdint>
 
@@ -21,27 +20,23 @@ class LKREvent;
 
 namespace na62 {
 
-class BuildL2Task: public tbb::task {
+class L2Builder {
 private:
-	cream::LKREvent* lkrEvent_;
-
 	static std::atomic<uint64_t>* L2Triggers_;
 
 	static std::atomic<uint64_t> BytesSentToStorage_;
 	static std::atomic<uint64_t> EventsSentToStorage_;
 
-	uint32_t getCurrentBurstID() {
+	static uint32_t getCurrentBurstID() {
 		return 0;
 	}
 
-	void setNextBurstID(uint32_t) {
+	static void setNextBurstID(uint32_t) {
 	}
 
 public:
-	BuildL2Task(cream::LKREvent* event);
-	virtual ~BuildL2Task();
+	static void buildEvent(cream::LKREvent* lkrEventFragment);
 
-	tbb::task* execute();
 	static void processL2(Event *event);
 
 	static inline const std::atomic<uint64_t>* GetL2TriggerStats() {
@@ -65,4 +60,4 @@ public:
 
 } /* namespace na62 */
 
-#endif /* BUILDL2TASK_H_ */
+#endif /* L2BUILDER_H_ */
