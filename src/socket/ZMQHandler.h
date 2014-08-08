@@ -30,7 +30,7 @@ public:
 
 	static void Shutdown();
 	static zmq::socket_t* GenerateSocket(int socketType, int highWaterMark =
-			100000);
+			10000000);
 
 	static std::string GetEBL0Address(int threadNum);
 	static std::string GetEBLKrAddress(int threadNum);

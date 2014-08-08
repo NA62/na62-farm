@@ -25,11 +25,17 @@ private:
 	 */
 	bool checkFrame(struct UDP_HDR* hdr, uint16_t length);
 
+	static uint16_t L0_Port;
+	static uint16_t CREAM_Port;
+	static uint16_t EOB_BROADCAST_PORT;
+
 public:
 	HandleFrameTask(DataContainer&&  _container);
 	virtual ~HandleFrameTask();
 
 	tbb::task* execute();
+
+	static void Initialize();
 };
 
 } /* namespace na62 */

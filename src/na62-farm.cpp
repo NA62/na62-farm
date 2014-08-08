@@ -30,6 +30,7 @@
 #include "socket/PacketHandler.h"
 #include "socket/ZMQHandler.h"
 #include "eventBuilding/EventPool.h"
+#include "socket/HandleFrameTask.h"
 
 using namespace std;
 using namespace na62;
@@ -85,6 +86,8 @@ int main(int argc, char* argv[]) {
 			Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES));
 
 	PacketHandler::Initialize();
+
+	HandleFrameTask::Initialize();
 
 	StorageHandler::Initialize();
 

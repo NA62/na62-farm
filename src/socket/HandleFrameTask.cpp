@@ -7,7 +7,6 @@
 
 #include "HandleFrameTask.h"
 
-
 #include <glog/logging.h>
 #include <l0/MEP.h>
 #include <l0/MEPFragment.h>
@@ -40,11 +39,22 @@
 
 namespace na62 {
 
+uint16_t HandleFrameTask::L0_Port;
+uint16_t HandleFrameTask::CREAM_Port;
+uint16_t HandleFrameTask::EOB_BROADCAST_PORT;
+
 HandleFrameTask::HandleFrameTask(DataContainer&& _container) :
 		container(_container) {
 }
 
 HandleFrameTask::~HandleFrameTask() {
+}
+
+void HandleFrameTask::Initialize() {
+	L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
+	CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
+	EOB_BROADCAST_PORT = Options::GetInt(
+	OPTION_EOB_BROADCAST_PORT);
 }
 
 void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
@@ -61,15 +71,6 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 }
 
 tbb::task* HandleFrameTask::execute() {
-	/*
-	 * TODO read options only once at startup
-	 */
-	const uint16_t L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
-	const uint16_t CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
-
-	const uint16_t EOB_BROADCAST_PORT = Options::GetInt(
-	OPTION_EOB_BROADCAST_PORT);
-
 	try {
 		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
 		uint16_t etherType = ntohs(hdr->eth.ether_type);
@@ -121,10 +122,7 @@ tbb::task* HandleFrameTask::execute() {
 					container.length;
 
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
-				l0::MEPFragment* event = mep->getEvent(i);
-				BuildL1Task* task =
-						new (tbb::task::allocate_root()) BuildL1Task(event);
-				tbb::task::enqueue(*task, tbb::priority_t::priority_low);
+				L1Builder::buildEvent(mep->getEvent(i));
 			}
 		} else if (destPort == CREAM_Port) {
 			/*
@@ -144,10 +142,7 @@ tbb::task* HandleFrameTask::execute() {
 			 * Start builder tasks for every MEP fragment
 			 */
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
-				BuildL2Task* task =
-						new (tbb::task::allocate_root()) BuildL2Task(
-								mep->getEvent(i));
-				tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
+				L2Builder::buildEvent(mep->getEvent(i));
 			}
 		} else if (destPort == EOB_BROADCAST_PORT) {
 			if (dataLength != sizeof(struct EOB_FULL_FRAME) - sizeof(UDP_HDR)) {
@@ -159,7 +154,7 @@ tbb::task* HandleFrameTask::execute() {
 			EOB_FULL_FRAME* pack = (struct EOB_FULL_FRAME*) container.data;
 			LOG(INFO) <<
 			"Received EOB Farm-Broadcast. Will increment BurstID now to " << pack->finishedBurstID + 1;
-			BuildL1Task::setNextBurstID(pack->finishedBurstID + 1);
+			L1Builder::setNextBurstID(pack->finishedBurstID + 1);
 		} else {
 			/*
 			 * Packet with unknown UDP port received
