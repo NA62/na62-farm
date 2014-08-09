@@ -163,8 +163,10 @@ tbb::task* HandleFrameTask::execute() {
 
 			/*
 			 * Build events with all MEP fragments
+			 * getNumberOfEvents() will change while executing L2Builder::buildEvent. So we have to cache it
 			 */
-			for (int i = 0; i != mep->getNumberOfEvents(); i++) {
+			const uint numberOfStoredEvents = mep->getNumberOfEvents();
+			for (uint i = 0; i != numberOfStoredEvents; i++) {
 				L2Builder::buildEvent(mep->getEvent(i));
 			}
 		} else if (destPort == EOB_BROADCAST_PORT) {
