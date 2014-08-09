@@ -9,6 +9,7 @@
 
 #include <arpa/inet.h>
 #include <eventBuilding/Event.h>
+#include <eventBuilding/EventPool.h>
 #include <eventBuilding/SourceIDManager.h>
 #include <glog/logging.h>
 #include <l0/MEPFragment.h>
@@ -25,9 +26,9 @@
 #include <iostream>
 #include <string>
 
+
 #include "../options/MyOptions.h"
 #include "../socket/HandleFrameTask.h"
-#include "EventPool.h"
 #include "L2Builder.h"
 
 namespace na62 {

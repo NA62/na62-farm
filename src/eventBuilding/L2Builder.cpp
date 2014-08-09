@@ -8,10 +8,10 @@
 #include "L2Builder.h"
 
 #include <eventBuilding/Event.h>
+#include <eventBuilding/EventPool.h>
 #include <LKr/LKREvent.h>
 
 #include <l2/L2TriggerProcessor.h>
-#include "EventPool.h"
 #include "StorageHandler.h"
 
 namespace na62 {

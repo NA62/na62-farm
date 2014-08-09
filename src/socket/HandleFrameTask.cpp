@@ -111,7 +111,7 @@ tbb::task* HandleFrameTask::execute() {
 		/*
 		 * Check if we are really the destination of the IP datagram
 		 */
-		if(!MyIP==dstIP){
+		if (!MyIP == dstIP) {
 			delete[] container.data;
 			return nullptr;
 		}
@@ -162,9 +162,9 @@ tbb::task* HandleFrameTask::execute() {
 					container.length;
 
 			/*
-			 * Start builder tasks for every MEP fragment
+			 * Build events with all MEP fragments
 			 */
-			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
+			for (int i = 0; i != mep->getNumberOfEvents(); i++) {
 				L2Builder::buildEvent(mep->getEvent(i));
 			}
 		} else if (destPort == EOB_BROADCAST_PORT) {
@@ -185,7 +185,6 @@ tbb::task* HandleFrameTask::execute() {
 			 */
 			LOG(ERROR) <<"Packet with unknown UDP port received: " << destPort;
 			delete[] container.data;
-			return nullptr;
 		}
 	} catch (UnknownSourceIDFound const& e) {
 		delete[] container.data;

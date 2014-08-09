@@ -21,6 +21,7 @@
 #include <vector>
 #include <l1/L1TriggerProcessor.h>
 #include <l2/L2TriggerProcessor.h>
+#include <eventBuilding/EventPool.h>
 
 #include "eventBuilding/L1Builder.h"
 #include "eventBuilding/L2Builder.h"
@@ -29,7 +30,6 @@
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
 #include "socket/ZMQHandler.h"
-#include "eventBuilding/EventPool.h"
 #include "socket/HandleFrameTask.h"
 
 using namespace std;
@@ -98,7 +98,8 @@ int main(int argc, char* argv[]) {
 	L1Builder::Initialize();
 	L2Builder::Initialize();
 
-	EventPool::Initialize();
+	EventPool::Initialize(Options::GetInt(
+	OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST));
 
 	cream::L1DistributionHandler::Initialize(
 			Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP),
