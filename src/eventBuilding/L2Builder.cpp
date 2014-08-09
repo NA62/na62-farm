@@ -28,12 +28,14 @@ std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
 void L2Builder::buildEvent(cream::LKREvent* lkrEventFragment) {
 	Event *event = EventPool::GetEvent(lkrEventFragment->getEventNumber());
 
+	/*
+	 * If the event number is too large event is null and we have to drop the data
+	 */
 	if (event == nullptr) {
-		throw na62::NA62Error(
-				"Received an LKrEvent with ID "
-						+ std::to_string(lkrEventFragment->getEventNumber())
-						+ " while there has not been any L0 data received for this event");
+		delete lkrEventFragment;
+		return;
 	}
+
 	/*
 	 * Add new packet to EventCollector
 	 */

@@ -43,7 +43,7 @@ void EventPool::Initialize() {
 				}
 			});
 # else
-	// The standard malloc blocks-> do it singelthreaded without tcmalloc
+	// The standard malloc blocks-> do it singlethreaded without tcmalloc
 	for (uint32_t eventNumber = 0; eventNumber != numberOfEventsStored_;
 			++eventNumber) {
 		events_[eventNumber] = new Event(eventNumber);

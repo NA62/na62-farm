@@ -121,8 +121,8 @@ int StorageHandler::SendEvent(Event* event) {
 		 * Write the L0 data
 		 */
 		int payloadLength;
-		for (int i = subevent->getNumberOfParts() - 1; i >= 0; i--) {
-			l0::MEPFragment* e = subevent->getPart(i);
+		for (int i = subevent->getNumberOfFragments() - 1; i >= 0; i--) {
+			l0::MEPFragment* e = subevent->getFragment(i);
 			payloadLength = e->getDataLength()
 					- sizeof(struct l0::MEPFragment_HDR)
 					+ sizeof(struct L0_BLOCK_HDR);

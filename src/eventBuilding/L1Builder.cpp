@@ -39,7 +39,7 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 	Event *event = EventPool::GetEvent(fragment->getEventNumber());
 
 	/*
-	 * If the event number is too large event is null an we have to drop the data
+	 * If the event number is too large event is null and we have to drop the data
 	 */
 	if (event == nullptr) {
 		delete fragment;

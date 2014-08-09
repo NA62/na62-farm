@@ -95,11 +95,16 @@ tbb::task* PacketHandler::execute() {
 			char* buff = new char[hdr.len];
 			memcpy(buff, data, hdr.len);
 
+			/*
+			 * Start a new task which will check the frame
+			 *
+			 * TODO: instead of spawning one task per frame it could be useful to aggregate several frames
+			 * depending on how many tasks are still running (N~2^(runningTasks-thread::hardware_concurrency()))
+			 */
 			DataContainer container = { buff, (uint16_t) hdr.len };
 			HandleFrameTask* task =
 					new (tbb::task::allocate_root()) HandleFrameTask(
 							std::move(container));
-
 			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 
 			sleepMicros = 1;
