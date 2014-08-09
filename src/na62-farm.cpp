@@ -113,7 +113,6 @@ int main(int argc, char* argv[]) {
 	 */
 	LOG(INFO)<<"Starting Monitoring Services";
 	monitoring::MonitorConnector monitor;
-	IPCHandler::updateState(RUNNING);
 	monitor.startThread("MonitorConnector");
 
 	/*

@@ -42,6 +42,7 @@ namespace na62 {
 uint16_t HandleFrameTask::L0_Port;
 uint16_t HandleFrameTask::CREAM_Port;
 uint16_t HandleFrameTask::EOB_BROADCAST_PORT;
+uint32_t HandleFrameTask::MyIP;
 
 uint32_t HandleFrameTask::currentBurstID_;
 uint32_t HandleFrameTask::nextBurstID_;
@@ -57,6 +58,7 @@ void HandleFrameTask::Initialize() {
 	CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
 	EOB_BROADCAST_PORT = Options::GetInt(
 	OPTION_EOB_BROADCAST_PORT);
+	MyIP = NetworkHandler::GetMyIP();
 
 	currentBurstID_ = Options::GetInt(OPTION_FIRST_BURST_ID);
 	nextBurstID_ = currentBurstID_;
@@ -81,6 +83,7 @@ tbb::task* HandleFrameTask::execute() {
 		uint16_t etherType = ntohs(hdr->eth.ether_type);
 		uint8_t ipProto = hdr->ip.protocol;
 		uint16_t destPort = ntohs(hdr->udp.dest);
+		uint32_t dstIP = hdr->ip.daddr;
 
 		/*
 		 * Check if we received an ARP request
@@ -101,6 +104,14 @@ tbb::task* HandleFrameTask::execute() {
 		 * Check checksum errors
 		 */
 		if (!checkFrame(hdr, container.length)) {
+			delete[] container.data;
+			return nullptr;
+		}
+
+		/*
+		 * Check if we are really the destination of the IP datagram
+		 */
+		if(!MyIP==dstIP){
 			delete[] container.data;
 			return nullptr;
 		}

@@ -28,6 +28,7 @@ private:
 	static uint16_t L0_Port;
 	static uint16_t CREAM_Port;
 	static uint16_t EOB_BROADCAST_PORT;
+	static uint32_t MyIP;
 
 	/*
 	 * Store the current Burst ID and the next one separately. As soon as an EOB event is
