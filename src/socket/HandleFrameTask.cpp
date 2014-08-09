@@ -138,8 +138,8 @@ tbb::task* HandleFrameTask::execute() {
 			}
 		} else if (destPort == CREAM_Port) {
 			/*
-			 * CREAM Data
-			 * Length is hdr->ip.tot_len-sizeof(struct iphdr) and not container.length because of ethernet padding bytes!
+			 * The LKRMEP will not be stored directly. Instead the LKREvents will store the MEP they
+			 * are stored in and also delete it as soon as all Fragments of the MEP are deleted
 			 */
 			cream::LKRMEP* mep = new cream::LKRMEP(UDPPayload, dataLength,
 					container.data);

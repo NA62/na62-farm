@@ -88,7 +88,7 @@ void L1Builder::processL1(Event *event) {
 	 * If the Event has been rejected by L1 we can destroy it now
 	 */
 	if (L0L1Trigger == 0) {
-		event->destroy();
+		EventPool::FreeEvent(event);
 	}
 }
 

@@ -8,12 +8,9 @@
 #include "L2Builder.h"
 
 #include <eventBuilding/Event.h>
-#include <exceptions/NA62Error.h>
-#include <l2/L2TriggerProcessor.h>
 #include <LKr/LKREvent.h>
-#include <iostream>
-#include <string>
 
+#include <l2/L2TriggerProcessor.h>
 #include "EventPool.h"
 #include "StorageHandler.h"
 
@@ -39,10 +36,7 @@ void L2Builder::buildEvent(cream::LKREvent* lkrEventFragment) {
 	/*
 	 * Add new packet to EventCollector
 	 */
-	if (!event->addLKREvent(lkrEventFragment)) {
-		// result == false -> subevents are still incomplete
-		return;
-	} else {
+	if (event->addLKREvent(lkrEventFragment)) {
 		// result == true -> Last missing packet received!
 		/*
 		 * This event is complete -> process it
@@ -70,7 +64,7 @@ void L2Builder::processL2(Event *event) {
 				EventsSentToStorage_++;
 			}
 			L2Triggers_[L2Trigger]++;
-			event->destroy();
+			EventPool::FreeEvent(event);
 		}
 	} else {
 		uint8_t L2Trigger = L2TriggerProcessor::onNonZSuppressedLKrDataReceived(
@@ -82,7 +76,7 @@ void L2Builder::processL2(Event *event) {
 			EventsSentToStorage_++;
 		}
 		L2Triggers_[L2Trigger]++;
-		event->destroy();
+		EventPool::FreeEvent(event);
 	}
 }
 }

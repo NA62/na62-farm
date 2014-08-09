@@ -22,6 +22,7 @@ private:
 public:
 	static void Initialize();
 	static Event* GetEvent(uint32_t eventNumber);
+	static void FreeEvent(Event* event);
 };
 
 } /* namespace na62 */

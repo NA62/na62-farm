@@ -61,5 +61,9 @@ Event* EventPool::GetEvent(uint32_t eventNumber) {
 	return events_[eventNumber];
 }
 
+void EventPool::FreeEvent(Event* event){
+	event->destroy();
+}
+
 }
 /* namespace na62 */
