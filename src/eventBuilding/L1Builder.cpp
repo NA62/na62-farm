@@ -120,7 +120,7 @@ void L1Builder::sendEOBBroadcast(uint32_t eventNumber,
 	EOBPacket->udp.udp.check = EthernetUtils::GenerateUDPChecksum(&EOBPacket->udp,
 			sizeof(struct EOB_FULL_FRAME));
 
-	DataContainer container = {(char*)buff, sizeof(struct EOB_FULL_FRAME)};
+	DataContainer container = {(char*)buff, sizeof(struct EOB_FULL_FRAME), true};
 	NetworkHandler::AsyncSendFrame( std::move(container));
 
 	HandleFrameTask::setNextBurstId(finishedBurstID + 1);

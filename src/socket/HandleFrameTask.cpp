@@ -46,6 +46,9 @@ uint32_t HandleFrameTask::MyIP;
 
 uint32_t HandleFrameTask::currentBurstID_;
 uint32_t HandleFrameTask::nextBurstID_;
+
+
+std::mutex HandleFrameTask::testMutex;
 HandleFrameTask::HandleFrameTask(DataContainer&& _container) :
 		container(_container) {
 }
@@ -78,6 +81,7 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 }
 
 tbb::task* HandleFrameTask::execute() {
+	 std::lock_guard<std::mutex> lock(testMutex);
 	try {
 		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
 		uint16_t etherType = ntohs(hdr->eth.ether_type);
@@ -167,6 +171,9 @@ tbb::task* HandleFrameTask::execute() {
 			 */
 			const uint numberOfStoredEvents = mep->getNumberOfEvents();
 			for (uint i = 0; i != numberOfStoredEvents; i++) {
+				if(mep->getEvent(i)==nullptr){
+					LOG(ERROR) << "LKr event is null: " << mep->getNumberOfEvents();
+				}
 				L2Builder::buildEvent(mep->getEvent(i));
 			}
 		} else if (destPort == EOB_BROADCAST_PORT) {

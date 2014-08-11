@@ -101,7 +101,7 @@ tbb::task* PacketHandler::execute() {
 			 * TODO: instead of spawning one task per frame it could be useful to aggregate several frames
 			 * depending on how many tasks are still running (N~2^(runningTasks-thread::hardware_concurrency()))
 			 */
-			DataContainer container = { buff, (uint16_t) hdr.len };
+			DataContainer container = { buff, (uint16_t) hdr.len, true };
 			HandleFrameTask* task =
 					new (tbb::task::allocate_root()) HandleFrameTask(
 							std::move(container));

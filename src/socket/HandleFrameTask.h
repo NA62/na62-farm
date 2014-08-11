@@ -9,6 +9,7 @@
 #define HANDLEFRAMETASK_H_
 
 #include <tbb/task.h>
+#include <mutex>
 
 #include <socket/EthernetUtils.h>
 
@@ -39,6 +40,7 @@ private:
 	static uint32_t currentBurstID_;
 	static uint32_t nextBurstID_;
 
+	static std::mutex testMutex;
 public:
 	HandleFrameTask(DataContainer&& _container);
 	virtual ~HandleFrameTask();
