@@ -50,9 +50,7 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 	/*
 	 * Add new packet to Event
 	 */
-	if (!event->addL0Event(fragment, burstID)) {
-		return;
-	} else {
+	if (event->addL0Event(fragment, burstID)) {
 		/*
 		 * This event is complete -> process it
 		 */

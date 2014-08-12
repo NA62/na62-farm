@@ -16,7 +16,7 @@
 #endif
 #include <l0/MEPFragment.h>
 #include <l0/Subevent.h>
-#include <LKr/LKREvent.h>
+#include <LKr/LkrFragment.h>
 #include <structs/Event.h>
 #include <zmq.h>
 #include <zmq.hpp>
@@ -169,9 +169,9 @@ int StorageHandler::SendEvent(Event* event) {
 		std::memcpy(eventBuffer + pointerTableOffset, &eventOffset32, 3);
 		std::memset(eventBuffer + pointerTableOffset + 3, SOURCE_ID_LKr, 1); // 0x24 is the LKr sourceID
 
-		for (int localCreamID = event->getNumberOfZSuppressedLKrEvents() - 1;
+		for (int localCreamID = event->getNumberOfZSuppressedLkrFragments() - 1;
 				localCreamID >= 0; localCreamID--) {
-			cream::LKREvent* e = event->getZSuppressedLKrEvent(localCreamID);
+			cream::LkrFragment* e = event->getZSuppressedLkrFragment(localCreamID);
 
 			if (eventOffset + e->getEventLength() > eventBufferSize) {
 				eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,

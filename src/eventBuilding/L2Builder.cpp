@@ -9,7 +9,7 @@
 
 #include <eventBuilding/Event.h>
 #include <eventBuilding/EventPool.h>
-#include <LKr/LKREvent.h>
+#include <LKr/LkrFragment.h>
 
 #include <l2/L2TriggerProcessor.h>
 #include "StorageHandler.h"
@@ -22,22 +22,21 @@ std::atomic<uint64_t>* L2Builder::L2Triggers_ = new std::atomic<uint64_t>[0xFF
 std::atomic<uint64_t> L2Builder::BytesSentToStorage_(0);
 std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
 
-void L2Builder::buildEvent(cream::LKREvent* lkrEventFragment) {
-	Event *event = EventPool::GetEvent(lkrEventFragment->getEventNumber());
+void L2Builder::buildEvent(cream::LkrFragment* LkrFragment) {
+	Event *event = EventPool::GetEvent(LkrFragment->getEventNumber());
 
 	/*
 	 * If the event number is too large event is null and we have to drop the data
 	 */
 	if (event == nullptr) {
-		delete lkrEventFragment;
+		delete LkrFragment;
 		return;
 	}
 
 	/*
 	 * Add new packet to EventCollector
 	 */
-	if (event->addLKREvent(lkrEventFragment)) {
-		// result == true -> Last missing packet received!
+	if (event->addLkrFragment(LkrFragment)) {
 		/*
 		 * This event is complete -> process it
 		 */

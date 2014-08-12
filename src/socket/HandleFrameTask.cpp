@@ -10,7 +10,7 @@
 #include <glog/logging.h>
 #include <l0/MEP.h>
 #include <l0/MEPFragment.h>
-#include <LKr/LKREvent.h>
+#include <LKr/LkrFragment.h>
 #include <LKr/LKRMEP.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
@@ -150,7 +150,7 @@ tbb::task* HandleFrameTask::execute() {
 			}
 		} else if (destPort == CREAM_Port) {
 			/*
-			 * The LKRMEP will not be stored directly. Instead the LKREvents will store the MEP they
+			 * The LKRMEP will not be stored directly. Instead the LkrFragments will store the MEP they
 			 * are stored in and also delete it as soon as all Fragments of the MEP are deleted
 			 */
 			cream::LKRMEP* mep = new cream::LKRMEP(UDPPayload, dataLength,

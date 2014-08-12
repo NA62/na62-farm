@@ -14,7 +14,7 @@
 namespace na62 {
 class Event;
 namespace cream {
-class LKREvent;
+class LkrFragment;
 } /* namespace cream */
 } /* namespace na62 */
 
@@ -35,7 +35,7 @@ private:
 	}
 
 public:
-	static void buildEvent(cream::LKREvent* lkrEventFragment);
+	static void buildEvent(cream::LkrFragment* lkrFragment);
 
 	static void processL2(Event *event);
 
