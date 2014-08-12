@@ -136,6 +136,7 @@ void PacketHandler::thread() {
 			 * Start a new task which will check the frame
 			 *
 			 */
+//			DataContainer container = { buff, (uint16_t) hdr.len, true };
 			HandleFrameTask* task =
 					new (tbb::task::allocate_root()) HandleFrameTask(
 							std::move(frames));
