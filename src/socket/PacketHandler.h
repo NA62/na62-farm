@@ -46,7 +46,7 @@ public:
 	static std::atomic<uint64_t>* BytesReceivedBySourceID_;
 
 private:
-	int threadNum_; bool running_;
+	int threadNum_;bool running_;
 	/**
 	 * @return <true> In case of success, false in case of a serious error (we should stop the thread in this case)
 	 */
