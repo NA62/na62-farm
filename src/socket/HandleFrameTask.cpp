@@ -47,8 +47,11 @@ uint32_t HandleFrameTask::MyIP;
 uint32_t HandleFrameTask::currentBurstID_;
 uint32_t HandleFrameTask::nextBurstID_;
 
-HandleFrameTask::HandleFrameTask(DataContainer&& _container) :
-		container(_container) {
+std::atomic<uint> HandleFrameTask::queuedEventNum_;
+
+HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers) :
+		containers(std::move(_containers)) {
+	queuedEventNum_ += containers.size();
 }
 
 HandleFrameTask::~HandleFrameTask() {
@@ -79,6 +82,14 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 }
 
 tbb::task* HandleFrameTask::execute() {
+	for (DataContainer& container : containers) {
+		processFrame(std::move(container));
+		queuedEventNum_ --;
+	}
+	return nullptr;
+}
+
+void HandleFrameTask::processFrame(DataContainer&& container) {
 	try {
 		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
 		uint16_t etherType = ntohs(hdr->eth.ether_type);
@@ -93,11 +104,11 @@ tbb::task* HandleFrameTask::execute() {
 			if (etherType == ETHERTYPE_ARP) {
 				// this will delete the data
 				processARPRequest((struct ARP_HDR*) container.data);
-				return nullptr;
+				return;
 			} else {
 				// Just ignore this frame as it's not IP nor ARP
 				delete[] container.data;
-				return nullptr;
+				return;
 			}
 		}
 
@@ -106,7 +117,7 @@ tbb::task* HandleFrameTask::execute() {
 		 */
 		if (!checkFrame(hdr, container.length)) {
 			delete[] container.data;
-			return nullptr;
+			return;
 		}
 
 		/*
@@ -114,7 +125,7 @@ tbb::task* HandleFrameTask::execute() {
 		 */
 		if (!MyIP == dstIP) {
 			delete[] container.data;
-			return nullptr;
+			return;
 		}
 
 		const char * UDPPayload = container.data + sizeof(struct UDP_HDR);
@@ -175,7 +186,7 @@ tbb::task* HandleFrameTask::execute() {
 				LOG(ERROR)<<
 				"Unrecognizable packet received at EOB farm broadcast Port!";
 				delete[] container.data;
-				return nullptr;
+				return;
 			}
 			EOB_FULL_FRAME* pack = (struct EOB_FULL_FRAME*) container.data;
 			LOG(INFO) <<
@@ -196,7 +207,7 @@ tbb::task* HandleFrameTask::execute() {
 	} catch (NA62Error const& e) {
 		delete[] container.data;
 	}
-	return nullptr;
+	return;
 }
 
 bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {

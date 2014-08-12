@@ -9,6 +9,8 @@
 #define HANDLEFRAMETASK_H_
 
 #include <tbb/task.h>
+#include <cstdint>
+#include <atomic>
 
 #include <socket/EthernetUtils.h>
 
@@ -16,7 +18,7 @@ namespace na62 {
 
 class HandleFrameTask: public tbb::task {
 private:
-	DataContainer container;
+	std::vector<DataContainer> containers;
 
 	void processARPRequest(struct ARP_HDR* arp);
 
@@ -30,6 +32,8 @@ private:
 	static uint16_t EOB_BROADCAST_PORT;
 	static uint32_t MyIP;
 
+	static std::atomic<uint> queuedEventNum_;
+
 	/*
 	 * Store the current Burst ID and the next one separately. As soon as an EOB event is
 	 * received the nextBurstID_ will be set. Then the currentBurstID will be updated later
@@ -39,20 +43,26 @@ private:
 	static uint32_t currentBurstID_;
 	static uint32_t nextBurstID_;
 
+	void processFrame(DataContainer&& container);
+
 public:
-	HandleFrameTask(DataContainer&& _container);
+	HandleFrameTask(std::vector<DataContainer>&& _containers);
 	virtual ~HandleFrameTask();
 
 	tbb::task* execute();
 
 	static void Initialize();
 
-	static uint32_t getCurrentBurstId() {
+	static inline uint32_t getCurrentBurstId() {
 		return currentBurstID_;
 	}
 
-	static void setNextBurstId(uint32_t burstID) {
+	static inline void setNextBurstId(uint32_t burstID) {
 		nextBurstID_ = burstID;
+	}
+
+	static inline uint getNumberOfQeuedFrames() {
+		return queuedEventNum_;
 	}
 };
 
