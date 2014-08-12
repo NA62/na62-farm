@@ -26,6 +26,7 @@
 #include <cstring>
 #include <iostream>
 #include <queue>
+#include <thread>
 
 #include <exceptions/UnknownCREAMSourceIDFound.h>
 #include <exceptions/UnknownSourceIDFound.h>
@@ -84,30 +85,61 @@ void PacketHandler::thread() {
 	int sleepMicros = 1;
 
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
+	const uint ThreadNum = std::thread::hardware_concurrency();
 
 	while (running_) {
+		/*
+		 * We want to aggregate several frames if we already have more HandleFrameTasks running than there are CPU cores available
+		 */
+		int framesToBeGathered = HandleFrameTask::getNumberOfQeuedFrames()
+				- ThreadNum;
+		if (framesToBeGathered < 0) {
+			framesToBeGathered = 1;
+		} else {
+			if (framesToBeGathered > 1024) {
+				framesToBeGathered = 1024;
+			}
+		}
+
+		std::vector<DataContainer> frames;
+		frames.reserve(framesToBeGathered);
+
 		result = 0;
 		data = NULL;
-		/*
-		 * The actual  polling!
-		 * Do not wait for incoming packets as this will block the ring and make sending impossible
-		 */
-		result = NetworkHandler::GetNextFrame(&hdr, &data, 0, false,
-				threadNum_);
-		if (result > 0) {
-			char* buff = new char[hdr.len];
-			memcpy(buff, data, hdr.len);
 
+		/*
+		 * Try to receive [framesToBeCollected] frames
+		 */
+		for (int i = 0; i != framesToBeGathered; i++) {
+			/*
+			 * The actual  polling!
+			 * Do not wait for incoming packets as this will block the ring and make sending impossible
+			 */
+			result = NetworkHandler::GetNextFrame(&hdr, &data, 0, false,
+					threadNum_);
+			if (result > 0) {
+				char* buff = new char[hdr.len];
+				memcpy(buff, data, hdr.len);
+				frames.push_back( { buff, (uint16_t) hdr.len, true });
+			} else {
+				/*
+				 * Spin wait a while. This block is not optimized by the compiler
+				 */
+				for (volatile int i = 0; i < 1E5; i++) {
+					asm("");
+				}
+			}
+		}
+
+		if (!frames.empty()) {
 			/*
 			 * Start a new task which will check the frame
 			 *
-			 * TODO: instead of spawning one task per frame it could be useful to aggregate several frames
-			 * depending on how many tasks are still running (N~2^(runningTasks-thread::hardware_concurrency()))
 			 */
-			DataContainer container = { buff, (uint16_t) hdr.len, true };
+//			DataContainer container = { buff, (uint16_t) hdr.len, true };
 			HandleFrameTask* task =
 					new (tbb::task::allocate_root()) HandleFrameTask(
-							std::move(container));
+							std::move(frames));
 			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 
 			sleepMicros = 1;
