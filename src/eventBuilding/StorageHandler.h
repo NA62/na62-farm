@@ -20,6 +20,7 @@ class socket_t;
 
 namespace na62 {
 class Event;
+struct EVENT_HDR;
 } /* namespace na62 */
 
 namespace na62 {
@@ -29,11 +30,16 @@ public:
 	static void Initialize();
 	static void OnShutDown();
 
-	static int SendEvent(Event* event);
+	static int SendEvent(const Event* event);
 
 private:
 	static char* ResizeBuffer(char* buffer, const int oldLength,
 			const int newLength);
+
+	/**
+	 * Generates the raw data as it should be send to the merger
+	 */
+	static EVENT_HDR* GenerateEventBuffer(const Event* event);
 	/*
 	 * One Socket for every EventBuilder
 	 */

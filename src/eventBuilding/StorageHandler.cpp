@@ -71,10 +71,7 @@ char* StorageHandler::ResizeBuffer(char* buffer, const int oldLength,
 	return newBuffer;
 }
 
-int StorageHandler::SendEvent(Event* event) {
-	/*
-	 * TODO: Use multimessage instead of creating a separate buffer and copying the MEP data into it
-	 */
+EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 
 	uint eventBufferSize = InitialEventBufferSize_;
 	char* eventBuffer = new char[InitialEventBufferSize_];
@@ -106,6 +103,7 @@ int StorageHandler::SendEvent(Event* event) {
 			eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
 					eventBufferSize + 1000);
 			eventBufferSize += 1000;
+			header = (struct EVENT_HDR*) eventBuffer;
 		}
 
 		/*
@@ -130,6 +128,7 @@ int StorageHandler::SendEvent(Event* event) {
 				eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
 						eventBufferSize + payloadLength);
 				eventBufferSize += payloadLength;
+				header = (struct EVENT_HDR*) eventBuffer;
 			}
 
 			struct L0_BLOCK_HDR* blockHdr = (struct L0_BLOCK_HDR*) (eventBuffer
@@ -159,6 +158,7 @@ int StorageHandler::SendEvent(Event* event) {
 		eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
 				eventBufferSize + 1000);
 		eventBufferSize += 1000;
+		header = (struct EVENT_HDR*) eventBuffer;
 	}
 
 	if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT > 0) {
@@ -171,7 +171,8 @@ int StorageHandler::SendEvent(Event* event) {
 
 		for (int localCreamID = event->getNumberOfZSuppressedLkrFragments() - 1;
 				localCreamID >= 0; localCreamID--) {
-			cream::LkrFragment* e = event->getZSuppressedLkrFragment(localCreamID);
+			cream::LkrFragment* e = event->getZSuppressedLkrFragment(
+					localCreamID);
 
 			if (eventOffset + e->getEventLength() > eventBufferSize) {
 				eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
@@ -208,10 +209,19 @@ int StorageHandler::SendEvent(Event* event) {
 
 	header->length = eventLength / 4;
 
+	return header;
+}
+
+int StorageHandler::SendEvent(const Event* event) {
 	/*
-	 * Send the event to the merger
+	 * TODO: Use multimessage instead of creating a separate buffer and copying the MEP data into it
 	 */
-	zmq::message_t zmqMessage((void*) eventBuffer, eventLength,
+	const EVENT_HDR* data = GenerateEventBuffer(event);
+
+	/*
+	 * Send the event to the merger with a zero copy message
+	 */
+	zmq::message_t zmqMessage((void*) data, data->length * 4,
 			(zmq::free_fn*) freeZmqMessage);
 
 	while (ZMQHandler::IsRunning()) {
@@ -229,6 +239,6 @@ int StorageHandler::SendEvent(Event* event) {
 		}
 	}
 
-	return header->length * 4;
+	return data->length * 4;
 }
 } /* namespace na62 */
