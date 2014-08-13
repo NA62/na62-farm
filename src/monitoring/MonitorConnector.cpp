@@ -13,7 +13,6 @@
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/date_time/time_duration.hpp>
-#include <boost/lexical_cast.hpp>
 #include <sstream>
 
 #include "../socket/HandleFrameTask.h"
@@ -159,20 +158,20 @@ void MonitorConnector::handleUpdate() {
 	setDifferentialData("EventsToMerger", eventsToStorage);
 
 	IPCHandler::sendStatistics("BytesToMerger",
-			boost::lexical_cast<std::string>(bytesToStorage));
+			std::to_string(bytesToStorage));
 	IPCHandler::sendStatistics("EventsToMerger",
-			boost::lexical_cast<std::string>(eventsToStorage));
+			std::to_string(eventsToStorage));
 
 	setDifferentialData("L1MRPsSent",
 			cream::L1DistributionHandler::GetL1MRPsSent());
 	IPCHandler::sendStatistics("L1MRPsSent",
-			boost::lexical_cast<std::string>(
+			std::to_string(
 					cream::L1DistributionHandler::GetL1MRPsSent()));
 
 	setDifferentialData("L1TriggersSent",
 			cream::L1DistributionHandler::GetL1TriggersSent());
 	IPCHandler::sendStatistics("L1TriggersSent",
-			boost::lexical_cast<std::string>(
+			std::to_string(
 					cream::L1DistributionHandler::GetL1TriggersSent()));
 
 	LOG(INFO)<<"BurstID:\t" << HandleFrameTask::getCurrentBurstId();
@@ -189,7 +188,7 @@ float MonitorConnector::setDifferentialData(std::string key, uint64_t value) {
 	uint64_t lastValue = differentialInts_[key];
 
 	if (value != 0) {
-		LOG(INFO)<<key << ":\t" << boost::lexical_cast<std::string>(value - differentialInts_[key]) << " (" << boost::lexical_cast<std::string>(value) <<")";
+		LOG(INFO)<<key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")";
 	}
 
 	differentialInts_[key + LAST_VALUE_SUFFIX] = differentialInts_[key];
@@ -209,7 +208,7 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 	}
 	lastValue = detectorDifferentialInts_[detectorID][key];
 
-	LOG(INFO)<<key << boost::lexical_cast<std::string>((int) detectorID) << ":\t" << boost::lexical_cast<std::string>(value - lastValue) << "( " <<boost::lexical_cast<std::string>(value)<<")";
+	LOG(INFO)<<key << std::to_string((int) detectorID) << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")";
 
 	detectorDifferentialInts_[detectorID][key + LAST_VALUE_SUFFIX] =
 			detectorDifferentialInts_[detectorID][key];
@@ -219,7 +218,7 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 void MonitorConnector::setContinuousData(std::string key, float value) {
 	if (continuousFloats_.find(key) == continuousFloats_.end()
 			|| continuousFloats_[key + LAST_VALUE_SUFFIX] != value) {
-		LOG(INFO)<<"total " << key + ":\t" + boost::lexical_cast<std::string>(value);
+		LOG(INFO)<<"total " << key + ":\t" + std::to_string(value);
 	}
 	continuousFloats_[key] = value;
 	continuousFloats_[key + LAST_VALUE_SUFFIX] = value;
