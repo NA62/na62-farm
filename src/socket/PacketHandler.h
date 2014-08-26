@@ -13,13 +13,12 @@
 #include <atomic>
 #include <cstdint>
 #include <vector>
-#include <tbb/task.h>
 #include <utils/AExecutable.h>
 
 namespace na62 {
 struct DataContainer;
 
-class PacketHandler: public tbb::task {
+class PacketHandler: public AExecutable {
 public:
 	PacketHandler(int threadNum);
 	virtual ~PacketHandler();
@@ -51,7 +50,7 @@ private:
 	/**
 	 * @return <true> In case of success, false in case of a serious error (we should stop the thread in this case)
 	 */
-	tbb::task* execute();
+	void thread();
 };
 
 } /* namespace na62 */

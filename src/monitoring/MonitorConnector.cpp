@@ -36,6 +36,8 @@ using namespace boost::interprocess;
 
 namespace na62 {
 namespace monitoring {
+
+STATE MonitorConnector::currentState_;
 MonitorConnector::MonitorConnector() :
 		timer_(monitoringService) {
 
@@ -66,10 +68,14 @@ void MonitorConnector::handleUpdate() {
 
 	updateWatch_.reset();
 
-	IPCHandler::updateState(RUNNING);
+	IPCHandler::updateState(currentState_);
 
 	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
 	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
+
+	IPCHandler::sendStatistics("PF_BytesReceived", std::to_string(NetworkHandler::GetBytesReceived()));
+	IPCHandler::sendStatistics("PF_PacksReceived", std::to_string(NetworkHandler::GetFramesReceived()));
+	IPCHandler::sendStatistics("PF_PacksDropped", std::to_string(NetworkHandler::GetFramesDropped()));
 
 	/*
 	 * Number of Events and data rate from all detectors

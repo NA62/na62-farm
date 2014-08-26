@@ -76,12 +76,15 @@ void PacketHandler::Initialize() {
 	}
 }
 
-tbb::task* PacketHandler::execute() {
+void PacketHandler::thread() {
 	const u_char* data; // = new char[MTU];
 	struct pfring_pkthdr hdr;
 	memset(&hdr, 0, sizeof(hdr));
 	register int result = 0;
 	int sleepMicros = 1;
+
+	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
+
 	while (running_) {
 		boost::this_thread::interruption_point();
 		result = 0;
@@ -90,7 +93,8 @@ tbb::task* PacketHandler::execute() {
 		 * The actual  polling!
 		 * Do not wait for incoming packets as this will block the ring and make sending impossible
 		 */
-		result = NetworkHandler::GetNextFrame(&hdr, &data, 0, false, threadNum_);
+		result = NetworkHandler::GetNextFrame(&hdr, &data, 0, false,
+				threadNum_);
 		if (result > 0) {
 			char* buff = new char[hdr.len];
 			memcpy(buff, data, hdr.len);
@@ -118,20 +122,22 @@ tbb::task* PacketHandler::execute() {
 				continue;
 			}
 
-			/*
-			 * Allow other threads to execute
-			 */
-			tbb::this_tbb_thread::yield();
-			tbb::this_tbb_thread::sleep(
-					tbb::tick_count::interval_t(sleepMicros * 1E-6));
-
-			if (sleepMicros < 10000) {
+			if (sleepMicros < 10) {
+				for (volatile int i = 0; i < sleepMicros * 1E3; i++) {
+					asm("");
+				}
 				sleepMicros *= 2;
+			} else {
+				if (!activePolling) {
+					/*
+					 * Allow other threads to execute
+					 */
+					boost::this_thread::sleep(boost::posix_time::microsec(100));
+				}
 			}
 		}
 	}
 	std::cout << "Stopping PacketHandler thread " << threadNum_ << std::endl;
-	return nullptr;
 }
 }
 /* namespace na62 */

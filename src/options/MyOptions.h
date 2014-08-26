@@ -60,6 +60,7 @@
  * Performance
  */
 #define OPTION_ZMQ_IO_THREADS (char*)"zmqIoThreads"
+#define OPTION_ACTIVE_POLLING (char*)"activePolling"
 
 namespace na62 {
 class MyOptions: public Options {
@@ -74,7 +75,8 @@ public:
 				po::value<std::string>()->default_value("/etc/na62-farm.cfg"),
 				"Config file for the options shown here")
 
-		(OPTION_ETH_DEVICE_NAME, po::value<std::string>()->default_value("dna0"),
+		(OPTION_ETH_DEVICE_NAME,
+				po::value<std::string>()->default_value("dna0"),
 				"Name of the device to be used for receiving data")
 
 		(OPTION_L0_RECEIVER_PORT, po::value<int>()->default_value(58913),
@@ -141,6 +143,9 @@ public:
 
 		(OPTION_ZMQ_IO_THREADS, po::value<int>()->default_value(1),
 				"Number of ZMQ IO threads")
+
+		(OPTION_ACTIVE_POLLING, po::value<bool>()->default_value(true),
+				"Use active polling (high CPU usage, might be faster depending on the number of pf_ring queues)")
 
 				;
 

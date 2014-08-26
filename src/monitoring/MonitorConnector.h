@@ -15,6 +15,8 @@
 #include <cstdbool>
 #include <map>
 #include <string>
+#include <monitoring/IPCHandler.h>
+
 
 #include <utils/Stopwatch.h>
 #include <utils/AExecutable.h>
@@ -39,6 +41,10 @@ public:
 	MonitorConnector();
 	virtual ~MonitorConnector();
 
+	static void setState(STATE state){
+		currentState_ = state;
+	}
+
 private:
 	virtual void thread();
 	void onInterruption();
@@ -59,6 +65,8 @@ private:
 	std::map<std::string, float> continuousFloats_;
 
 	std::map<std::string, bool> existingKey_;
+
+	static STATE currentState_;
 };
 
 } /* namespace monitoring */
