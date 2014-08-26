@@ -85,6 +85,14 @@ int main(int argc, char* argv[]) {
 			Options::GetIntPairList(OPTION_CREAM_CRATES),
 			Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES));
 
+	/*
+	 * Monitor
+	 */
+	LOG(INFO)<<"Starting Monitoring Services";
+	monitoring::MonitorConnector monitor;
+	monitoring::MonitorConnector::setState(INITIALIZING);
+	monitor.startThread("MonitorConnector");
+
 	PacketHandler::Initialize();
 
 	HandleFrameTask::Initialize();
@@ -110,13 +118,6 @@ int main(int argc, char* argv[]) {
 			Options::GetInt(OPTION_CREAM_MULTICAST_PORT));
 
 	/*
-	 * Monitor
-	 */
-	LOG(INFO)<<"Starting Monitoring Services";
-	monitoring::MonitorConnector monitor;
-	monitor.startThread("MonitorConnector");
-
-	/*
 	 * L1 Distribution handler
 	 */
 	cream::L1DistributionHandler l1Handler;
@@ -133,14 +134,14 @@ int main(int argc, char* argv[]) {
 		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
 				i);
 		packetHandlers.push_back(handler);
-		tbb::task::enqueue(*handler, tbb::priority_t::priority_high);
+		handler->startThread(i, "PacketHandler", i, 15);
 	}
+
+	monitoring::MonitorConnector::setState(RUNNING);
 
 	/*
 	 * Join PacketHandler and other threads
 	 */
-//	dummy->wait_for_all();
-//	dummy->destroy(*dummy);
 	AExecutable::JoinAll();
 	return 0;
 }
