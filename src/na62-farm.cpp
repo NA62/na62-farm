@@ -31,6 +31,7 @@
 #include "socket/PacketHandler.h"
 #include "socket/ZMQHandler.h"
 #include "socket/HandleFrameTask.h"
+#include "monitoring/CommandConnector.h"
 
 using namespace std;
 using namespace na62;
@@ -40,20 +41,29 @@ std::vector<PacketHandler*> packetHandlers;
 void handle_stop(const boost::system::error_code& error, int signal_number) {
 	std::cout << "Received signal " << signal_number << " - Shutting down"
 			<< std::endl;
+
+	IPCHandler::updateState(INITIALIZING);
+	usleep(100);
 	if (!error) {
 		ZMQHandler::Stop();
 		AExecutable::InterruptAll();
-		AExecutable::JoinAll();
 
+		std::cout << "Stopping packet handlers" << std::endl;
 		for (auto& handler : packetHandlers) {
 			handler->stopRunning();
 		}
 
+		std::cout << "Stopping storage handler" << std::endl;
 		StorageHandler::OnShutDown();
 
-		ZMQHandler::Shutdown();
+		std::cout << "Stopping IPC handler" << std::endl;
+		IPCHandler::shutDown();
+
+		std::cout << "Stopping ZMQ handler" << std::endl;
+		ZMQHandler::shutdown();
 
 		std::cout << "Cleanly shut down na62-farm" << std::endl;
+		AExecutable::JoinAll();
 	}
 }
 
@@ -137,6 +147,8 @@ int main(int argc, char* argv[]) {
 		handler->startThread(i, "PacketHandler", i, 15);
 	}
 
+	CommandConnector c;
+	c.startThread(0, "Commandconnector", -1, 0);
 	monitoring::MonitorConnector::setState(RUNNING);
 
 	/*

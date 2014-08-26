@@ -10,9 +10,11 @@
 
 #include <sys/types.h>
 #include <atomic>
-#include <thread>
-#include <tbb/spin_mutex.h>
-#include <tbb/mutex.h>
+#include <string>
+
+namespace tbb {
+class spin_mutex;
+} /* namespace tbb */
 
 namespace zmq {
 class socket_t;
@@ -36,6 +38,8 @@ private:
 	static char* ResizeBuffer(char* buffer, const int oldLength,
 			const int newLength);
 
+	static std::string GetMergerAddress();
+
 	/**
 	 * Generates the raw data as it should be send to the merger
 	 */
@@ -48,6 +52,7 @@ private:
 
 	static std::atomic<uint> InitialEventBufferSize_;
 	static int TotalNumberOfDetectors_;
+
 };
 
 } /* namespace na62 */

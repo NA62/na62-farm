@@ -8,9 +8,11 @@
 #include "StorageHandler.h"
 
 #include <asm-generic/errno-base.h>
-#include <bits/atomic_base.h>
 #include <eventBuilding/Event.h>
 #include <eventBuilding/SourceIDManager.h>
+#include <tbb/spin_mutex.h>
+#include <sstream>
+
 #ifdef USE_GLOG
 #include <glog/logging.h>
 #endif
@@ -27,8 +29,11 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include <socket/ZMQHandler.h>
+#include <glog/logging.h>
 
-#include "../socket/ZMQHandler.h"
+#include "../options/MyOptions.h"
+
 namespace na62 {
 
 zmq::socket_t* StorageHandler::MergerSocket_;
@@ -42,10 +47,17 @@ void freeZmqMessage(void *data, void *hint) {
 	delete[] ((char*) data);
 }
 
+std::string StorageHandler::GetMergerAddress() {
+	std::stringstream address;
+	address << "tcp://" << Options::GetString(OPTION_MERGER_HOST_NAME) << ":"
+			<< Options::GetInt(OPTION_MERGER_PORT);
+	return address.str();
+}
+
 void StorageHandler::Initialize() {
-	LOG(INFO)<< "Connecting to merger: " << ZMQHandler::GetMergerAddress().c_str();
+	LOG(INFO)<< "Connecting to merger: " << GetMergerAddress().c_str();
 	MergerSocket_ = ZMQHandler::GenerateSocket(ZMQ_PUSH);
-	MergerSocket_->connect(ZMQHandler::GetMergerAddress().c_str());
+	MergerSocket_->connect(GetMergerAddress().c_str());
 
 	/*
 	 * L0 sources + LKr
