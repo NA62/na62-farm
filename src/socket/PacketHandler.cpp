@@ -163,6 +163,7 @@ void PacketHandler::thread() {
 				}
 			}
 
+
 			if (sleepMicros < 10) {
 				sleepMicros *= 2;
 			} else {
