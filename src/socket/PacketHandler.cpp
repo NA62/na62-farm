@@ -122,10 +122,16 @@ void PacketHandler::thread() {
 				continue;
 			}
 
-			if (sleepMicros < 10) {
-				for (volatile int i = 0; i < sleepMicros * 1E3; i++) {
+			if (!activePolling || (sleepMicros < 10 && activePolling)) {
+				/*
+				 * Spin wait
+				 */
+				for (volatile int i = 0; i < sleepMicros * 1E4; i++) {
 					asm("");
 				}
+			}
+
+			if (sleepMicros < 10) {
 				sleepMicros *= 2;
 			} else {
 				if (!activePolling) {
