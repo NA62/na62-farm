@@ -86,7 +86,6 @@ void PacketHandler::thread() {
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
 
 	while (running_) {
-		boost::this_thread::interruption_point();
 		result = 0;
 		data = NULL;
 		/*
@@ -121,6 +120,8 @@ void PacketHandler::thread() {
 				sleepMicros = 1;
 				continue;
 			}
+
+			boost::this_thread::interruption_point();
 
 			if (!activePolling || (sleepMicros < 10 && activePolling)) {
 				/*
