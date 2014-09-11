@@ -39,7 +39,7 @@ std::string StrawReceiver::getZmqAddress() {
 
 void StrawReceiver::initialize() {
 	mergerSocket_ = ZMQHandler::GenerateSocket(ZMQ_PUSH);
-	mergerSocket_->connect(StorageHandler::GetMergerAddress().c_str());
+	mergerSocket_->connect(getZmqAddress().c_str());
 }
 
 void StrawReceiver::onShutDown() {
