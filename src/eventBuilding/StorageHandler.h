@@ -35,10 +35,12 @@ namespace na62 {
 
 class StorageHandler {
 public:
-	static void Initialize();
-	static void OnShutDown();
+	static void initialize();
+	static void onShutDown();
 
 	static int SendEvent(const Event* event);
+
+	static std::string GetMergerAddress();
 
 private:
 	static char* ResizeBuffer(char* buffer, const int oldLength,

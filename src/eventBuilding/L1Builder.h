@@ -46,7 +46,7 @@ public:
 		return L1Triggers_;
 	}
 
-	static void Initialize() {
+	static void initialize() {
 		for (int i = 0; i != 0xFF + 1; i++) {
 			L1Triggers_[i] = 0;
 		}

@@ -70,6 +70,12 @@
  */
 #define OPTION_MUV_CREAM_CRATE_ID (char*)"muvCreamCrateID"
 
+/*
+ *  STRAW
+ */
+#define OPTION_STRAW_PORT (char*)"strawReceivePort"
+#define OPTION_STRAW_ZMQ_PORT (char*)"strawZmqPort"
+
 namespace na62 {
 class MyOptions: public Options {
 public:
@@ -158,6 +164,11 @@ public:
 
 		(OPTION_INCREMENT_BURST_AT_EOB, po::value<bool>()->default_value(true),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
+		(OPTION_STRAW_PORT, po::value<int>()->default_value(58916),
+				"UDP-Port to be used to receive raw data stream coming from the Straws.")
+
+		(OPTION_STRAW_ZMQ_PORT, po::value<int>()->default_value(58917),
+				"ZMQ-Port to be used to forward raw data coming from the Straws to.")
 
 		(OPTION_MUV_CREAM_CRATE_ID, po::value<int>()->default_value(-1),
 				"Set the CREAM crate ID of which the data should be taken and put into the MUV1/Muv2 data blocks. Set to -1 to disable MUV1/Muv2 data acquisition.")
