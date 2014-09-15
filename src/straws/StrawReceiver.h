@@ -34,7 +34,7 @@ private:
 	static zmq::socket_t* mergerSocket_;
 	static tbb::spin_mutex sendMutex_;
 
-	std::string getZmqAddress();
+	static std::string getZmqAddress();
 };
 
 } /* namespace na62 */

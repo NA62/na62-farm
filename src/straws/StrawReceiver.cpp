@@ -47,23 +47,16 @@ void StrawReceiver::onShutDown() {
 }
 
 void StrawReceiver::processFrame(DataContainer&& data) {
+	uint burstID = 0;
+
+	tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
+	mergerSocket_->send((void*) &burstID, sizeof(burstID), ZMQ_SNDMORE);
+
 	zmq::message_t zmqMessage((void*) data.data, data.length,
 			(zmq::free_fn*) ZMQHandler::freeZmqMessage);
 
-	while (ZMQHandler::IsRunning()) {
-		tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
-		try {
-			mergerSocket_->send(zmqMessage);
-			break;
-		} catch (const zmq::error_t& ex) {
-			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-				LOG(ERROR)<<ex.what();
+	ZMQHandler::sendMessage(mergerSocket_, std::move(zmqMessage), 0);
 
-				ZMQHandler::DestroySocket (mergerSocket_);
-				return;
-			}
-		}
-	}
 }
 
 }
