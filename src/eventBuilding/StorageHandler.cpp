@@ -28,7 +28,6 @@
 #include <iostream>
 #include <string>
 #include <thread>
-#include <mutex>
 #include <socket/ZMQHandler.h>
 #include <glog/logging.h>
 
