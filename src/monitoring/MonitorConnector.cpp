@@ -13,7 +13,10 @@
 #include <boost/bind.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/date_time/time_duration.hpp>
-#include <boost/lexical_cast.hpp>
+#include <sstream>
+
+#include "../socket/HandleFrameTask.h"
+
 #ifdef USE_GLOG
 	#include <glog/logging.h>
 #endif
@@ -21,17 +24,20 @@
 
 #include <eventBuilding/SourceIDManager.h>
 #include <LKr/L1DistributionHandler.h>
-#include <socket/PFringHandler.h>
+#include <socket/NetworkHandler.h>
 #include <utils/Utils.h>
 #include <monitoring/IPCHandler.h>
 
+#include "../eventBuilding/L1Builder.h"
+#include "../eventBuilding/L2Builder.h"
 #include "../socket/PacketHandler.h"
-#include "../eventBuilding/EventBuilder.h"
 
 using namespace boost::interprocess;
 
 namespace na62 {
 namespace monitoring {
+
+STATE MonitorConnector::currentState_;
 MonitorConnector::MonitorConnector() :
 		timer_(monitoringService) {
 
@@ -62,10 +68,14 @@ void MonitorConnector::handleUpdate() {
 
 	updateWatch_.reset();
 
-	IPCHandler::updateState(RUNNING);
+	IPCHandler::updateState(currentState_);
 
-	setDifferentialData("BytesReceived", PFringHandler::GetBytesReceived());
-	setDifferentialData("FramesReceived", PFringHandler::GetFramesReceived());
+	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
+	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
+
+	IPCHandler::sendStatistics("PF_BytesReceived", std::to_string(NetworkHandler::GetBytesReceived()));
+	IPCHandler::sendStatistics("PF_PacksReceived", std::to_string(NetworkHandler::GetFramesReceived()));
+	IPCHandler::sendStatistics("PF_PacksDropped", std::to_string(NetworkHandler::GetFramesDropped()));
 
 	/*
 	 * Number of Events and data rate from all detectors
@@ -125,8 +135,8 @@ void MonitorConnector::handleUpdate() {
 		std::stringstream stream;
 		stream << std::hex << wordNum;
 
-		uint64_t L1Trigs = EventBuilder::GetL1TriggerStats()[wordNum];
-		uint64_t L2Trigs = EventBuilder::GetL2TriggerStats()[wordNum];
+		uint64_t L1Trigs = L1Builder::GetL1TriggerStats()[wordNum];
+		uint64_t L2Trigs = L2Builder::GetL2TriggerStats()[wordNum];
 
 		setDifferentialData("L1Triggers" + stream.str(), L1Trigs);
 		setDifferentialData("L2Triggers" + stream.str(), L2Trigs);
@@ -147,32 +157,33 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("L1TriggerData", L1Stats.str());
 	IPCHandler::sendStatistics("L2TriggerData", L2Stats.str());
 
-	uint32_t bytesToStorage = EventBuilder::GetBytesSentToStorage();
-	uint32_t eventsToStorage = EventBuilder::GetEventsSentToStorage();
+	uint32_t bytesToStorage = L2Builder::GetBytesSentToStorage();
+	uint32_t eventsToStorage = L2Builder::GetEventsSentToStorage();
 
 	setDifferentialData("BytesToMerger", bytesToStorage);
 	setDifferentialData("EventsToMerger", eventsToStorage);
 
 	IPCHandler::sendStatistics("BytesToMerger",
-			boost::lexical_cast<std::string>(bytesToStorage));
+			std::to_string(bytesToStorage));
 	IPCHandler::sendStatistics("EventsToMerger",
-			boost::lexical_cast<std::string>(eventsToStorage));
+			std::to_string(eventsToStorage));
 
 	setDifferentialData("L1MRPsSent",
 			cream::L1DistributionHandler::GetL1MRPsSent());
 	IPCHandler::sendStatistics("L1MRPsSent",
-			boost::lexical_cast<std::string>(
+			std::to_string(
 					cream::L1DistributionHandler::GetL1MRPsSent()));
 
 	setDifferentialData("L1TriggersSent",
 			cream::L1DistributionHandler::GetL1TriggersSent());
 	IPCHandler::sendStatistics("L1TriggersSent",
-			boost::lexical_cast<std::string>(
+			std::to_string(
 					cream::L1DistributionHandler::GetL1TriggersSent()));
 
-	LOG(INFO)<<"BurstID:\t" << EventBuilder::getCurrentBurstId();
+	LOG(INFO)<<"BurstID:\t" << HandleFrameTask::getCurrentBurstId();
+	LOG(INFO)<<"State:\t" << currentState_;
 
-	PFringHandler::PrintStats();
+	NetworkHandler::PrintStats();
 }
 
 float MonitorConnector::setDifferentialData(std::string key, uint64_t value) {
@@ -184,7 +195,7 @@ float MonitorConnector::setDifferentialData(std::string key, uint64_t value) {
 	uint64_t lastValue = differentialInts_[key];
 
 	if (value != 0) {
-		LOG(INFO)<<key << ":\t" << boost::lexical_cast<std::string>(value - differentialInts_[key]) << " (" << boost::lexical_cast<std::string>(value) <<")";
+		LOG(INFO)<<key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")";
 	}
 
 	differentialInts_[key + LAST_VALUE_SUFFIX] = differentialInts_[key];
@@ -204,7 +215,7 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 	}
 	lastValue = detectorDifferentialInts_[detectorID][key];
 
-	LOG(INFO)<<key << boost::lexical_cast<std::string>((int) detectorID) << ":\t" << boost::lexical_cast<std::string>(value - lastValue) << "( " <<boost::lexical_cast<std::string>(value)<<")";
+	LOG(INFO)<<key << std::to_string((int) detectorID) << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")";
 
 	detectorDifferentialInts_[detectorID][key + LAST_VALUE_SUFFIX] =
 			detectorDifferentialInts_[detectorID][key];
@@ -214,7 +225,7 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 void MonitorConnector::setContinuousData(std::string key, float value) {
 	if (continuousFloats_.find(key) == continuousFloats_.end()
 			|| continuousFloats_[key + LAST_VALUE_SUFFIX] != value) {
-		LOG(INFO)<<"total " << key + ":\t" + boost::lexical_cast<std::string>(value);
+		LOG(INFO)<<"total " << key + ":\t" + std::to_string(value);
 	}
 	continuousFloats_[key] = value;
 	continuousFloats_[key + LAST_VALUE_SUFFIX] = value;
