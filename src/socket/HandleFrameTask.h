@@ -11,6 +11,7 @@
 #include <tbb/task.h>
 
 #include <socket/EthernetUtils.h>
+#include <boost/timer/timer.hpp>
 
 namespace na62 {
 
@@ -38,7 +39,7 @@ private:
 	 */
 	static uint32_t currentBurstID_;
 	static uint32_t nextBurstID_;
-
+	static boost::timer::cpu_timer eobFrameReceivedTime_;
 public:
 	HandleFrameTask(DataContainer&& _container);
 	virtual ~HandleFrameTask();
@@ -53,6 +54,7 @@ public:
 
 	static void setNextBurstId(uint32_t burstID) {
 		nextBurstID_ = burstID;
+		eobFrameReceivedTime_.start();
 	}
 };
 

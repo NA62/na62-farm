@@ -47,6 +47,8 @@ uint32_t HandleFrameTask::MyIP;
 uint32_t HandleFrameTask::currentBurstID_;
 uint32_t HandleFrameTask::nextBurstID_;
 
+boost::timer::cpu_timer HandleFrameTask::eobFrameReceivedTime_;
+
 HandleFrameTask::HandleFrameTask(DataContainer&& _container) :
 		container(_container) {
 }
@@ -132,10 +134,13 @@ tbb::task* HandleFrameTask::execute() {
 			l0::MEP* mep = new l0::MEP(UDPPayload, dataLength, container.data);
 
 			/*
-			 * If the event has a small number we should check if the burstID is already updated
+			 * If the event has a small number we should check if the burstID is already updated and the update is long enough ago. Otherwise
+			 * we would increment the burstID while we are still processing events from the last burst.
 			 */
 			if (nextBurstID_ != currentBurstID_
-					&& mep->getFirstEventNum() < 1000) {
+					&& mep->getFirstEventNum() < 1000
+					&& eobFrameReceivedTime_.elapsed().wall / 1E6
+							> 100 /*100ms*/) {
 				currentBurstID_ = nextBurstID_;
 			}
 
@@ -181,7 +186,7 @@ tbb::task* HandleFrameTask::execute() {
 			LOG(INFO) <<
 			"Received EOB Farm-Broadcast. Will increment BurstID now to " << pack->finishedBurstID + 1;
 
-			nextBurstID_ = pack->finishedBurstID + 1;
+			setNextBurstId(pack->finishedBurstID + 1);
 		} else {
 			/*
 			 * Packet with unknown UDP port received

@@ -121,7 +121,6 @@ void PacketHandler::thread() {
 				continue;
 			}
 
-
 			if (!activePolling || (sleepMicros < 10 && activePolling)) {
 				/*
 				 * Spin wait
