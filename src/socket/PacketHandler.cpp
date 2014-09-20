@@ -121,8 +121,6 @@ void PacketHandler::thread() {
 				continue;
 			}
 
-			boost::this_thread::interruption_point();
-
 			if (!activePolling || (sleepMicros < 10 && activePolling)) {
 				/*
 				 * Spin wait
@@ -135,6 +133,7 @@ void PacketHandler::thread() {
 			if (sleepMicros < 10) {
 				sleepMicros *= 2;
 			} else {
+				boost::this_thread::interruption_point();
 				if (!activePolling) {
 					/*
 					 * Allow other threads to execute

@@ -59,6 +59,9 @@ void L2Builder::processL2(Event *event) {
 		 */
 		if (!event->isWaitingForNonZSuppressedLKrData()) {
 			if (event->isL2Accepted()) {
+				/*
+				 * Send Event to merger
+				 */
 				BytesSentToStorage_ += StorageHandler::SendEvent(event);
 				EventsSentToStorage_++;
 			}

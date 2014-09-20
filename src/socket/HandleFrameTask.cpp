@@ -123,7 +123,6 @@ tbb::task* HandleFrameTask::execute() {
 		const uint16_t & dataLength = ntohs(hdr->udp.len)
 				- sizeof(struct udphdr);
 
-
 		/*
 		 *  Now let's see what's insight the packet
 		 */
@@ -139,7 +138,9 @@ tbb::task* HandleFrameTask::execute() {
 			 * we would increment the burstID while we are still processing events from the last burst.
 			 */
 			if (nextBurstID_ != currentBurstID_
-					&& mep->getFirstEventNum() < 1000 && eobFrameReceivedTime_.elapsed().wall / 1E6 > 100 /*100ms*/) {
+					&& mep->getFirstEventNum() < 1000
+					&& eobFrameReceivedTime_.elapsed().wall / 1E6
+							> 100 /*100ms*/) {
 				currentBurstID_ = nextBurstID_;
 			}
 
