@@ -42,8 +42,6 @@ int StorageHandler::TotalNumberOfDetectors_;
 
 tbb::spin_mutex StorageHandler::sendMutex_;
 
-tbb::spin_mutex testMutex;
-
 void freeZmqMessage(void *data, void *hint) {
 	delete[] ((char*) data);
 }
@@ -227,9 +225,6 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 }
 
 int StorageHandler::SendEvent(const Event* event) {
-
-	tbb::spin_mutex::scoped_lock my_lock(testMutex);
-
 	/*
 	 * TODO: Use multimessage instead of creating a separate buffer and copying the MEP data into it
 	 */
