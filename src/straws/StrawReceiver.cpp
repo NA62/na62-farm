@@ -34,8 +34,8 @@ std::vector<std::string> StrawReceiver::getZmqAddresses() {
 	std::vector<std::string> addresses;
 	for (std::string host : Options::GetStringList(OPTION_STRAW_ZMQ_DST_HOSTS)) {
 		std::stringstream address;
-		address << "tcp://" << Options::GetString(OPTION_MERGER_HOST_NAME)
-				<< ":" << Options::GetInt(OPTION_STRAW_ZMQ_PORT);
+		address << "tcp://" << host << ":"
+				<< Options::GetInt(OPTION_STRAW_ZMQ_PORT);
 		addresses.push_back(address.str());
 	}
 	return addresses;
@@ -56,13 +56,14 @@ void StrawReceiver::onShutDown() {
 }
 
 void StrawReceiver::processFrame(DataContainer&& data, uint burstID) {
-	char* payload = data.data+sizeof(struct UDP_HDR);
+	char* payload = data.data + sizeof(struct UDP_HDR);
 
-	uint sendDataLength = data.length-sizeof(UDP_HDR)+4/*header indicating length*/;
+	uint sendDataLength = data.length - sizeof(UDP_HDR)
+			+ 4/*header indicating length*/;
 	char* sendData = new char[sendDataLength];
 
 	memset(sendData, sendDataLength, 4);
-	memcpy(sendData+4, payload, sendDataLength-4);
+	memcpy(sendData + 4, payload, sendDataLength - 4);
 
 	delete[] data.data;
 
