@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <atomic>
 #include <string>
+#include <vector>
 
 namespace tbb {
 class spin_mutex;
@@ -38,7 +39,7 @@ private:
 	static char* ResizeBuffer(char* buffer, const int oldLength,
 			const int newLength);
 
-	static std::string GetMergerAddress();
+	static std::vector<std::string> GetMergerAddresses();
 
 	/**
 	 * Generates the raw data as it should be send to the merger
@@ -47,7 +48,7 @@ private:
 	/*
 	 * One Socket for every EventBuilder
 	 */
-	static zmq::socket_t* MergerSocket_;
+	static std::vector<zmq::socket_t*> mergerSockets_;
 	static tbb::spin_mutex sendMutex_;
 
 	static std::atomic<uint> InitialEventBufferSize_;

@@ -35,7 +35,7 @@
 
 namespace na62 {
 
-zmq::socket_t* StorageHandler::MergerSocket_;
+std::vector<zmq::socket_t*> StorageHandler::mergerSockets_;
 
 std::atomic<uint> StorageHandler::InitialEventBufferSize_;
 int StorageHandler::TotalNumberOfDetectors_;
@@ -46,17 +46,24 @@ void freeZmqMessage(void *data, void *hint) {
 	delete[] ((char*) data);
 }
 
-std::string StorageHandler::GetMergerAddress() {
-	std::stringstream address;
-	address << "tcp://" << Options::GetString(OPTION_MERGER_HOST_NAME) << ":"
-			<< Options::GetInt(OPTION_MERGER_PORT);
-	return address.str();
+std::vector<std::string> StorageHandler::GetMergerAddresses() {
+	std::vector<std::string> addresses;
+	for (std::string host : Options::GetStringList(OPTION_MERGER_HOST_NAMES)) {
+		std::stringstream address;
+		address << "tcp://" << host << ":"
+				<< Options::GetInt(OPTION_MERGER_PORT);
+		addresses.push_back(address.str());
+	}
+	return addresses;
 }
 
 void StorageHandler::Initialize() {
-	LOG(INFO)<< "Connecting to merger: " << GetMergerAddress().c_str();
-	MergerSocket_ = ZMQHandler::GenerateSocket(ZMQ_PUSH);
-	MergerSocket_->connect(GetMergerAddress().c_str());
+	for (std::string address : GetMergerAddresses()) {
+		LOG(INFO)<< "Connecting to merger: " << address;
+		zmq::socket_t* socket = ZMQHandler::GenerateSocket(ZMQ_PUSH);
+		socket->connect(address.c_str());
+		mergerSockets_.push_back(socket);
+	}
 
 	/*
 	 * L0 sources + LKr
@@ -71,7 +78,9 @@ void StorageHandler::Initialize() {
 }
 
 void StorageHandler::OnShutDown() {
-	ZMQHandler::DestroySocket(MergerSocket_);
+	for (auto socket : mergerSockets_) {
+		ZMQHandler::DestroySocket(socket);
+	}
 }
 
 char* StorageHandler::ResizeBuffer(char* buffer, const int oldLength,
@@ -239,13 +248,14 @@ int StorageHandler::SendEvent(const Event* event) {
 	while (ZMQHandler::IsRunning()) {
 		tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
 		try {
-			MergerSocket_->send(zmqMessage);
+			mergerSockets_[event->getBurstID() % mergerSockets_.size()]->send(
+					zmqMessage);
 			break;
 		} catch (const zmq::error_t& ex) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
 				LOG(ERROR)<< ex.what();
 
-				ZMQHandler::DestroySocket(MergerSocket_);
+				OnShutDown();
 				return 0;
 			}
 		}

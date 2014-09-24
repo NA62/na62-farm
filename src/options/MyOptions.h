@@ -53,7 +53,7 @@
 /*
  * Merger
  */
-#define OPTION_MERGER_HOST_NAME (char*)"mergerHostName"
+#define OPTION_MERGER_HOST_NAMES (char*)"mergerHostNames"
 #define OPTION_MERGER_PORT (char*)"mergerPort"
 
 /*
@@ -135,8 +135,8 @@ public:
 				po::value<int>()->default_value(10000000),
 				"The number of events this pc should be able to receive. The system will ignore events with event numbers larger than this value")
 
-		(OPTION_MERGER_HOST_NAME, po::value<std::string>()->required(),
-				"IP or hostname of the merger PC.")
+		(OPTION_MERGER_HOST_NAMES, po::value<std::string>()->required(),
+				"Comma separated list of IPs or hostnames of the merger PCs.")
 
 		(OPTION_MERGER_PORT, po::value<int>()->required(),
 				"The TCP port the merger is listening to.")
