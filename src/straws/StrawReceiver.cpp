@@ -22,7 +22,7 @@
 namespace na62 {
 
 tbb::spin_mutex StrawReceiver::sendMutex_;
-zmq::socket_t* StrawReceiver::mergerSocket_;
+std::vector<zmq::socket_t*> StrawReceiver::pushSockets_;
 
 StrawReceiver::StrawReceiver() {
 }
@@ -30,33 +30,40 @@ StrawReceiver::StrawReceiver() {
 StrawReceiver::~StrawReceiver() {
 }
 
-std::string StrawReceiver::getZmqAddress() {
-	std::stringstream address;
-	address << "tcp://" << Options::GetString(OPTION_MERGER_HOST_NAME) << ":"
-			<< Options::GetInt(OPTION_STRAW_ZMQ_PORT);
-	return address.str();
+std::vector<std::string> StrawReceiver::getZmqAddresses() {
+	std::vector<std::string> addresses;
+	for (std::string host : Options::GetStringList(OPTION_STRAW_ZMQ_DST_HOSTS)) {
+		std::stringstream address;
+		address << "tcp://" << Options::GetString(OPTION_MERGER_HOST_NAME)
+				<< ":" << Options::GetInt(OPTION_STRAW_ZMQ_PORT);
+		addresses.push_back(address.str());
+	}
+	return addresses;
 }
 
 void StrawReceiver::initialize() {
-	mergerSocket_ = ZMQHandler::GenerateSocket(ZMQ_PUSH);
-	mergerSocket_->connect(getZmqAddress().c_str());
+	for (std::string address : getZmqAddresses()) {
+		zmq::socket_t* socket = ZMQHandler::GenerateSocket(ZMQ_PUSH);
+		socket->connect(address.c_str());
+		pushSockets_.push_back(socket);
+	}
 }
 
 void StrawReceiver::onShutDown() {
-	ZMQHandler::DestroySocket(mergerSocket_);
+	for (auto socket : pushSockets_) {
+		ZMQHandler::DestroySocket(socket);
+	}
 }
 
-void StrawReceiver::processFrame(DataContainer&& data) {
-	uint burstID = 0;
-
+void StrawReceiver::processFrame(DataContainer&& data, uint burstID) {
 	tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
-	mergerSocket_->send((void*) &burstID, sizeof(burstID), ZMQ_SNDMORE);
+	zmq::socket_t* socket = pushSockets_[burstID % pushSockets_.size()];
+	socket->send((void*) &burstID, sizeof(burstID), ZMQ_SNDMORE);
 
 	zmq::message_t zmqMessage((void*) data.data, data.length,
 			(zmq::free_fn*) ZMQHandler::freeZmqMessage);
 
-	ZMQHandler::sendMessage(mergerSocket_, std::move(zmqMessage), 0);
-
+	ZMQHandler::sendMessage(socket, std::move(zmqMessage), 0);
 }
 
 }

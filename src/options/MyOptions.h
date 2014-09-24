@@ -75,6 +75,7 @@
  */
 #define OPTION_STRAW_PORT (char*)"strawReceivePort"
 #define OPTION_STRAW_ZMQ_PORT (char*)"strawZmqPort"
+#define OPTION_STRAW_ZMQ_DST_HOSTS (char*)"strawZmqDstHosts"
 
 namespace na62 {
 class MyOptions: public Options {
@@ -173,6 +174,8 @@ public:
 		(OPTION_MUV_CREAM_CRATE_ID, po::value<int>()->default_value(-1),
 				"Set the CREAM crate ID of which the data should be taken and put into the MUV1/Muv2 data blocks. Set to -1 to disable MUV1/Muv2 data acquisition.")
 
+		(OPTION_STRAW_ZMQ_DST_HOSTS, po::value<int>()->required(),
+				"Comma separated list of all hosts that have a ZMQ PULL socket listening to the strawZmqPort to receive STRAW data")
 
 				;
 

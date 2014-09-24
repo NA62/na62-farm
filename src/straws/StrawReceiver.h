@@ -26,15 +26,15 @@ public:
 	StrawReceiver();
 	virtual ~StrawReceiver();
 
-	static void processFrame(DataContainer&& data);
+	static void processFrame(DataContainer&& data, uint burstID);
 	static void initialize();
 	static void onShutDown();
 
 private:
-	static zmq::socket_t* mergerSocket_;
+	static std::vector<zmq::socket_t*> pushSockets_;
 	static tbb::spin_mutex sendMutex_;
 
-	static std::string getZmqAddress();
+	static std::vector<std::string> getZmqAddresses();
 };
 
 } /* namespace na62 */

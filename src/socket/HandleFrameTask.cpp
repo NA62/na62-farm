@@ -187,7 +187,21 @@ tbb::task* HandleFrameTask::execute() {
 				L2Builder::buildEvent(mep->getEvent(i));
 			}
 		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
-			StrawReceiver::processFrame(std::move(container));
+			StrawReceiver::processFrame(std::move(container), currentBurstID_);
+		} else if (destPort == EOB_BROADCAST_PORT) {
+			if (UdpDataLength
+					!= sizeof(struct EOB_FULL_FRAME) - sizeof(UDP_HDR)) {
+				LOG(ERROR)<<
+				"Unrecognizable packet received at EOB farm broadcast Port!";
+				delete[] container.data;
+				return nullptr;
+			}
+			EOB_FULL_FRAME* pack = (struct EOB_FULL_FRAME*) container.data;
+			LOG(INFO) <<
+			"Received EOB Farm-Broadcast. Will increment BurstID now to " << pack->finishedBurstID + 1;
+
+			setNextBurstId(pack->finishedBurstID + 1);
+>>>>>>> Straw readout now sending to several destinations burst wise
 		} else {
 			/*
 			 * Packet with unknown UDP port received
