@@ -9,7 +9,8 @@
 #define STRAWRECEIVER_H_
 
 #include <tbb/spin_mutex.h>
- #include <string>
+#include <string>
+#include <vector>
 
 namespace zmq {
 class socket_t;

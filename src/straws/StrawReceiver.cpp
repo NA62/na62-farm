@@ -56,13 +56,28 @@ void StrawReceiver::onShutDown() {
 }
 
 void StrawReceiver::processFrame(DataContainer&& data, uint burstID) {
-	tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
-	zmq::socket_t* socket = pushSockets_[burstID % pushSockets_.size()];
-	socket->send((void*) &burstID, sizeof(burstID), ZMQ_SNDMORE);
+	char* payload = data.data+sizeof(struct UDP_HDR);
 
-	zmq::message_t zmqMessage((void*) data.data, data.length,
+	uint sendDataLength = data.length-sizeof(UDP_HDR)+4/*header indicating length*/;
+	char* sendData = new char[sendDataLength];
+
+	memset(sendData, sendDataLength, 4);
+	memcpy(sendData+4, payload, sendDataLength-4);
+
+	delete[] data.data;
+
+	/*
+	 * Prepare ZMQ message
+	 */
+	zmq::socket_t* socket = pushSockets_[burstID % pushSockets_.size()];
+	zmq::message_t zmqMessage((void*) sendData, sendDataLength,
 			(zmq::free_fn*) ZMQHandler::freeZmqMessage);
 
+	/*
+	 * Send burstID and data
+	 */
+	tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
+	socket->send((void*) &burstID, sizeof(burstID), ZMQ_SNDMORE);
 	ZMQHandler::sendMessage(socket, std::move(zmqMessage), 0);
 }
 
