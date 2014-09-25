@@ -121,7 +121,7 @@ void PacketHandler::thread() {
 				continue;
 			}
 
-			if (!activePolling || (sleepMicros < 10 && activePolling)) {
+			if (activePolling || (sleepMicros < 100 && !activePolling)) {
 				/*
 				 * Spin wait
 				 */
@@ -130,15 +130,16 @@ void PacketHandler::thread() {
 				}
 			}
 
-			if (sleepMicros < 10) {
+			if (sleepMicros < 100) {
 				sleepMicros *= 2;
 			} else {
-				boost::this_thread::interruption_point();
+//				boost::this_thread::interruption_point();
 				if (!activePolling) {
 					/*
 					 * Allow other threads to execute
 					 */
-					boost::this_thread::sleep(boost::posix_time::microsec(100));
+					boost::this_thread::sleep(
+							boost::posix_time::microsec(sleepMicros));
 				}
 			}
 		}

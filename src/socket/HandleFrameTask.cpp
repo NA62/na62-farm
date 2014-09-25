@@ -114,7 +114,7 @@ tbb::task* HandleFrameTask::execute() {
 		/*
 		 * Check if we are really the destination of the IP datagram
 		 */
-		if (!MyIP == dstIP) {
+		if (MyIP != dstIP) {
 			delete[] container.data;
 			return nullptr;
 		}
