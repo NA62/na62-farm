@@ -115,8 +115,8 @@ void PacketHandler::thread() {
 			/*
 			 * Use the time to send some packets
 			 */
-			if (cream::L1DistributionHandler::DoSendMRP(threadNum_)
-					|| NetworkHandler::DoSendQueuedFrames(threadNum_) != 0) {
+
+			if (cream::L1DistributionHandler::DoSendMRP(threadNum_) || NetworkHandler::DoSendQueuedFrames(threadNum_) != 0) {
 				sleepMicros = 1;
 				continue;
 			}

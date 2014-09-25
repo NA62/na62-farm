@@ -132,7 +132,7 @@ public:
 				"Maximum number of Triggers per L1 MRP")
 
 		(OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST,
-				po::value<int>()->default_value(10000000),
+				po::value<int>()->default_value(2000000),
 				"The number of events this pc should be able to receive. The system will ignore events with event numbers larger than this value")
 
 		(OPTION_MERGER_HOST_NAMES, po::value<std::string>()->required(),
