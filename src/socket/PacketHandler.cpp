@@ -31,7 +31,6 @@
 #include <exceptions/UnknownSourceIDFound.h>
 #include <l0/MEP.h>
 #include <l0/MEPFragment.h>
-#include <LKr/L1DistributionHandler.h>
 #include <LKr/LkrFragment.h>
 #include <LKr/LKRMEP.h>
 #include "../options/MyOptions.h"
@@ -115,8 +114,7 @@ void PacketHandler::thread() {
 			/*
 			 * Use the time to send some packets
 			 */
-			if (cream::L1DistributionHandler::DoSendMRP(threadNum_)
-					|| NetworkHandler::DoSendQueuedFrames(threadNum_) != 0) {
+			if (NetworkHandler::DoSendQueuedFrames(threadNum_) != 0) {
 				sleepMicros = 1;
 				continue;
 			}
