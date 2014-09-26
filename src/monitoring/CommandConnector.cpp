@@ -59,12 +59,13 @@ void CommandConnector::thread() {
 				uint32_t burst = HandleFrameTask::getCurrentBurstId()+1;
 				HandleFrameTask::setNextBurstId(burst);
 #ifdef USE_GLOG
-				LOG(INFO) << "Updating burst to " << burst;
+				LOG(INFO) << "Got EOB time: Incrementing burstID to" << burst;
 #endif
 			} else if (command == "updateburstid") {
 				uint32_t burst = boost::lexical_cast<int>(strings[1]);
 #ifdef USE_GLOG
-				LOG(INFO) << "Updating burst to " << burst;
+				LOG(INFO) << "Received new burstID: " << burst;
+				HandleFrameTask::setNextBurstId(burst);
 #endif
 			}
 		}
