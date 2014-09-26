@@ -20,8 +20,6 @@
 
 #define OPTION_L0_RECEIVER_PORT (char*)"L0Port"
 #define OPTION_CREAM_RECEIVER_PORT (char*)"CREAMPort"
-#define OPTION_EOB_BROADCAST_IP (char*)"EOBBroadcastIP"
-#define OPTION_EOB_BROADCAST_PORT (char*)"EOBBroadcastPort"
 
 /*
  * Event Building
@@ -42,6 +40,7 @@
 
 #define OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST (char*)"maxNumberOfEventsPerBurst"
 
+#define OPTION_PRINT_MISSING_SOURCES (char*)"printMissingSources"
 /*
  * Triggering
  */
@@ -81,12 +80,6 @@ public:
 
 		(OPTION_L0_RECEIVER_PORT, po::value<int>()->default_value(58913),
 				"UDP-Port for L1 data reception")
-
-		(OPTION_EOB_BROADCAST_IP, po::value<std::string>()->required(),
-				"Broadcast IP for the distribution of the last event number. Should be the broadcast IP of a network attached to NICs with standard kernel drivers (e.g. farm-out).")
-
-		(OPTION_EOB_BROADCAST_PORT, po::value<int>()->default_value(14162),
-				"Port for Broadcast packets used to distribute the last event numbers ob a burst.")
 
 		(OPTION_NUMBER_OF_EBS,
 				po::value<int>()->default_value(
@@ -146,6 +139,9 @@ public:
 
 		(OPTION_ACTIVE_POLLING, po::value<bool>()->default_value(true),
 				"Use active polling (high CPU usage, might be faster depending on the number of pf_ring queues)")
+
+		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
+				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
 
 				;
 

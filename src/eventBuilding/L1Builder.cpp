@@ -59,10 +59,6 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 }
 
 void L1Builder::processL1(Event *event) {
-	if (event->isLastEventOfBurst()) {
-		sendEOBBroadcast(event->getEventNumber(), event->getBurstID());
-	}
-
 	/*
 	 * Process Level 1 trigger
 	 */
@@ -94,34 +90,6 @@ void L1Builder::processL1(Event *event) {
 void L1Builder::sendL1RequestToCREAMS(Event* event) {
 	cream::L1DistributionHandler::Async_RequestLKRDataMulticast(event,
 	false);
-}
-
-void L1Builder::sendEOBBroadcast(uint32_t eventNumber,
-		uint32_t finishedBurstID) {
-	LOG(INFO)<<"Sending EOB broadcast to "
-	<< Options::GetString(OPTION_EOB_BROADCAST_IP) << ":"
-	<< Options::GetInt(OPTION_EOB_BROADCAST_PORT);
-	const char* buff = new char[sizeof(EOB_FULL_FRAME)];
-	EOB_FULL_FRAME* EOBPacket = (struct EOB_FULL_FRAME*) buff;
-	EOBPacket->finishedBurstID = finishedBurstID;
-	EOBPacket->lastEventNum = eventNumber;
-	EthernetUtils::GenerateUDP(buff,
-			EthernetUtils::StringToMAC("FF:FF:FF:FF:FF:FF"),
-			inet_addr(Options::GetString(OPTION_EOB_BROADCAST_IP).data()),
-			Options::GetInt(OPTION_EOB_BROADCAST_PORT),
-			Options::GetInt(OPTION_EOB_BROADCAST_PORT));
-	EOBPacket->udp.setPayloadSize(
-			sizeof(struct EOB_FULL_FRAME) - sizeof(struct UDP_HDR));
-	EOBPacket->udp.ip.check = 0;
-	EOBPacket->udp.ip.check = EthernetUtils::GenerateChecksum(
-			(const char*) (&EOBPacket->udp.ip), sizeof(struct iphdr));
-	EOBPacket->udp.udp.check = EthernetUtils::GenerateUDPChecksum(&EOBPacket->udp,
-			sizeof(struct EOB_FULL_FRAME));
-
-	DataContainer container = {(char*)buff, sizeof(struct EOB_FULL_FRAME), true};
-	NetworkHandler::AsyncSendFrame( std::move(container));
-
-	HandleFrameTask::setNextBurstId(finishedBurstID + 1);
 }
 
 }

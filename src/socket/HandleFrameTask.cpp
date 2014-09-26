@@ -41,7 +41,6 @@ namespace na62 {
 
 uint16_t HandleFrameTask::L0_Port;
 uint16_t HandleFrameTask::CREAM_Port;
-uint16_t HandleFrameTask::EOB_BROADCAST_PORT;
 uint32_t HandleFrameTask::MyIP;
 
 uint32_t HandleFrameTask::currentBurstID_;
@@ -59,8 +58,6 @@ HandleFrameTask::~HandleFrameTask() {
 void HandleFrameTask::Initialize() {
 	L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
 	CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
-	EOB_BROADCAST_PORT = Options::GetInt(
-	OPTION_EOB_BROADCAST_PORT);
 	MyIP = NetworkHandler::GetMyIP();
 
 	currentBurstID_ = Options::GetInt(OPTION_FIRST_BURST_ID);
@@ -175,23 +172,11 @@ tbb::task* HandleFrameTask::execute() {
 			for (uint i = 0; i != numberOfStoredEvents; i++) {
 				L2Builder::buildEvent(mep->getEvent(i));
 			}
-		} else if (destPort == EOB_BROADCAST_PORT) {
-			if (dataLength != sizeof(struct EOB_FULL_FRAME) - sizeof(UDP_HDR)) {
-				LOG(ERROR)<<
-				"Unrecognizable packet received at EOB farm broadcast Port!";
-				delete[] container.data;
-				return nullptr;
-			}
-			EOB_FULL_FRAME* pack = (struct EOB_FULL_FRAME*) container.data;
-			LOG(INFO) <<
-			"Received EOB Farm-Broadcast. Will increment BurstID now to " << pack->finishedBurstID + 1;
-
-			setNextBurstId(pack->finishedBurstID + 1);
 		} else {
 			/*
 			 * Packet with unknown UDP port received
 			 */
-			LOG(ERROR) <<"Packet with unknown UDP port received: " << destPort;
+			LOG(ERROR)<<"Packet with unknown UDP port received: " << destPort;
 			delete[] container.data;
 		}
 	} catch (UnknownSourceIDFound const& e) {

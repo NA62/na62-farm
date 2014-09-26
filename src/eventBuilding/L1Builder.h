@@ -28,9 +28,6 @@ private:
 
 	static void processL1(Event *event);
 
-	static void sendEOBBroadcast(uint32_t eventNumber,
-			uint32_t finishedBurstID);
-
 	/*
 	 * @return <true> if any packet has been sent (time has passed)
 	 */

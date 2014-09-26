@@ -22,6 +22,7 @@
 #include <l1/L1TriggerProcessor.h>
 #include <l2/L2TriggerProcessor.h>
 #include <eventBuilding/EventPool.h>
+#include <eventBuilding/Event.h>
 
 #include "eventBuilding/L1Builder.h"
 #include "eventBuilding/L2Builder.h"
@@ -115,6 +116,8 @@ int main(int argc, char* argv[]) {
 
 	L1Builder::Initialize();
 	L2Builder::Initialize();
+
+	Event::setPrintMissingSourceIds(MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES));
 
 	EventPool::Initialize(Options::GetInt(
 	OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST));
