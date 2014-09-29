@@ -36,6 +36,7 @@
 #include "../eventBuilding/L2Builder.h"
 #include "../options/MyOptions.h"
 #include "PacketHandler.h"
+#include "FragmentStore.h"
 
 namespace na62 {
 
@@ -119,6 +120,11 @@ tbb::task* HandleFrameTask::execute() {
 			return nullptr;
 		}
 
+		if(hdr->isFragment()){
+			FragmentStore::addFragment(std::move(container));
+			return nullptr;
+		}
+
 		const char * UDPPayload = container.data + sizeof(struct UDP_HDR);
 		const uint16_t & dataLength = ntohs(hdr->udp.len)
 				- sizeof(struct udphdr);
@@ -140,7 +146,7 @@ tbb::task* HandleFrameTask::execute() {
 			if (nextBurstID_ != currentBurstID_
 					&& mep->getFirstEventNum() < 1000
 					&& eobFrameReceivedTime_.elapsed().wall / 1E6
-							> 100 /*100ms*/) {
+							> 1000 /*1s*/) {
 				currentBurstID_ = nextBurstID_;
 			}
 
@@ -213,6 +219,11 @@ bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
 	//					delete[] container.data;
 	//					continue;
 	//				}
+
+	if(hdr->isFragment()){
+		return true;
+	}
+
 	if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) != length) {
 		/*
 		 * Does not need to be equal because of ethernet padding
