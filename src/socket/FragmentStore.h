@@ -46,10 +46,11 @@ public:
 		if (lastFragment != nullptr) {
 			uint expectedPayloadSum = lastFragment->getFragmentOffsetInBytes()
 					+ ntohs(lastFragment->ip.tot_len) - sizeof(iphdr);
-			std::cout << expectedPayloadSum << "\t" << sumOfPayloadBytes
-					<< std::endl;
 			if (expectedPayloadSum == sumOfPayloadBytes) {
-				return reassembleFrame(fragmentVector);
+				DataContainer reassembledFrame = reassembleFrame(
+						fragmentVector);
+				fragmentsById_.erase(hdr->ip.id);
+				return reassembledFrame;
 			}
 		}
 
@@ -72,22 +73,34 @@ private:
 				});
 
 		UDP_HDR* lastFragment = (UDP_HDR*) fragments.back().data;
-		uint16_t totalBytes = lastFragment->getFragmentOffsetInBytes()
-				+ ntohs(lastFragment->ip.tot_len) - sizeof(iphdr);
+
+		/*
+		 * We'll copy the ethernet and IP header of the first frame plus all IP-Payload of all frames
+		 */
+		uint16_t totalBytes = sizeof(ether_header)
+				+ lastFragment->getFragmentOffsetInBytes()
+				+ ntohs(lastFragment->ip.tot_len);
 
 		char* newFrameBuff = new char[totalBytes];
 
-		uint16_t currentOffset = 0;
+		uint16_t currentOffset = sizeof(ether_header) + sizeof(iphdr);
 		for (DataContainer& fragment : fragments) {
 			UDP_HDR* currentData = (UDP_HDR*) fragment.data;
 
-			if (currentData->getFragmentOffsetInBytes() != currentOffset) {
+			if (currentData->getFragmentOffsetInBytes() + sizeof(ether_header)
+					+ sizeof(iphdr) != currentOffset) {
 				std::cerr
 						<< "Error while reassembling IP fragments: sum of fragment lengths is "
 						<< currentOffset << " but offset of current frame is "
 						<< currentData->getFragmentOffsetInBytes() << std::endl;
 
-				exit(1);
+				for (DataContainer& fragment : fragments) {
+					if (fragment.data != nullptr) {
+						delete[] fragment.data;
+					}
+				}
+
+				return {nullptr, 0, false};
 			}
 
 			/*
@@ -95,10 +108,19 @@ private:
 			 *
 			 * The payload starts after sizeof(ether_header) + sizeof(iphdr) and is ntohs(currentData->ip.tot_len) - sizeof(iphdr) bytes long
 			 */
-			memcpy(newFrameBuff + currentOffset,
-					fragment.data + sizeof(ether_header) + sizeof(iphdr),
-					ntohs(currentData->ip.tot_len) - sizeof(iphdr));
-			currentOffset += ntohs(currentData->ip.tot_len) - sizeof(iphdr);
+			if (&fragment == &fragments.front()) {
+				/*
+				 * First frame is copied entirely
+				 */
+				memcpy(newFrameBuff, fragment.data, fragment.length);
+				currentOffset = fragment.length;
+			} else {
+				memcpy(newFrameBuff + currentOffset,
+						fragment.data + sizeof(ether_header) + sizeof(iphdr),
+						ntohs(currentData->ip.tot_len) - sizeof(iphdr));
+				currentOffset += ntohs(currentData->ip.tot_len) - sizeof(iphdr);
+			}
+			delete[] fragment.data;
 		}
 		return {newFrameBuff, currentOffset, true};
 	}

@@ -120,9 +120,13 @@ tbb::task* HandleFrameTask::execute() {
 			return nullptr;
 		}
 
-		if(hdr->isFragment()){
-			FragmentStore::addFragment(std::move(container));
-			return nullptr;
+		if (hdr->isFragment()) {
+			container = FragmentStore::addFragment(std::move(container));
+			if (container.data == nullptr) {
+				return nullptr;
+			}
+			hdr = (struct UDP_HDR*) container.data;
+			destPort = ntohs(hdr->udp.dest);
 		}
 
 		const char * UDPPayload = container.data + sizeof(struct UDP_HDR);
@@ -219,8 +223,7 @@ bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
 	//					delete[] container.data;
 	//					continue;
 	//				}
-
-	if(hdr->isFragment()){
+	if (hdr->isFragment()) {
 		return true;
 	}
 
@@ -238,8 +241,7 @@ bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
 	/*
 	 * Does not need to be equal because of ethernet padding
 	 */
-	if (ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)
-			> length) {
+	if (ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr) > length) {
 		LOG(ERROR)<<"Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length;
 		return false;
 	}
