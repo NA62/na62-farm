@@ -36,6 +36,8 @@ namespace na62 {
 std::atomic<uint64_t>* L1Builder::L1Triggers_ = new std::atomic<uint64_t>[0xFF
 		+ 1];
 
+bool L1Builder::requestZSuppressedLkrData_;
+
 void L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 	Event *event = EventPool::GetEvent(fragment->getEventNumber());
 
@@ -93,7 +95,7 @@ void L1Builder::processL1(Event *event) {
 
 void L1Builder::sendL1RequestToCREAMS(Event* event) {
 	cream::L1DistributionHandler::Async_RequestLKRDataMulticast(event,
-	false);
+			requestZSuppressedLkrData_);
 }
 
 void L1Builder::sendEOBBroadcast(uint32_t eventNumber,
