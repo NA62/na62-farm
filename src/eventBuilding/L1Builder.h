@@ -12,6 +12,8 @@
 #include <atomic>
 #include <cstdint>
 
+#include "../options/MyOptions.h"
+
 namespace na62 {
 class Event;
 namespace l0 {
@@ -27,6 +29,8 @@ private:
 	static uint32_t currentBurstID_;
 
 	static void processL1(Event *event);
+
+	static bool requestZSuppressedLkrData_;
 
 	static void sendEOBBroadcast(uint32_t eventNumber,
 			uint32_t finishedBurstID);
@@ -48,6 +52,8 @@ public:
 		for (int i = 0; i != 0xFF + 1; i++) {
 			L1Triggers_[i] = 0;
 		}
+
+		requestZSuppressedLkrData_ = MyOptions::GetBool(OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG);
 	}
 };
 

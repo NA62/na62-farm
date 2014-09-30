@@ -42,6 +42,8 @@
 
 #define OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST (char*)"maxNumberOfEventsPerBurst"
 
+#define OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG (char*)"sendMRPsWithZSuppressionFlag"
+
 /*
  * Triggering
  */
@@ -130,6 +132,10 @@ public:
 
 		(OPTION_MAX_TRIGGERS_PER_L1MRP, po::value<int>()->default_value(100),
 				"Maximum number of Triggers per L1 MRP")
+
+		(OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG,
+				po::value<bool>()->default_value(false),
+				"Set to true if only zero-suppressed data from LKr should be requested after L1")
 
 		(OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST,
 				po::value<int>()->default_value(2000000),
