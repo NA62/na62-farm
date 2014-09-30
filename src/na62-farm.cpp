@@ -109,10 +109,6 @@ int main(int argc, char* argv[]) {
 
 	StorageHandler::Initialize();
 
-	L1TriggerProcessor::Initialize(Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR));
-
-	L2TriggerProcessor::Initialize(Options::GetInt(OPTION_L2_DOWNSCALE_FACTOR));
-
 	L1Builder::Initialize();
 	L2Builder::Initialize();
 

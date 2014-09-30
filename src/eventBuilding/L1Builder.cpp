@@ -26,7 +26,6 @@
 #include <iostream>
 #include <string>
 
-
 #include "../options/MyOptions.h"
 #include "../socket/HandleFrameTask.h"
 #include "L2Builder.h"
@@ -38,6 +37,8 @@ std::atomic<uint64_t>* L1Builder::L1Triggers_ = new std::atomic<uint64_t>[0xFF
 
 bool L1Builder::requestZSuppressedLkrData_;
 
+uint L1Builder::downscaleFactor_ = 0;
+
 void L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 	Event *event = EventPool::GetEvent(fragment->getEventNumber());
 
@@ -45,6 +46,11 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 	 * If the event number is too large event is null and we have to drop the data
 	 */
 	if (event == nullptr) {
+		delete fragment;
+		return;
+	}
+
+	if (fragment->getEventNumber() % downscaleFactor_ != 0) {
 		delete fragment;
 		return;
 	}

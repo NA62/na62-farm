@@ -11,6 +11,7 @@
 #include <atomic>
 #include <cstdint>
 
+#include "../options/MyOptions.h"
 namespace na62 {
 class Event;
 namespace cream {
@@ -26,6 +27,8 @@ private:
 
 	static std::atomic<uint64_t> BytesSentToStorage_;
 	static std::atomic<uint64_t> EventsSentToStorage_;
+
+	static uint downscaleFactor_;
 
 	static uint32_t getCurrentBurstID() {
 		return 0;
@@ -55,6 +58,8 @@ public:
 		for (int i = 0; i != 0xFF + 1; i++) {
 			L2Triggers_[i] = 0;
 		}
+
+		downscaleFactor_ = Options::GetInt(OPTION_L2_DOWNSCALE_FACTOR);
 	}
 };
 

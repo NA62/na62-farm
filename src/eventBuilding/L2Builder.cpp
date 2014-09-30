@@ -22,6 +22,8 @@ std::atomic<uint64_t>* L2Builder::L2Triggers_ = new std::atomic<uint64_t>[0xFF
 std::atomic<uint64_t> L2Builder::BytesSentToStorage_(0);
 std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
 
+uint L2Builder::downscaleFactor_ = 0;
+
 void L2Builder::buildEvent(cream::LkrFragment* LkrFragment) {
 	Event *event = EventPool::GetEvent(LkrFragment->getEventNumber());
 

@@ -32,6 +32,8 @@ private:
 
 	static bool requestZSuppressedLkrData_;
 
+	static uint downscaleFactor_;
+
 	static void sendEOBBroadcast(uint32_t eventNumber,
 			uint32_t finishedBurstID);
 
@@ -43,7 +45,6 @@ private:
 public:
 	static void buildEvent(l0::MEPFragment* fragment, uint32_t burstID);
 
-
 	static inline const std::atomic<uint64_t>* GetL1TriggerStats() {
 		return L1Triggers_;
 	}
@@ -54,6 +55,8 @@ public:
 		}
 
 		requestZSuppressedLkrData_ = MyOptions::GetBool(OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG);
+
+		downscaleFactor_ = Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR);
 	}
 };
 
