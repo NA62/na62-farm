@@ -65,6 +65,12 @@
 #define OPTION_ZMQ_IO_THREADS (char*)"zmqIoThreads"
 #define OPTION_ACTIVE_POLLING (char*)"activePolling"
 
+/*
+ * MUVs
+ */
+#define OPTION_MUV1_CREAM_CRATE_ID (char*)"muv1CreamCrateID"
+#define OPTION_MUV2_CREAM_CRATE_ID (char*)"muv2CreamCrateID"
+
 namespace na62 {
 class MyOptions: public Options {
 public:
@@ -153,6 +159,12 @@ public:
 
 		(OPTION_INCREMENT_BURST_AT_EOB, po::value<bool>()->default_value(true),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
+
+		(OPTION_MUV1_CREAM_CRATE_ID, po::value<int>()->default_value(-1),
+				"Set the CREAM crate ID of which the data should be taken and put inte the MUV1 data block. The CREAM IDs used arre 0-N where N is the value set in L0DataSourceIDs")
+
+		(OPTION_MUV2_CREAM_CRATE_ID, po::value<int>()->default_value(-1),
+				"Set the CREAM crate ID of which the data should be taken and put inte the MUV2 data block. The CREAM IDs used arre 0-N where N is the value set in L0DataSourceIDs")
 
 				;
 
