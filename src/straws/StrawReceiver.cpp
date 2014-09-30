@@ -15,6 +15,7 @@
 #include <zmq.hpp>
 #include <sstream>
 #include <string>
+#include <socket/NetworkHandler.h>
 
 #include "../eventBuilding/StorageHandler.h"
 #include "../options/MyOptions.h"
@@ -59,11 +60,19 @@ void StrawReceiver::processFrame(DataContainer&& data, uint burstID) {
 	char* payload = data.data + sizeof(struct UDP_HDR);
 
 	uint sendDataLength = data.length - sizeof(UDP_HDR)
-			+ 4/*header indicating length*/;
+			+ 8/*header indicating length and PC IP*/;
 	char* sendData = new char[sendDataLength];
 
+	/*
+	 * Write header
+	 */
 	memset(sendData, sendDataLength, 4);
-	memcpy(sendData + 4, payload, sendDataLength - 4);
+	memset(sendData, NetworkHandler::GetMyIP(), 4);
+
+	/*
+	 * Write data
+	 */
+	memcpy(sendData + 8, payload, sendDataLength - 8);
 
 	delete[] data.data;
 
