@@ -161,10 +161,10 @@ public:
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
 
 		(OPTION_MUV1_CREAM_CRATE_ID, po::value<int>()->default_value(-1),
-				"Set the CREAM crate ID of which the data should be taken and put inte the MUV1 data block. The CREAM IDs used arre 0-N where N is the value set in L0DataSourceIDs")
+				"Set the CREAM crate ID of which the data should be taken and put into the MUV1 data block. Set to -1 to disable MUV1 data acquisition.")
 
 		(OPTION_MUV2_CREAM_CRATE_ID, po::value<int>()->default_value(-1),
-				"Set the CREAM crate ID of which the data should be taken and put inte the MUV2 data block. The CREAM IDs used arre 0-N where N is the value set in L0DataSourceIDs")
+				"Set the CREAM crate ID of which the data should be taken and put into the MUV2 data block. Set to -1 to disable MUV2 data acquisition.")
 
 				;
 

@@ -9,9 +9,19 @@
 #define STORAGEHANDLER_H_
 
 #include <sys/types.h>
+#include <zmq.hpp>
 #include <atomic>
 #include <string>
 #include <vector>
+
+namespace na62 {
+class Event;
+struct EVENT_HDR;
+
+namespace cream {
+class LkrFragment;
+} /* namespace cream */
+} /* namespace na62 */
 
 namespace tbb {
 class spin_mutex;
@@ -20,11 +30,6 @@ class spin_mutex;
 namespace zmq {
 class socket_t;
 } /* namespace zmq */
-
-namespace na62 {
-class Event;
-struct EVENT_HDR;
-} /* namespace na62 */
 
 namespace na62 {
 
@@ -45,6 +50,11 @@ private:
 	 * Generates the raw data as it should be send to the merger
 	 */
 	static EVENT_HDR* GenerateEventBuffer(const Event* event);
+
+	static char* writeCreamData(char* eventBuffer, uint& eventOffset,
+			uint& eventBufferSize, uint& pointerTableOffset,
+			cream::LkrFragment** fragments, uint numberOfFragments,
+			uint sourceID);
 	/*
 	 * One Socket for every EventBuilder
 	 */

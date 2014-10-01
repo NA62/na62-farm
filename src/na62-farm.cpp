@@ -95,7 +95,9 @@ int main(int argc, char* argv[]) {
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
 			Options::GetIntPairList(OPTION_CREAM_CRATES),
-			Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES));
+			Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES),
+			Options::GetInt(OPTION_MUV1_CREAM_CRATE_ID),
+			Options::GetInt(OPTION_MUV2_CREAM_CRATE_ID));
 
 	/*
 	 * Monitor
