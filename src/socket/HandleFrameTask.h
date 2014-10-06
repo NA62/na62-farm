@@ -51,6 +51,10 @@ public:
 		return currentBurstID_;
 	}
 
+	static uint32_t getNextBurstId() {
+		return nextBurstID_;
+	}
+
 	static void setNextBurstId(uint32_t burstID) {
 		nextBurstID_ = burstID;
 		eobFrameReceivedTime_.start();
