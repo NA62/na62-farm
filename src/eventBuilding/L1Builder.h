@@ -32,9 +32,6 @@ private:
 
 	static bool requestZSuppressedLkrData_;
 
-	static void sendEOBBroadcast(uint32_t eventNumber,
-			uint32_t finishedBurstID);
-
 	/*
 	 * @return <true> if any packet has been sent (time has passed)
 	 */

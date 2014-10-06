@@ -23,6 +23,8 @@
 #include <vector>
 #include <boost/algorithm/string.hpp>
 
+#include "../socket/HandleFrameTask.h"
+
 namespace na62 {
 
 CommandConnector::CommandConnector() {
@@ -53,12 +55,18 @@ void CommandConnector::thread() {
 #endif
 		} else {
 			std::string command = strings[0];
-			if (command == "updateburstid") {
+			if (command == "eob_timestamp") {
+				uint32_t burst = HandleFrameTask::getCurrentBurstId()+1;
+				HandleFrameTask::setNextBurstId(burst);
+#ifdef USE_GLOG
+				LOG(INFO) << "Got EOB time: Incrementing burstID to" << burst;
+#endif
+			} else if (command == "updateburstid") {
 				uint32_t burst = boost::lexical_cast<int>(strings[1]);
 #ifdef USE_GLOG
-				LOG(INFO) << "Updating burst to " << burst;
+				LOG(INFO) << "Received new burstID: " << burst;
+				HandleFrameTask::setNextBurstId(burst);
 #endif
-//				EventBuilder::SetNextBurstID(burst);
 			}
 		}
 	}
