@@ -181,6 +181,8 @@ void MonitorConnector::handleUpdate() {
 					cream::L1DistributionHandler::GetL1TriggersSent()));
 
 	LOG(INFO)<<"BurstID:\t" << HandleFrameTask::getCurrentBurstId();
+	LOG(INFO)<<"NextBurstID:\t" << HandleFrameTask::getNextBurstId();
+
 	LOG(INFO)<<"State:\t" << currentState_;
 
 	NetworkHandler::PrintStats();
