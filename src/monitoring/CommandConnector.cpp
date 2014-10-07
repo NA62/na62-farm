@@ -23,6 +23,7 @@
 #include <vector>
 #include <boost/algorithm/string.hpp>
 
+#include "../options/MyOptions.h"
 #include "../socket/HandleFrameTask.h"
 
 namespace na62 {
@@ -56,17 +57,21 @@ void CommandConnector::thread() {
 		} else {
 			std::string command = strings[0];
 			if (command == "eob_timestamp") {
-				uint32_t burst = HandleFrameTask::getCurrentBurstId()+1;
-				HandleFrameTask::setNextBurstId(burst);
+				if(MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
+					uint32_t burst = HandleFrameTask::getCurrentBurstId()+1;
+					HandleFrameTask::setNextBurstId(burst);
 #ifdef USE_GLOG
-				LOG(INFO) << "Got EOB time: Incrementing burstID to" << burst;
+					LOG(INFO) << "Got EOB time: Incrementing burstID to" << burst;
 #endif
-			} else if (command == "updateburstid") {
-				uint32_t burst = boost::lexical_cast<int>(strings[1]);
+				}
+			} else if (command == "updatenextburstid") {
+				if(!MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
+					uint32_t burst = boost::lexical_cast<int>(strings[1]);
 #ifdef USE_GLOG
-				LOG(INFO) << "Received new burstID: " << burst;
-				HandleFrameTask::setNextBurstId(burst);
+					LOG(INFO) << "Received new burstID: " << burst;
+					HandleFrameTask::setNextBurstId(burst);
 #endif
+				}
 			}
 		}
 	}
