@@ -139,10 +139,9 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 		 * Write the L0 data
 		 */
 		int payloadLength;
-		for (int i = subevent->getNumberOfFragments() - 1; i >= 0; i--) {
+		for (uint i = 0; i != subevent->getNumberOfFragments(); i++) {
 			l0::MEPFragment* e = subevent->getFragment(i);
-			payloadLength = e->getPayloadLength()
-					+ sizeof(struct L0_BLOCK_HDR);
+			payloadLength = e->getPayloadLength() + sizeof(struct L0_BLOCK_HDR);
 			if (eventOffset + payloadLength > eventBufferSize) {
 				eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
 						eventBufferSize + payloadLength);
@@ -157,7 +156,8 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 			blockHdr->reserved = 0;
 
 			memcpy(eventBuffer + eventOffset + sizeof(struct L0_BLOCK_HDR),
-					e->getPayload(), payloadLength - sizeof(struct L0_BLOCK_HDR));
+					e->getPayload(),
+					payloadLength - sizeof(struct L0_BLOCK_HDR));
 			eventOffset += payloadLength;
 
 			/*
