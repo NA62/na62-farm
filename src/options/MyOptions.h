@@ -148,7 +148,7 @@ public:
 		(OPTION_ACTIVE_POLLING, po::value<bool>()->default_value(true),
 				"Use active polling (high CPU usage, might be faster depending on the number of pf_ring queues)")
 
-		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
+		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(true),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
 
 		(OPTION_INCREMENT_BURST_AT_EOB, po::value<bool>()->default_value(true),
