@@ -57,6 +57,7 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 		std::cout << "Stopping storage handler" << std::endl;
 		StorageHandler::OnShutDown();
 
+		usleep(1000);
 		std::cout << "Stopping IPC handler" << std::endl;
 		IPCHandler::shutDown();
 
@@ -113,7 +114,8 @@ int main(int argc, char* argv[]) {
 	L1Builder::Initialize();
 	L2Builder::Initialize();
 
-	Event::setPrintMissingSourceIds(MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES));
+	Event::setPrintMissingSourceIds(
+			MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES));
 
 	EventPool::Initialize(Options::GetInt(
 	OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST));
