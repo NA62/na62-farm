@@ -30,13 +30,6 @@ private:
 
 	static uint downscaleFactor_;
 
-	static uint32_t getCurrentBurstID() {
-		return 0;
-	}
-
-	static void setNextBurstID(uint32_t) {
-	}
-
 public:
 	static void buildEvent(cream::LkrFragment* lkrFragment);
 
