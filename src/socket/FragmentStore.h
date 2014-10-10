@@ -25,6 +25,7 @@ class FragmentStore {
 public:
 	static DataContainer addFragment(DataContainer&& fragment) {
 		tbb::spin_mutex::scoped_lock my_lock(newFragmentMutex_);
+		numberOfFragmentsReceived_++;
 
 		UDP_HDR* hdr = (UDP_HDR*) fragment.data;
 		auto& fragmentVector = fragmentsById_[hdr->ip.id];
@@ -34,7 +35,7 @@ public:
 		uint sumOfPayloadBytes = 0;
 		UDP_HDR* lastFragment = nullptr;
 
-		for (auto& frag : fragmentsById_[hdr->ip.id]) {
+		for (auto& frag : fragmentVector) {
 			UDP_HDR* hdr = (UDP_HDR*) frag.data;
 
 			sumOfPayloadBytes += ntohs(hdr->ip.tot_len) - sizeof(iphdr);
@@ -46,7 +47,11 @@ public:
 		if (lastFragment != nullptr) {
 			uint expectedPayloadSum = lastFragment->getFragmentOffsetInBytes()
 					+ ntohs(lastFragment->ip.tot_len) - sizeof(iphdr);
+			/*
+			 * Check if we've received as many bytes as the offset of the last fragment plus its size
+			 */
 			if (expectedPayloadSum == sumOfPayloadBytes) {
+				numberOfReassembledFrames_++;
 				DataContainer reassembledFrame = reassembleFrame(
 						fragmentVector);
 				fragmentsById_.erase(hdr->ip.id);
@@ -57,9 +62,20 @@ public:
 		return {nullptr, 0, false};
 	}
 
+	static uint getNumberOfReceivedFragments() {
+		return numberOfFragmentsReceived_;
+	}
+
+	static uint getNumberOfReassembledFrames() {
+		return numberOfReassembledFrames_;
+	}
+
 private:
-	static std::map<ushort, std::vector<DataContainer>> fragmentsById_;
+	static std::map<uint16_t, std::vector<DataContainer>> fragmentsById_;
 	static tbb::spin_mutex newFragmentMutex_;
+
+	static uint numberOfFragmentsReceived_;
+	static uint numberOfReassembledFrames_;
 
 	static DataContainer reassembleFrame(std::vector<DataContainer> fragments) {
 		/*

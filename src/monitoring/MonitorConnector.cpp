@@ -18,7 +18,7 @@
 #include "../socket/HandleFrameTask.h"
 
 #ifdef USE_GLOG
-	#include <glog/logging.h>
+#include <glog/logging.h>
 #endif
 #include <iostream>
 
@@ -31,6 +31,7 @@
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
 #include "../socket/PacketHandler.h"
+#include "../socket/FragmentStore.h"
 
 using namespace boost::interprocess;
 
@@ -73,9 +74,12 @@ void MonitorConnector::handleUpdate() {
 	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
 	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
 
-	IPCHandler::sendStatistics("PF_BytesReceived", std::to_string(NetworkHandler::GetBytesReceived()));
-	IPCHandler::sendStatistics("PF_PacksReceived", std::to_string(NetworkHandler::GetFramesReceived()));
-	IPCHandler::sendStatistics("PF_PacksDropped", std::to_string(NetworkHandler::GetFramesDropped()));
+	IPCHandler::sendStatistics("PF_BytesReceived",
+			std::to_string(NetworkHandler::GetBytesReceived()));
+	IPCHandler::sendStatistics("PF_PacksReceived",
+			std::to_string(NetworkHandler::GetFramesReceived()));
+	IPCHandler::sendStatistics("PF_PacksDropped",
+			std::to_string(NetworkHandler::GetFramesDropped()));
 
 	/*
 	 * Number of Events and data rate from all detectors
@@ -163,22 +167,21 @@ void MonitorConnector::handleUpdate() {
 	setDifferentialData("BytesToMerger", bytesToStorage);
 	setDifferentialData("EventsToMerger", eventsToStorage);
 
-	IPCHandler::sendStatistics("BytesToMerger",
-			std::to_string(bytesToStorage));
+	IPCHandler::sendStatistics("BytesToMerger", std::to_string(bytesToStorage));
 	IPCHandler::sendStatistics("EventsToMerger",
 			std::to_string(eventsToStorage));
 
 	setDifferentialData("L1MRPsSent",
 			cream::L1DistributionHandler::GetL1MRPsSent());
 	IPCHandler::sendStatistics("L1MRPsSent",
-			std::to_string(
-					cream::L1DistributionHandler::GetL1MRPsSent()));
+			std::to_string(cream::L1DistributionHandler::GetL1MRPsSent()));
 
 	setDifferentialData("L1TriggersSent",
 			cream::L1DistributionHandler::GetL1TriggersSent());
 	IPCHandler::sendStatistics("L1TriggersSent",
-			std::to_string(
-					cream::L1DistributionHandler::GetL1TriggersSent()));
+			std::to_string(cream::L1DistributionHandler::GetL1TriggersSent()));
+
+	LOG(INFO)<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames();
 
 	LOG(INFO)<<"BurstID:\t" << HandleFrameTask::getCurrentBurstId();
 	LOG(INFO)<<"NextBurstID:\t" << HandleFrameTask::getNextBurstId();

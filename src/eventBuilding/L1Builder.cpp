@@ -13,6 +13,7 @@
 #include <eventBuilding/SourceIDManager.h>
 #include <glog/logging.h>
 #include <l0/MEPFragment.h>
+#include <l0/Subevent.h>
 #include <l1/L1TriggerProcessor.h>
 #include <LKr/L1DistributionHandler.h>
 #include <netinet/ip.h>
@@ -25,6 +26,7 @@
 #include <cstdbool>
 #include <iostream>
 #include <string>
+#include <structs/L0TPHeader.h>
 
 #include "../options/MyOptions.h"
 #include "../socket/HandleFrameTask.h"
@@ -67,11 +69,22 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 }
 
 void L1Builder::processL1(Event *event) {
+	uint8_t l0TriggerTypeWord = 1;
+	if (SourceIDManager::CheckL0SourceID(SOURCE_ID_L0TP)) {
+		l0::MEPFragment* L0TPEvent = event->getL0TPSubevent()->getFragment(0);
+		L0TpHeader* L0TPData = (L0TpHeader*) L0TPEvent->getPayload();
+		event->setFinetime(L0TPData->refFineTime);
+
+		l0TriggerTypeWord = L0TPData->l0TriggerType;
+	}
+
 	/*
 	 * Process Level 1 trigger
 	 */
-	uint16_t L0L1Trigger = L1TriggerProcessor::compute(event);
-	L1Triggers_[L0L1Trigger >> 8]++; // The second 8 bits are the L1 trigger type word
+	uint8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event);
+	uint16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
+
+	L1Triggers_[l1TriggerTypeWord]++; // The second 8 bits are the L1 trigger type word
 	event->setL1Processed(L0L1Trigger);
 
 	if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT != 0) {
