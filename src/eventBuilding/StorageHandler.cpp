@@ -74,6 +74,15 @@ void StorageHandler::Initialize() {
 		TotalNumberOfDetectors_ = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES
 		+ 1;
 	}
+
+	if(SourceIDManager::MUV1_NUMBER_OF_FRAGMENTS!=0) {
+		TotalNumberOfDetectors_++;
+	}
+
+	if(SourceIDManager::MUV2_NUMBER_OF_FRAGMENTS!=0) {
+		TotalNumberOfDetectors_++;
+	}
+
 	InitialEventBufferSize_ = 1000;
 }
 
@@ -111,25 +120,25 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 	header->processingID = event->getProcessingID();
 	header->SOBtimestamp = 0; // Will be set by the merger
 
-	uint32_t sizeOfPointerTable = 4 * TotalNumberOfDetectors_;
-	uint32_t pointerTableOffset = sizeof(struct EVENT_HDR);
-	uint32_t eventOffset = sizeof(struct EVENT_HDR) + sizeOfPointerTable;
+	uint sizeOfPointerTable = 4 * TotalNumberOfDetectors_;
+	uint pointerTableOffset = sizeof(struct EVENT_HDR);
+	uint eventOffset = sizeof(struct EVENT_HDR) + sizeOfPointerTable;
 
-	for (int sourceNum = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES - 1;
-			sourceNum >= 0; sourceNum--) {
+	for (int sourceNum = 0;
+			sourceNum != SourceIDManager::NUMBER_OF_L0_DATA_SOURCES;
+			sourceNum++) {
 		l0::Subevent* subevent = event->getL0SubeventBySourceIDNum(sourceNum);
 
 		if (eventOffset + 4 > eventBufferSize) {
 			eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
 					eventBufferSize + 1000);
 			eventBufferSize += 1000;
-			header = (struct EVENT_HDR*) eventBuffer;
 		}
 
 		/*
 		 * Put the sub-detector  into the pointer table
 		 */
-		uint32_t eventOffset32 = eventOffset / 4;
+		uint eventOffset32 = eventOffset / 4;
 		std::memcpy(eventBuffer + pointerTableOffset, &eventOffset32, 3);
 		std::memset(eventBuffer + pointerTableOffset + 3,
 				SourceIDManager::SourceNumToID(sourceNum), 1);
@@ -146,7 +155,6 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 				eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
 						eventBufferSize + payloadLength);
 				eventBufferSize += payloadLength;
-				header = (struct EVENT_HDR*) eventBuffer;
 			}
 
 			struct L0_BLOCK_HDR* blockHdr = (struct L0_BLOCK_HDR*) (eventBuffer
@@ -173,45 +181,22 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 	/*
 	 * Write the LKr data
 	 */
-	if (eventOffset + 4 > eventBufferSize) {
-		eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
-				eventBufferSize + 1000);
-		eventBufferSize += 1000;
-		header = (struct EVENT_HDR*) eventBuffer;
+	if (SourceIDManager::NUMBER_OF_EXPECTED_LKR_CREAM_FRAGMENTS != 0) {
+		writeCreamData(eventBuffer, eventOffset, eventBufferSize,
+				pointerTableOffset, event->getZSuppressedLkrFragments(),
+				event->getNumberOfZSuppressedLkrFragments(), SOURCE_ID_LKr);
 	}
 
-	if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT > 0) {
-		uint32_t eventOffset32 = eventOffset / 4;
-		/*
-		 * Put the LKr into the pointer table
-		 */
-		std::memcpy(eventBuffer + pointerTableOffset, &eventOffset32, 3);
-		std::memset(eventBuffer + pointerTableOffset + 3, SOURCE_ID_LKr, 1); // 0x24 is the LKr sourceID
+	if (SourceIDManager::MUV1_NUMBER_OF_FRAGMENTS != 0) {
+		writeCreamData(eventBuffer, eventOffset, eventBufferSize,
+				pointerTableOffset, event->getMuv1Fragments(),
+				event->getNumberOfMuv1Fragments(), SOURCE_ID_MUV1);
+	}
 
-		for (int localCreamID = event->getNumberOfZSuppressedLkrFragments() - 1;
-				localCreamID >= 0; localCreamID--) {
-			cream::LkrFragment* e = event->getZSuppressedLkrFragment(
-					localCreamID);
-
-			if (eventOffset + e->getEventLength() > eventBufferSize) {
-				eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
-						eventBufferSize + e->getEventLength());
-				eventBufferSize += e->getEventLength();
-				header = (struct EVENT_HDR*) eventBuffer;
-			}
-
-			memcpy(eventBuffer + eventOffset, e->getDataWithHeader(),
-					e->getEventLength());
-			eventOffset += e->getEventLength();
-
-			/*
-			 * 32-bit alignment
-			 */
-			if (eventOffset % 4 != 0) {
-				memset(eventBuffer + eventOffset, 0, eventOffset % 4);
-				eventOffset += eventOffset % 4;
-			}
-		}
+	if (SourceIDManager::MUV2_NUMBER_OF_FRAGMENTS != 0) {
+		writeCreamData(eventBuffer, eventOffset, eventBufferSize,
+				pointerTableOffset, event->getMuv2Fragments(),
+				event->getNumberOfMuv2Fragments(), SOURCE_ID_MUV2);
 	}
 
 	/*
@@ -227,9 +212,60 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 		InitialEventBufferSize_ = eventBufferSize;
 	}
 
+	/*
+	 * header may have been overwritten -> redefine it
+	 */
+	header = (struct EVENT_HDR*) eventBuffer;
+
 	header->length = eventLength / 4;
 
 	return header;
+}
+
+char* StorageHandler::writeCreamData(char*& eventBuffer, uint& eventOffset,
+		uint& eventBufferSize, uint& pointerTableOffset,
+		cream::LkrFragment** fragments, uint numberOfFragments, uint sourceID) {
+	/*
+	 * Write the LKr data
+	 */
+	if (eventOffset + 4 > eventBufferSize) {
+		eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
+				eventBufferSize + 1000);
+		eventBufferSize += 1000;
+	}
+
+	uint eventOffset32 = eventOffset / 4;
+	/*
+	 * Put the LKr into the pointer table
+	 */
+	std::memcpy(eventBuffer + pointerTableOffset, &eventOffset32, 3);
+	std::memset(eventBuffer + pointerTableOffset + 3, sourceID, 1);
+	pointerTableOffset += 4;
+
+	for (uint fragmentNum = 0; fragmentNum != numberOfFragments;
+			fragmentNum++) {
+		cream::LkrFragment* e = fragments[fragmentNum];
+
+		if (eventOffset + e->getEventLength() > eventBufferSize) {
+			eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
+					eventBufferSize + e->getEventLength());
+			eventBufferSize += e->getEventLength();
+		}
+
+		memcpy(eventBuffer + eventOffset, e->getDataWithHeader(),
+				e->getEventLength());
+		eventOffset += e->getEventLength();
+
+		/*
+		 * 32-bit alignment
+		 */
+		if (eventOffset % 4 != 0) {
+			memset(eventBuffer + eventOffset, 0, eventOffset % 4);
+			eventOffset += eventOffset % 4;
+		}
+	}
+
+	return eventBuffer;
 }
 
 int StorageHandler::SendEvent(const Event* event) {
