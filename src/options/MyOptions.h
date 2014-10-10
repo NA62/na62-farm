@@ -65,6 +65,11 @@
 #define OPTION_ZMQ_IO_THREADS (char*)"zmqIoThreads"
 #define OPTION_ACTIVE_POLLING (char*)"activePolling"
 
+/*
+ * MUVs
+ */
+#define OPTION_MUV_CREAM_CRATE_ID (char*)"muvCreamCrateID"
+
 namespace na62 {
 class MyOptions: public Options {
 public:
@@ -153,6 +158,10 @@ public:
 
 		(OPTION_INCREMENT_BURST_AT_EOB, po::value<bool>()->default_value(true),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
+
+		(OPTION_MUV_CREAM_CRATE_ID, po::value<int>()->default_value(-1),
+				"Set the CREAM crate ID of which the data should be taken and put into the MUV1/Muv2 data blocks. Set to -1 to disable MUV1/Muv2 data acquisition.")
+
 
 				;
 
