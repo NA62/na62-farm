@@ -222,7 +222,7 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 	return header;
 }
 
-char* StorageHandler::writeCreamData(char* eventBuffer, uint& eventOffset,
+char* StorageHandler::writeCreamData(char*& eventBuffer, uint& eventOffset,
 		uint& eventBufferSize, uint& pointerTableOffset,
 		cream::LkrFragment** fragments, uint numberOfFragments, uint sourceID) {
 	/*

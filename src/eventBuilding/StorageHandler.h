@@ -51,7 +51,7 @@ private:
 	 */
 	static EVENT_HDR* GenerateEventBuffer(const Event* event);
 
-	static char* writeCreamData(char* eventBuffer, uint& eventOffset,
+	static char* writeCreamData(char*& eventBuffer, uint& eventOffset,
 			uint& eventBufferSize, uint& pointerTableOffset,
 			cream::LkrFragment** fragments, uint numberOfFragments,
 			uint sourceID);
