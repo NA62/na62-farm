@@ -28,33 +28,39 @@ public:
 		numberOfFragmentsReceived_++;
 
 		UDP_HDR* hdr = (UDP_HDR*) fragment.data;
-		auto& fragmentVector = fragmentsById_[hdr->ip.id];
 
-		fragmentVector.push_back(std::move(fragment));
+		auto& fragmentsReceived = fragmentsById_[generateFragmentID(
+				hdr->ip.saddr, hdr->ip.id)];
 
-		uint sumOfPayloadBytes = 0;
+		fragmentsReceived.push_back(std::move(fragment));
+
+		uint sumOfIPPayloadBytes = 0;
 		UDP_HDR* lastFragment = nullptr;
 
-		for (auto& frag : fragmentVector) {
+		for (auto& frag : fragmentsReceived) {
 			UDP_HDR* hdr = (UDP_HDR*) frag.data;
 
-			sumOfPayloadBytes += ntohs(hdr->ip.tot_len) - sizeof(iphdr);
+			sumOfIPPayloadBytes += ntohs(hdr->ip.tot_len) - sizeof(iphdr);
 
 			if (!hdr->isMoreFragments()) {
 				lastFragment = hdr;
 			}
 		}
+
 		if (lastFragment != nullptr) {
 			uint expectedPayloadSum = lastFragment->getFragmentOffsetInBytes()
 					+ ntohs(lastFragment->ip.tot_len) - sizeof(iphdr);
 			/*
 			 * Check if we've received as many bytes as the offset of the last fragment plus its size
 			 */
-			if (expectedPayloadSum == sumOfPayloadBytes) {
+			if (expectedPayloadSum == sumOfIPPayloadBytes) {
 				numberOfReassembledFrames_++;
 				DataContainer reassembledFrame = reassembleFrame(
-						fragmentVector);
-				fragmentsById_.erase(hdr->ip.id);
+						fragmentsReceived);
+				fragmentsById_.erase(
+						generateFragmentID(hdr->ip.saddr, hdr->ip.id));
+//				fragmentsReceived.clear();
+
 				return reassembledFrame;
 			}
 		}
@@ -70,12 +76,21 @@ public:
 		return numberOfReassembledFrames_;
 	}
 
+	static uint getNumberOfUnfinishedFrames() {
+		return fragmentsById_.size();
+	}
+
 private:
-	static std::map<uint16_t, std::vector<DataContainer>> fragmentsById_;
+	static std::map<uint64_t, std::vector<DataContainer>> fragmentsById_;
 	static tbb::spin_mutex newFragmentMutex_;
 
 	static uint numberOfFragmentsReceived_;
 	static uint numberOfReassembledFrames_;
+
+	static inline uint64_t generateFragmentID(const uint32_t srcIP,
+			const uint16_t fragID) {
+		return (uint64_t) fragID | ((uint64_t) srcIP << 16);
+	}
 
 	static DataContainer reassembleFrame(std::vector<DataContainer> fragments) {
 		/*
