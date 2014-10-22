@@ -9,7 +9,7 @@
 
 namespace na62 {
 
-std::map<uint16_t, std::vector<DataContainer>> FragmentStore::fragmentsById_;
+std::map<uint64_t, std::vector<DataContainer>> FragmentStore::fragmentsById_;
 tbb::spin_mutex FragmentStore::newFragmentMutex_;
 
 uint FragmentStore::numberOfFragmentsReceived_ = 0;
