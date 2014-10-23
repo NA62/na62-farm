@@ -59,7 +59,7 @@ PacketHandler::PacketHandler(int threadNum) :
 PacketHandler::~PacketHandler() {
 }
 
-void PacketHandler::Initialize() {
+void PacketHandler::initialize() {
 	int highestSourceID = SourceIDManager::LARGEST_L0_DATA_SOURCE_ID;
 	if (highestSourceID < SOURCE_ID_LKr) { // Add LKr
 		highestSourceID = SOURCE_ID_LKr;
@@ -130,7 +130,7 @@ void PacketHandler::thread() {
 				}
 			}
 
-			if (sleepMicros < 100) {
+			if (sleepMicros < 64) {
 				sleepMicros *= 2;
 			} else {
 //				boost::this_thread::interruption_point();

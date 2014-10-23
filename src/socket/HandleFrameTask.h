@@ -28,6 +28,7 @@ private:
 
 	static uint16_t L0_Port;
 	static uint16_t CREAM_Port;
+	static uint16_t STRAW_PORT;
 	static uint32_t MyIP;
 
 	/*
@@ -45,7 +46,7 @@ public:
 
 	tbb::task* execute();
 
-	static void Initialize();
+	static void initialize();
 
 	static uint32_t getCurrentBurstId() {
 		return currentBurstID_;

@@ -26,7 +26,6 @@ namespace na62 {
 class L1Builder: public tbb::task {
 private:
 	static std::atomic<uint64_t>* L1Triggers_;
-	static uint32_t currentBurstID_;
 
 	static void processL1(Event *event);
 
@@ -46,7 +45,7 @@ public:
 		return L1Triggers_;
 	}
 
-	static void Initialize() {
+	static void initialize() {
 		for (int i = 0; i != 0xFF + 1; i++) {
 			L1Triggers_[i] = 0;
 		}

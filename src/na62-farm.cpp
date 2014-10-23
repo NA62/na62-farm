@@ -33,6 +33,7 @@
 #include "socket/ZMQHandler.h"
 #include "socket/HandleFrameTask.h"
 #include "monitoring/CommandConnector.h"
+#include "straws/StrawReceiver.h"
 
 using namespace std;
 using namespace na62;
@@ -55,7 +56,8 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 		}
 
 		std::cout << "Stopping storage handler" << std::endl;
-		StorageHandler::OnShutDown();
+		StorageHandler::onShutDown();
+		StrawReceiver::onShutDown();
 
 		usleep(1000);
 		std::cout << "Stopping IPC handler" << std::endl;
@@ -87,7 +89,7 @@ int main(int argc, char* argv[]) {
 	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
 
 	/*
-	 * Initialize NIC handler and start gratuitous ARP request sending thread
+	 * initialize NIC handler and start gratuitous ARP request sending thread
 	 */
 	NetworkHandler NetworkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME));
 	NetworkHandler.startThread("ArpSender");
@@ -106,14 +108,15 @@ int main(int argc, char* argv[]) {
 	monitoring::MonitorConnector::setState(INITIALIZING);
 	monitor.startThread("MonitorConnector");
 
-	PacketHandler::Initialize();
+	PacketHandler::initialize();
 
-	HandleFrameTask::Initialize();
+	HandleFrameTask::initialize();
 
-	StorageHandler::Initialize();
+	StorageHandler::initialize();
+	StrawReceiver::initialize();
 
-	L1Builder::Initialize();
-	L2Builder::Initialize();
+	L1Builder::initialize();
+	L2Builder::initialize();
 
 	Event::setPrintMissingSourceIds(
 			MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES));

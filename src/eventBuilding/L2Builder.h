@@ -47,7 +47,7 @@ public:
 		return EventsSentToStorage_;
 	}
 
-	static void Initialize() {
+	static void initialize() {
 		for (int i = 0; i != 0xFF + 1; i++) {
 			L2Triggers_[i] = 0;
 		}

@@ -42,10 +42,6 @@ int StorageHandler::TotalNumberOfDetectors_;
 
 tbb::spin_mutex StorageHandler::sendMutex_;
 
-void freeZmqMessage(void *data, void *hint) {
-	delete[] ((char*) data);
-}
-
 std::vector<std::string> StorageHandler::GetMergerAddresses() {
 	std::vector<std::string> addresses;
 	for (std::string host : Options::GetStringList(OPTION_MERGER_HOST_NAMES)) {
@@ -57,7 +53,7 @@ std::vector<std::string> StorageHandler::GetMergerAddresses() {
 	return addresses;
 }
 
-void StorageHandler::Initialize() {
+void StorageHandler::initialize() {
 	for (std::string address : GetMergerAddresses()) {
 		LOG(INFO)<< "Connecting to merger: " << address;
 		zmq::socket_t* socket = ZMQHandler::GenerateSocket(ZMQ_PUSH);
@@ -86,7 +82,7 @@ void StorageHandler::Initialize() {
 	InitialEventBufferSize_ = 1000;
 }
 
-void StorageHandler::OnShutDown() {
+void StorageHandler::onShutDown() {
 	for (auto socket : mergerSockets_) {
 		ZMQHandler::DestroySocket(socket);
 	}
@@ -278,7 +274,7 @@ int StorageHandler::SendEvent(const Event* event) {
 	 * Send the event to the merger with a zero copy message
 	 */
 	zmq::message_t zmqMessage((void*) data, data->length * 4,
-			(zmq::free_fn*) freeZmqMessage);
+			(zmq::free_fn*)  ZMQHandler::freeZmqMessage);
 
 	while (ZMQHandler::IsRunning()) {
 		tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
@@ -290,7 +286,7 @@ int StorageHandler::SendEvent(const Event* event) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
 				LOG(ERROR)<< ex.what();
 
-				OnShutDown();
+				onShutDown();
 				return 0;
 			}
 		}
