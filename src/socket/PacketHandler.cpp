@@ -130,7 +130,7 @@ void PacketHandler::thread() {
 				}
 			}
 
-			if (sleepMicros < 100) {
+			if (sleepMicros < 64) {
 				sleepMicros *= 2;
 			} else {
 //				boost::this_thread::interruption_point();
