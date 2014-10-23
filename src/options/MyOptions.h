@@ -174,7 +174,7 @@ public:
 		(OPTION_MUV_CREAM_CRATE_ID, po::value<int>()->default_value(-1),
 				"Set the CREAM crate ID of which the data should be taken and put into the MUV1/Muv2 data blocks. Set to -1 to disable MUV1/Muv2 data acquisition.")
 
-		(OPTION_STRAW_ZMQ_DST_HOSTS, po::value<int>()->required(),
+		(OPTION_STRAW_ZMQ_DST_HOSTS, po::value<std::string>()->required(),
 				"Comma separated list of all hosts that have a ZMQ PULL socket listening to the strawZmqPort to receive STRAW data")
 
 				;

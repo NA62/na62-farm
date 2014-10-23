@@ -187,6 +187,12 @@ tbb::task* HandleFrameTask::execute() {
 				L2Builder::buildEvent(mep->getEvent(i));
 			}
 		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
+			if (nextBurstID_ != currentBurstID_
+					&& eobFrameReceivedTime_.elapsed().wall / 1E6
+							> 2000 /*2s*/) {
+				currentBurstID_ = nextBurstID_;
+			}
+
 			StrawReceiver::processFrame(std::move(container), currentBurstID_);
 		} else {
 			/*
