@@ -27,7 +27,7 @@ public:
 		running_ = false;
 	}
 
-	static void Initialize();
+	static void initialize();
 
 	static inline uint64_t GetMEPsReceivedBySourceID(uint8_t sourceID) {
 		return MEPsReceivedBySourceID_[sourceID];

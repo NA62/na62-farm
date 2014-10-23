@@ -35,6 +35,7 @@
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
 #include "../options/MyOptions.h"
+#include "../straws/StrawReceiver.h"
 #include "PacketHandler.h"
 #include "FragmentStore.h"
 
@@ -42,6 +43,7 @@ namespace na62 {
 
 uint16_t HandleFrameTask::L0_Port;
 uint16_t HandleFrameTask::CREAM_Port;
+uint16_t HandleFrameTask::STRAW_PORT;
 uint32_t HandleFrameTask::MyIP;
 
 uint32_t HandleFrameTask::currentBurstID_;
@@ -56,9 +58,10 @@ HandleFrameTask::HandleFrameTask(DataContainer&& _container) :
 HandleFrameTask::~HandleFrameTask() {
 }
 
-void HandleFrameTask::Initialize() {
+void HandleFrameTask::initialize() {
 	L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
 	CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
+	STRAW_PORT = Options::GetInt(OPTION_STRAW_PORT);
 	MyIP = NetworkHandler::GetMyIP();
 
 	currentBurstID_ = Options::GetInt(OPTION_FIRST_BURST_ID);
@@ -127,18 +130,19 @@ tbb::task* HandleFrameTask::execute() {
 		}
 
 		const char * UDPPayload = container.data + sizeof(struct UDP_HDR);
-		const uint16_t & dataLength = ntohs(hdr->udp.len)
+		const uint16_t & UdpDataLength = ntohs(hdr->udp.len)
 				- sizeof(struct udphdr);
 
 		/*
 		 *  Now let's see what's insight the packet
 		 */
-		if (destPort == L0_Port) {
+		if (destPort == L0_Port) { ////////////////////////////////////////////////// L0 Data //////////////////////////////////////////////////
 			/*
 			 * L0 Data
 			 * * Length is hdr->ip.tot_len-sizeof(struct udphdr) and not container.length because of ethernet padding bytes!
 			 */
-			l0::MEP* mep = new l0::MEP(UDPPayload, dataLength, container.data);
+			l0::MEP* mep = new l0::MEP(UDPPayload, UdpDataLength,
+					container.data);
 
 			/*
 			 * If the event has a small number we should check if the burstID is already updated and the update is long enough ago. Otherwise
@@ -160,12 +164,12 @@ tbb::task* HandleFrameTask::execute() {
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
 				L1Builder::buildEvent(mep->getEvent(i), currentBurstID_);
 			}
-		} else if (destPort == CREAM_Port) {
+		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// CREAM Data //////////////////////////////////////////////////
 			/*
 			 * The LKRMEP will not be stored directly. Instead the LkrFragments will store the MEP they
 			 * are stored in and also delete it as soon as all Fragments of the MEP are deleted
 			 */
-			cream::LKRMEP* mep = new cream::LKRMEP(UDPPayload, dataLength,
+			cream::LKRMEP* mep = new cream::LKRMEP(UDPPayload, UdpDataLength,
 					container.data);
 
 			PacketHandler::MEPsReceivedBySourceID_[SOURCE_ID_LKr]++;
@@ -182,6 +186,14 @@ tbb::task* HandleFrameTask::execute() {
 			for (uint i = 0; i != numberOfStoredEvents; i++) {
 				L2Builder::buildEvent(mep->getEvent(i));
 			}
+		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
+			if (nextBurstID_ != currentBurstID_
+					&& eobFrameReceivedTime_.elapsed().wall / 1E6
+							> 2000 /*2s*/) {
+				currentBurstID_ = nextBurstID_;
+			}
+
+			StrawReceiver::processFrame(std::move(container), currentBurstID_);
 		} else {
 			/*
 			 * Packet with unknown UDP port received
