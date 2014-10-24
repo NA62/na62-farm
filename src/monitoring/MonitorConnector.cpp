@@ -96,7 +96,9 @@ void MonitorConnector::handleUpdate() {
 				<< PacketHandler::GetMEPsReceivedBySourceID(sourceID) << ";";
 
 		setDetectorDifferentialData("EventsReceived",
-				PacketHandler::GetEventsReceivedBySourceID(sourceID), sourceID);
+				PacketHandler::GetEventsReceivedBySourceID(sourceID)
+						/ (float) SourceIDManager::getExpectedPacksBySourceID(
+								sourceID), sourceID);
 		statistics << std::dec
 				<< PacketHandler::GetEventsReceivedBySourceID(sourceID) << ";";
 

@@ -139,7 +139,7 @@ tbb::task* HandleFrameTask::execute() {
 		if (destPort == L0_Port) { ////////////////////////////////////////////////// L0 Data //////////////////////////////////////////////////
 			/*
 			 * L0 Data
-			 * * Length is hdr->ip.tot_len-sizeof(struct udphdr) and not container.length because of ethernet padding bytes!
+			 * Length is hdr->ip.tot_len-sizeof(struct udphdr) and not container.length because of ethernet padding bytes!
 			 */
 			l0::MEP* mep = new l0::MEP(UDPPayload, UdpDataLength,
 					container.data);
