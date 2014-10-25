@@ -80,7 +80,6 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 		NetworkHandler::AsyncSendFrame(std::move(responseArp));
 	}
 }
-
 tbb::task* HandleFrameTask::execute() {
 	try {
 		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
@@ -171,6 +170,11 @@ tbb::task* HandleFrameTask::execute() {
 			 */
 			cream::LKRMEP* mep = new cream::LKRMEP(UDPPayload, UdpDataLength,
 					container.data);
+
+//			LOG(ERROR)<< "Received LKR data with EventNumber "
+//			<< (int) mep->getEvent(0)->getEventNumber() << ", crateID "
+//			<< (int) mep->getEvent(0)->getCrateID() << " and CREAMID "
+//			<< (int) mep->getEvent(0)->getCREAMID();
 
 			PacketHandler::MEPsReceivedBySourceID_[SOURCE_ID_LKr]++;
 			PacketHandler::EventsReceivedBySourceID_[SOURCE_ID_LKr] +=

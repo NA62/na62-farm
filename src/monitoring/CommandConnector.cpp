@@ -36,7 +36,7 @@ CommandConnector::~CommandConnector() {
 
 void CommandConnector::thread() {
 	std::string message;
-	while (true) {
+	while (IPCHandler::isRunning()) {
 		/*
 		 * Synchronious receive:
 		 */
