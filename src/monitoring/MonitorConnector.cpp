@@ -189,6 +189,8 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("L1TriggersSent",
 			std::to_string(cream::L1DistributionHandler::GetL1TriggersSent()));
 
+	LOG(INFO)<<"Enqueued frames:\t" << HandleFrameTask::getNumberOfQeuedFrames();
+
 	LOG(INFO)<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
 
 	LOG(INFO)<<"BurstID:\t" << HandleFrameTask::getCurrentBurstId();

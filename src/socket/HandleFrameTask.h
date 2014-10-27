@@ -9,6 +9,8 @@
 #define HANDLEFRAMETASK_H_
 
 #include <tbb/task.h>
+#include <cstdint>
+#include <atomic>
 
 #include <socket/EthernetUtils.h>
 #include <boost/timer/timer.hpp>
@@ -17,7 +19,7 @@ namespace na62 {
 
 class HandleFrameTask: public tbb::task {
 private:
-	DataContainer container;
+	std::vector<DataContainer> containers;
 
 	void processARPRequest(struct ARP_HDR* arp);
 
@@ -40,8 +42,12 @@ private:
 	static uint32_t currentBurstID_;
 	static uint32_t nextBurstID_;
 	static boost::timer::cpu_timer eobFrameReceivedTime_;
+	
+	static std::atomic<uint> queuedEventNum_;
+
+	void processFrame(DataContainer&& container);
 public:
-	HandleFrameTask(DataContainer&& _container);
+	HandleFrameTask(std::vector<DataContainer>&& _containers);
 	virtual ~HandleFrameTask();
 
 	tbb::task* execute();
@@ -59,6 +65,10 @@ public:
 	static void setNextBurstId(uint32_t burstID) {
 		nextBurstID_ = burstID;
 		eobFrameReceivedTime_.start();
+	}
+	
+	static inline uint getNumberOfQeuedFrames() {
+		return queuedEventNum_;
 	}
 };
 

@@ -49,9 +49,11 @@ uint32_t HandleFrameTask::currentBurstID_;
 uint32_t HandleFrameTask::nextBurstID_;
 
 boost::timer::cpu_timer HandleFrameTask::eobFrameReceivedTime_;
+std::atomic<uint> HandleFrameTask::queuedEventNum_;
 
-HandleFrameTask::HandleFrameTask(DataContainer&& _container) :
-		container(_container) {
+HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers) :
+		containers(std::move(_containers)) {
+	queuedEventNum_ += containers.size();
 }
 
 HandleFrameTask::~HandleFrameTask() {
@@ -79,7 +81,16 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 		NetworkHandler::AsyncSendFrame(std::move(responseArp));
 	}
 }
+
 tbb::task* HandleFrameTask::execute() {
+	for (DataContainer& container : containers) {
+		processFrame(std::move(container));
+		queuedEventNum_ --;
+	}
+	return nullptr;
+}
+
+void HandleFrameTask::processFrame(DataContainer&& container) {
 	try {
 		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
 		uint16_t etherType = ntohs(hdr->eth.ether_type);
@@ -94,11 +105,11 @@ tbb::task* HandleFrameTask::execute() {
 			if (etherType == ETHERTYPE_ARP) {
 				// this will delete the data
 				processARPRequest((struct ARP_HDR*) container.data);
-				return nullptr;
+				return;
 			} else {
 				// Just ignore this frame as it's not IP nor ARP
 				delete[] container.data;
-				return nullptr;
+				return;
 			}
 		}
 
@@ -107,7 +118,7 @@ tbb::task* HandleFrameTask::execute() {
 		 */
 		if (!checkFrame(hdr, container.length)) {
 			delete[] container.data;
-			return nullptr;
+			return;
 		}
 
 		/*
@@ -115,13 +126,13 @@ tbb::task* HandleFrameTask::execute() {
 		 */
 		if (MyIP != dstIP) {
 			delete[] container.data;
-			return nullptr;
+			return;
 		}
 
 		if (hdr->isFragment()) {
 			container = FragmentStore::addFragment(std::move(container));
 			if (container.data == nullptr) {
-				return nullptr;
+				return;
 			}
 			hdr = (struct UDP_HDR*) container.data;
 			destPort = ntohs(hdr->udp.dest);
@@ -196,7 +207,6 @@ tbb::task* HandleFrameTask::execute() {
 	} catch (NA62Error const& e) {
 		delete[] container.data;
 	}
-	return nullptr;
 }
 
 bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
