@@ -14,6 +14,7 @@
 #include <map>
 #include <vector>
 #include <tbb/spin_mutex.h>
+#include <atomic>
 
 #include <algorithm>
 #include <iterator>
@@ -24,13 +25,19 @@ class FragmentStore {
 
 public:
 	static DataContainer addFragment(DataContainer&& fragment) {
-		tbb::spin_mutex::scoped_lock my_lock(newFragmentMutex_);
+		UDP_HDR* hdr = (UDP_HDR*) fragment.data;
+		const uint64_t fragID = generateFragmentID(hdr->ip.saddr, hdr->ip.id);
+		const uint fragmentStoreNum = fragID % numberOfFragmentStores_;
+
 		numberOfFragmentsReceived_++;
 
-		UDP_HDR* hdr = (UDP_HDR*) fragment.data;
+		/*
+		 * Synchronize fragmentsById access
+		 */
+		tbb::spin_mutex::scoped_lock my_lock(
+				newFragmentMutexes_[fragmentStoreNum]);
 
-		auto& fragmentsReceived = fragmentsById_[generateFragmentID(
-				hdr->ip.saddr, hdr->ip.id)];
+		auto& fragmentsReceived = fragmentsById_[fragmentStoreNum][fragID];
 
 		fragmentsReceived.push_back(std::move(fragment));
 
@@ -57,7 +64,7 @@ public:
 				numberOfReassembledFrames_++;
 				DataContainer reassembledFrame = reassembleFrame(
 						fragmentsReceived);
-				fragmentsById_.erase(
+				fragmentsById_[fragmentStoreNum].erase(
 						generateFragmentID(hdr->ip.saddr, hdr->ip.id));
 //				fragmentsReceived.clear();
 
@@ -77,15 +84,20 @@ public:
 	}
 
 	static uint getNumberOfUnfinishedFrames() {
-		return fragmentsById_.size();
+		uint sum = 0;
+		for (auto store : fragmentsById_) {
+			sum += store.size();
+		}
+		return sum;
 	}
 
 private:
-	static std::map<uint64_t, std::vector<DataContainer>> fragmentsById_;
-	static tbb::spin_mutex newFragmentMutex_;
+	static const uint numberOfFragmentStores_ = 32;
+	static std::map<uint64_t, std::vector<DataContainer>> fragmentsById_[numberOfFragmentStores_];
+	static tbb::spin_mutex newFragmentMutexes_[numberOfFragmentStores_];
 
-	static uint numberOfFragmentsReceived_;
-	static uint numberOfReassembledFrames_;
+	static std::atomic<uint> numberOfFragmentsReceived_;
+	static std::atomic<uint> numberOfReassembledFrames_;
 
 	static inline uint64_t generateFragmentID(const uint32_t srcIP,
 			const uint16_t fragID) {
