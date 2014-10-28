@@ -83,27 +83,21 @@ void PacketHandler::thread() {
 	int sleepMicros = 1;
 
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
-	const uint ThreadNum = std::thread::hardware_concurrency();
+	const uint pollDelay = Options::GetFloat(OPTION_POLLING_DELAY);
+
+	const uint framesToBeGathered = Options::GetInt(
+			OPTION_MAX_FRAME_AGGREGATION);
 
 	while (running_) {
 		/*
 		 * We want to aggregate several frames if we already have more HandleFrameTasks running than there are CPU cores available
 		 */
-		int framesToBeGathered = HandleFrameTask::getNumberOfQeuedFrames()
-				- ThreadNum;
-		if (framesToBeGathered < 10) {
-			framesToBeGathered = 10;
-		} else {
-			if (framesToBeGathered > 1024) {
-				framesToBeGathered = 1024;
-			}
-		}
-
 		std::vector<DataContainer> frames;
 		frames.reserve(framesToBeGathered);
 
 		result = 0;
 		data = nullptr;
+		bool needCopyData = true;
 
 		/*
 		 * Try to receive [framesToBeCollected] frames
@@ -113,18 +107,35 @@ void PacketHandler::thread() {
 			 * The actual  polling!
 			 * Do not wait for incoming packets as this will block the ring and make sending impossible
 			 */
-			result = NetworkHandler::GetNextFrame(&hdr, &data, 0, false,
-					threadNum_);
-			if (result > 0) {
-				char* buff = new char[hdr.len];
-				memcpy(buff, data, hdr.len);
-				frames.push_back( { buff, (uint16_t) hdr.len, true });
+			if (needCopyData) {
+				result = NetworkHandler::GetNextFrame(&hdr, &data, 0, false,
+						threadNum_);
 			} else {
-				/*
-				 * Spin wait a while. This block is not optimized by the compiler
-				 */
-				for (volatile int i = 0; i < 1E4; i++) {
-					asm("");
+				result = NetworkHandler::GetNextFrame(&hdr, &data, MTU, false,
+						threadNum_);
+			}
+
+			if (result > 0) {
+				if (needCopyData) {
+					char* buff = new char[hdr.len];
+					memcpy(buff, data, hdr.len);
+					frames.push_back( { buff, (uint16_t) hdr.len, true });
+				} else {
+					frames.push_back(
+							{ (char*) data, (uint16_t) hdr.len, true });
+					needCopyData = true;
+				}
+			} else {
+				if (needCopyData) {
+					data = new u_char[MTU];
+					needCopyData = false;
+				} else {
+					/*
+					 * Spin wait a while. This block is not optimized by the compiler
+					 */
+					for (volatile uint i = 0; i < pollDelay; i++) {
+						asm("");
+					}
 				}
 			}
 		}
@@ -141,8 +152,10 @@ void PacketHandler::thread() {
 
 			sleepMicros = 1;
 
-			if ((int)frames.size() < framesToBeGathered / 2) {
-				cream::L1DistributionHandler::DoSendMRP(threadNum_);
+			if ((int) frames.size() != framesToBeGathered) {
+				if (!cream::L1DistributionHandler::DoSendMRP(threadNum_)) {
+					NetworkHandler::DoSendQueuedFrames(threadNum_);
+				}
 			}
 		} else {
 			/*
@@ -154,26 +167,17 @@ void PacketHandler::thread() {
 				continue;
 			}
 
-			if (activePolling || (sleepMicros < 100 && !activePolling)) {
-				/*
-				 * Spin wait
-				 */
-				for (volatile int i = 0; i < sleepMicros * 1E4; i++) {
-					asm("");
-				}
-			}
-
 			if (sleepMicros < 64) {
 				sleepMicros *= 2;
-			} else {
+			}
+
 //				boost::this_thread::interruption_point();
-				if (!activePolling) {
-					/*
-					 * Allow other threads to execute
-					 */
-					boost::this_thread::sleep(
-							boost::posix_time::microsec(sleepMicros));
-				}
+			if (!activePolling) {
+				/*
+				 * Allow other threads to execute
+				 */
+				boost::this_thread::sleep(
+						boost::posix_time::microsec(sleepMicros));
 			}
 		}
 	}

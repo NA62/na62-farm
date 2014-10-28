@@ -53,7 +53,7 @@ std::atomic<uint> HandleFrameTask::queuedEventNum_;
 
 HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers) :
 		containers(std::move(_containers)) {
-	queuedEventNum_ += containers.size();
+	queuedEventNum_.fetch_add(containers.size(), std::memory_order_relaxed);
 }
 
 HandleFrameTask::~HandleFrameTask() {
@@ -85,7 +85,7 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 tbb::task* HandleFrameTask::execute() {
 	for (DataContainer& container : containers) {
 		processFrame(std::move(container));
-		queuedEventNum_--;
+		queuedEventNum_.fetch_sub(1, std::memory_order_relaxed);
 	}
 	return nullptr;
 }

@@ -65,6 +65,8 @@
 #define OPTION_PH_SCHEDULER (char*) "packetHandlerScheduler"
 #define OPTION_ZMQ_IO_THREADS (char*)"zmqIoThreads"
 #define OPTION_ACTIVE_POLLING (char*)"activePolling"
+#define OPTION_POLLING_DELAY (char*)"pollingDelay"
+#define OPTION_MAX_FRAME_AGGREGATION (char*)"maxFramesAggregation"
 
 /*
  * MUVs
@@ -164,13 +166,20 @@ public:
 		(OPTION_ACTIVE_POLLING, po::value<int>()->default_value(1),
 				"Use active polling (high CPU usage, might be faster depending on the number of pf_ring queues)")
 
-		(OPTION_PRINT_MISSING_SOURCES, po::value<int>()->default_value(0),
+		(OPTION_POLLING_DELAY, po::value<float>()->default_value(1E5),
+				"Number of ticks to wait between two polls")
+
+		(OPTION_MAX_FRAME_AGGREGATION, po::value<int>()->default_value(1024),
+				"Maximum number of frames aggregated before spawning a TBB job to process them")
+
+		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
 
-		(OPTION_INCREMENT_BURST_AT_EOB, po::value<int>()->default_value(1),
+		(OPTION_INCREMENT_BURST_AT_EOB, po::value<bool>()->default_value(true),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
 
 		(OPTION_STRAW_PORT, po::value<int>()->default_value(58916),
+
 				"UDP-Port to be used to receive raw data stream coming from the Straws.")
 
 		(OPTION_STRAW_ZMQ_PORT, po::value<int>()->default_value(58917),
