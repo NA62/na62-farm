@@ -102,7 +102,7 @@ void PacketHandler::thread() {
 		/*
 		 * Try to receive [framesToBeCollected] frames
 		 */
-		for (int i = 0; i != framesToBeGathered; i++) {
+		for (uint i = 0; i != framesToBeGathered; i++) {
 			/*
 			 * The actual  polling!
 			 * Do not wait for incoming packets as this will block the ring and make sending impossible
@@ -152,7 +152,7 @@ void PacketHandler::thread() {
 
 			sleepMicros = 1;
 
-			if ((int) frames.size() != framesToBeGathered) {
+			if (frames.size() != framesToBeGathered) {
 				if (!cream::L1DistributionHandler::DoSendMRP(threadNum_)) {
 					NetworkHandler::DoSendQueuedFrames(threadNum_);
 				}
