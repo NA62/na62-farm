@@ -32,6 +32,7 @@
 #include <exceptions/UnknownSourceIDFound.h>
 #include <l0/MEP.h>
 #include <l0/MEPFragment.h>
+#include <LKr/L1DistributionHandler.h>
 #include <LKr/LkrFragment.h>
 #include "../options/MyOptions.h"
 #include <structs/Event.h>
@@ -63,7 +64,6 @@ void PacketHandler::initialize() {
 	if (highestSourceID < SOURCE_ID_LKr) { // Add LKr
 		highestSourceID = SOURCE_ID_LKr;
 	}
-
 	MEPsReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID + 1];
 	EventsReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID + 1];
 	BytesReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID + 1];
@@ -140,11 +140,16 @@ void PacketHandler::thread() {
 			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 
 			sleepMicros = 1;
+
+			if ((int)frames.size() < framesToBeGathered / 2) {
+				cream::L1DistributionHandler::DoSendMRP(threadNum_);
+			}
 		} else {
 			/*
 			 * Use the time to send some packets
 			 */
-			if (NetworkHandler::DoSendQueuedFrames(threadNum_) != 0) {
+			if (cream::L1DistributionHandler::DoSendMRP(threadNum_)
+					|| NetworkHandler::DoSendQueuedFrames(threadNum_) != 0) {
 				sleepMicros = 1;
 				continue;
 			}

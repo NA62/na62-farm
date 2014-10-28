@@ -85,7 +85,7 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 tbb::task* HandleFrameTask::execute() {
 	for (DataContainer& container : containers) {
 		processFrame(std::move(container));
-		queuedEventNum_ --;
+		queuedEventNum_--;
 	}
 	return nullptr;
 }
@@ -93,7 +93,7 @@ tbb::task* HandleFrameTask::execute() {
 void HandleFrameTask::processFrame(DataContainer&& container) {
 	try {
 		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
-		uint16_t etherType = ntohs(hdr->eth.ether_type);
+		uint16_t etherType = /*ntohs*/(hdr->eth.ether_type);
 		uint8_t ipProto = hdr->ip.protocol;
 		uint16_t destPort = ntohs(hdr->udp.dest);
 		uint32_t dstIP = hdr->ip.daddr;
@@ -101,8 +101,8 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		/*
 		 * Check if we received an ARP request
 		 */
-		if (etherType != ETHERTYPE_IP || ipProto != IPPROTO_UDP) {
-			if (etherType == ETHERTYPE_ARP) {
+		if (etherType != 0x0008/*ETHERTYPE_IP*/|| ipProto != IPPROTO_UDP) {
+			if (etherType == 0x0608/*ETHERTYPE_ARP*/) {
 				// this will delete the data
 				processARPRequest((struct ARP_HDR*) container.data);
 				return;
@@ -164,11 +164,12 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				currentBurstID_ = nextBurstID_;
 			}
 
-			PacketHandler::MEPsReceivedBySourceID_[mep->getSourceID()]++;
-			PacketHandler::EventsReceivedBySourceID_[mep->getSourceID()] +=
-					mep->getNumberOfEvents();
-			PacketHandler::BytesReceivedBySourceID_[mep->getSourceID()] +=
-					container.length;
+			PacketHandler::MEPsReceivedBySourceID_[mep->getSourceID()].fetch_add(
+					1, std::memory_order_relaxed);
+			PacketHandler::EventsReceivedBySourceID_[mep->getSourceID()].fetch_add(
+					mep->getNumberOfEvents(), std::memory_order_relaxed);
+			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(
+					container.length, std::memory_order_relaxed);
 
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
 				L1Builder::buildEvent(mep->getEvent(i), currentBurstID_);
