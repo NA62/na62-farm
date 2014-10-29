@@ -108,7 +108,9 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				return;
 			} else {
 				// Just ignore this frame as it's not IP nor ARP
-				delete[] container.data;
+				if (container.ownerMayFreeData) {
+					delete[] container.data;
+				}
 				return;
 			}
 		}
@@ -117,7 +119,9 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check checksum errors
 		 */
 		if (!checkFrame(hdr, container.length)) {
-			delete[] container.data;
+			if (container.ownerMayFreeData) {
+				delete[] container.data;
+			}
 			return;
 		}
 
@@ -125,7 +129,9 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check if we are really the destination of the IP datagram
 		 */
 		if (MyIP != dstIP) {
-			delete[] container.data;
+			if (container.ownerMayFreeData) {
+				delete[] container.data;
+			}
 			return;
 		}
 
@@ -164,12 +170,12 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				currentBurstID_ = nextBurstID_;
 			}
 
-			PacketHandler::MEPsReceivedBySourceID_[mep->getSourceID()].fetch_add(
-					1, std::memory_order_relaxed);
-			PacketHandler::EventsReceivedBySourceID_[mep->getSourceID()].fetch_add(
-					mep->getNumberOfEvents(), std::memory_order_relaxed);
-			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(
-					container.length, std::memory_order_relaxed);
+//			PacketHandler::MEPsReceivedBySourceID_[mep->getSourceID()].fetch_add(
+//					1, std::memory_order_relaxed);
+//			PacketHandler::EventsReceivedBySourceID_[mep->getSourceID()].fetch_add(
+//					mep->getNumberOfEvents(), std::memory_order_relaxed);
+//			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(
+//					container.length, std::memory_order_relaxed);
 
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
 				L1Builder::buildEvent(mep->getEvent(i), currentBurstID_);
@@ -178,12 +184,12 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			cream::LkrFragment* fragment = new cream::LkrFragment(UDPPayload,
 					UdpDataLength, container.data);
 
-			PacketHandler::MEPsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
-					std::memory_order_relaxed);
-			PacketHandler::EventsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
-					std::memory_order_relaxed);
-			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(
-					container.length, std::memory_order_relaxed);
+//			PacketHandler::MEPsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
+//					std::memory_order_relaxed);
+//			PacketHandler::EventsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
+//					std::memory_order_relaxed);
+//			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(
+//					container.length, std::memory_order_relaxed);
 
 			L2Builder::buildEvent(fragment);
 		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
@@ -199,7 +205,9 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			 * Packet with unknown UDP port received
 			 */
 			LOG(ERROR)<<"Packet with unknown UDP port received: " << destPort;
-			delete[] container.data;
+			if(container.ownerMayFreeData) {
+				delete[] container.data;
+			}
 		}
 	} catch (UnknownSourceIDFound const& e) {
 		delete[] container.data;

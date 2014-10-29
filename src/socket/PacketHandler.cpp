@@ -27,6 +27,7 @@
 #include <iostream>
 #include <queue>
 #include <thread>
+#include <tbb/tbb.h>
 
 #include <exceptions/UnknownCREAMSourceIDFound.h>
 #include <exceptions/UnknownSourceIDFound.h>
@@ -76,7 +77,6 @@ void PacketHandler::initialize() {
 }
 
 void PacketHandler::thread() {
-	const u_char* data; // = new char[MTU];
 	struct pfring_pkthdr hdr;
 	memset(&hdr, 0, sizeof(hdr));
 	register int result = 0;
@@ -86,8 +86,13 @@ void PacketHandler::thread() {
 	const uint pollDelay = Options::GetFloat(OPTION_POLLING_DELAY);
 
 	const uint framesToBeGathered = Options::GetInt(
-			OPTION_MAX_FRAME_AGGREGATION);
+	OPTION_MAX_FRAME_AGGREGATION);
 
+	const uint64_t mainBufferSize = 10E9;
+	u_char* mainBuffer = new u_char[mainBufferSize];
+	memset(mainBuffer, 0, mainBufferSize);
+
+	uint64_t mainBuffer_ptr = 0;
 	while (running_) {
 		/*
 		 * We want to aggregate several frames if we already have more HandleFrameTasks running than there are CPU cores available
@@ -96,9 +101,6 @@ void PacketHandler::thread() {
 		frames.reserve(framesToBeGathered);
 
 		result = 0;
-		data = nullptr;
-		bool needCopyData = true;
-
 		/*
 		 * Try to receive [framesToBeCollected] frames
 		 */
@@ -107,35 +109,20 @@ void PacketHandler::thread() {
 			 * The actual  polling!
 			 * Do not wait for incoming packets as this will block the ring and make sending impossible
 			 */
-			if (needCopyData) {
-				result = NetworkHandler::GetNextFrame(&hdr, &data, 0, false,
-						threadNum_);
-			} else {
-				result = NetworkHandler::GetNextFrame(&hdr, &data, MTU, false,
-						threadNum_);
-			}
+			const u_char* nextFrameBuffer = mainBuffer + mainBuffer_ptr;
+			result = NetworkHandler::GetNextFrame(&hdr, &nextFrameBuffer, MTU,
+			false, threadNum_);
 
 			if (result > 0) {
-				if (needCopyData) {
-					char* buff = new char[hdr.len];
-					memcpy(buff, data, hdr.len);
-					frames.push_back( { buff, (uint16_t) hdr.len, true });
-				} else {
-					frames.push_back(
-							{ (char*) data, (uint16_t) hdr.len, true });
-					needCopyData = true;
-				}
+				frames.push_back( { (char*) nextFrameBuffer, (uint16_t) hdr.len,
+				false });
+				mainBuffer_ptr = (mainBuffer_ptr + hdr.len) % mainBufferSize;
 			} else {
-				if (needCopyData) {
-					data = new u_char[MTU];
-					needCopyData = false;
-				} else {
-					/*
-					 * Spin wait a while. This block is not optimized by the compiler
-					 */
-					for (volatile uint i = 0; i < pollDelay; i++) {
-						asm("");
-					}
+				/*
+				 * Spin wait a while. This block is not optimized by the compiler
+				 */
+				for (volatile uint i = 0; i < pollDelay; i++) {
+					asm("");
 				}
 			}
 		}
