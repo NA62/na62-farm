@@ -49,14 +49,15 @@ uint32_t HandleFrameTask::currentBurstID_;
 uint32_t HandleFrameTask::nextBurstID_;
 
 boost::timer::cpu_timer HandleFrameTask::eobFrameReceivedTime_;
-std::atomic<uint> HandleFrameTask::queuedEventNum_;
+std::atomic<uint> HandleFrameTask::queuedTasksNum_;
 
 HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers) :
 		containers(std::move(_containers)) {
-	queuedEventNum_.fetch_add(containers.size(), std::memory_order_relaxed);
+	queuedTasksNum_.fetch_add(1, std::memory_order_relaxed);
 }
 
 HandleFrameTask::~HandleFrameTask() {
+	queuedTasksNum_.fetch_sub(1, std::memory_order_relaxed);
 }
 
 void HandleFrameTask::initialize() {
@@ -85,7 +86,6 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 tbb::task* HandleFrameTask::execute() {
 	for (DataContainer& container : containers) {
 		processFrame(std::move(container));
-		queuedEventNum_.fetch_sub(1, std::memory_order_relaxed);
 	}
 	return nullptr;
 }
@@ -93,10 +93,10 @@ tbb::task* HandleFrameTask::execute() {
 void HandleFrameTask::processFrame(DataContainer&& container) {
 	try {
 		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
-		uint16_t etherType = /*ntohs*/(hdr->eth.ether_type);
-		uint8_t ipProto = hdr->ip.protocol;
+		const uint16_t etherType = /*ntohs*/(hdr->eth.ether_type);
+		const uint8_t ipProto = hdr->ip.protocol;
 		uint16_t destPort = ntohs(hdr->udp.dest);
-		uint32_t dstIP = hdr->ip.daddr;
+		const uint32_t dstIP = hdr->ip.daddr;
 
 		/*
 		 * Check if we received an ARP request

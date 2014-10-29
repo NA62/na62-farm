@@ -43,7 +43,7 @@ private:
 	static uint32_t nextBurstID_;
 	static boost::timer::cpu_timer eobFrameReceivedTime_;
 	
-	static std::atomic<uint> queuedEventNum_;
+	static std::atomic<uint> queuedTasksNum_;
 
 	void processFrame(DataContainer&& container);
 public:
@@ -67,8 +67,8 @@ public:
 		eobFrameReceivedTime_.start();
 	}
 	
-	static inline uint getNumberOfQeuedFrames() {
-		return queuedEventNum_;
+	static inline uint getNumberOfQeuedTasks() {
+		return queuedTasksNum_;
 	}
 };
 

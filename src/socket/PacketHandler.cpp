@@ -79,14 +79,18 @@ void PacketHandler::thread() {
 	const u_char* data; // = new char[MTU];
 	struct pfring_pkthdr hdr;
 	memset(&hdr, 0, sizeof(hdr));
-	register int result = 0;
-	int sleepMicros = 1;
+	int result = 0;
+
+	const int sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
 
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
 	const uint pollDelay = Options::GetFloat(OPTION_POLLING_DELAY);
 
 	const uint framesToBeGathered = Options::GetInt(
-			OPTION_MAX_FRAME_AGGREGATION);
+	OPTION_MAX_FRAME_AGGREGATION);
+
+	const uint maxUnsuccessfulReadsBeforeSending = Options::GetInt(
+	OPTION_MAX_EMPTY_POLLS_BEFORE_SENDING);
 
 	while (running_) {
 		/*
@@ -97,7 +101,8 @@ void PacketHandler::thread() {
 
 		result = 0;
 		data = nullptr;
-		bool needCopyData = true;
+		uint unsuccessfullCounter = 0;
+		bool goToSleep = 0;
 
 		/*
 		 * Try to receive [framesToBeCollected] frames
@@ -107,28 +112,21 @@ void PacketHandler::thread() {
 			 * The actual  polling!
 			 * Do not wait for incoming packets as this will block the ring and make sending impossible
 			 */
-			if (needCopyData) {
-				result = NetworkHandler::GetNextFrame(&hdr, &data, 0, false,
-						threadNum_);
-			} else {
-				result = NetworkHandler::GetNextFrame(&hdr, &data, MTU, false,
-						threadNum_);
-			}
+			result = NetworkHandler::GetNextFrame(&hdr, &data, 0, false,
+					threadNum_);
 
 			if (result > 0) {
-				if (needCopyData) {
-					char* buff = new char[hdr.len];
-					memcpy(buff, data, hdr.len);
-					frames.push_back( { buff, (uint16_t) hdr.len, true });
-				} else {
-					frames.push_back(
-							{ (char*) data, (uint16_t) hdr.len, true });
-					needCopyData = true;
-				}
+				char* buff = new char[hdr.len];
+				memcpy(buff, data, hdr.len);
+				frames.push_back( { buff, (uint16_t) hdr.len, true });
 			} else {
-				if (needCopyData) {
-					data = new u_char[MTU];
-					needCopyData = false;
+				unsuccessfullCounter++;
+				if (unsuccessfullCounter % maxUnsuccessfulReadsBeforeSending
+						== 0) {
+					/*
+					 * We didn't receive anything for a while -> send enqueued frames
+					 */
+					NetworkHandler::DoSendQueuedFrames(threadNum_);
 				} else {
 					/*
 					 * Spin wait a while. This block is not optimized by the compiler
@@ -140,6 +138,8 @@ void PacketHandler::thread() {
 			}
 		}
 
+//		LOG(INFO)<< frames.size() << "\t" << unsuccessfullCounter;
+
 		if (!frames.empty()) {
 			/*
 			 * Start a new task which will check the frame
@@ -149,32 +149,14 @@ void PacketHandler::thread() {
 					new (tbb::task::allocate_root()) HandleFrameTask(
 							std::move(frames));
 			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
-
-			sleepMicros = 1;
-
-			if (frames.size() != framesToBeGathered) {
-				if (!cream::L1DistributionHandler::DoSendMRP(threadNum_)) {
-					NetworkHandler::DoSendQueuedFrames(threadNum_);
-				}
-			}
 		} else {
-			/*
-			 * Use the time to send some packets
-			 */
-			if (cream::L1DistributionHandler::DoSendMRP(threadNum_)
-					|| NetworkHandler::DoSendQueuedFrames(threadNum_) != 0) {
-				sleepMicros = 1;
-				continue;
-			}
+			goToSleep = true;
+		}
 
-			if (sleepMicros < 64) {
-				sleepMicros *= 2;
-			}
-
-//				boost::this_thread::interruption_point();
+		if (goToSleep) {
 			if (!activePolling) {
 				/*
-				 * Allow other threads to execute
+				 * Allow other threads to run
 				 */
 				boost::this_thread::sleep(
 						boost::posix_time::microsec(sleepMicros));

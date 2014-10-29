@@ -73,6 +73,9 @@ void MonitorConnector::handleUpdate() {
 
 	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
 	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
+	setDifferentialData("FramesSent", NetworkHandler::GetFramesSent());
+	setContinuousData("OutFramesQueued",
+			NetworkHandler::getNumberOfEnqueuedFrames());
 
 	IPCHandler::sendStatistics("PF_BytesReceived",
 			std::to_string(NetworkHandler::GetBytesReceived()));
@@ -125,8 +128,10 @@ void MonitorConnector::handleUpdate() {
 			<< PacketHandler::GetMEPsReceivedBySourceID(SOURCE_ID_LKr) << ";";
 
 	setDetectorDifferentialData("EventsReceived",
-			PacketHandler::GetEventsReceivedBySourceID(SOURCE_ID_LKr),
+			PacketHandler::GetEventsReceivedBySourceID(SOURCE_ID_LKr)
+					/ (float) SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT,
 			SOURCE_ID_LKr);
+
 	statistics << std::dec
 			<< PacketHandler::GetEventsReceivedBySourceID(SOURCE_ID_LKr) << ";";
 
@@ -189,7 +194,7 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("L1TriggersSent",
 			std::to_string(cream::L1DistributionHandler::GetL1TriggersSent()));
 
-	LOG(INFO)<<"Enqueued frames:\t" << HandleFrameTask::getNumberOfQeuedFrames();
+	LOG(INFO)<<"Enqueued tasks:\t" << HandleFrameTask::getNumberOfQeuedTasks();
 
 	LOG(INFO)<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
 
@@ -210,7 +215,12 @@ float MonitorConnector::setDifferentialData(std::string key, uint64_t value) {
 	uint64_t lastValue = differentialInts_[key];
 
 	if (value != 0) {
-		LOG(INFO)<<key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")";
+		if (key == "BytesReceived") {
+			LOG(INFO)<<key << ":\t" << Utils::FormatSize(value - differentialInts_[key]) << " (" << Utils::FormatSize(value) <<")";
+		} else {
+			LOG(INFO)<<key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")";
+		}
+
 	}
 
 	differentialInts_[key + LAST_VALUE_SUFFIX] = differentialInts_[key];
@@ -237,13 +247,8 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 	detectorDifferentialInts_[detectorID][key] = value;
 }
 
-void MonitorConnector::setContinuousData(std::string key, float value) {
-	if (continuousFloats_.find(key) == continuousFloats_.end()
-			|| continuousFloats_[key + LAST_VALUE_SUFFIX] != value) {
-		LOG(INFO)<<"total " << key + ":\t" + std::to_string(value);
-	}
-	continuousFloats_[key] = value;
-	continuousFloats_[key + LAST_VALUE_SUFFIX] = value;
+void MonitorConnector::setContinuousData(std::string key, uint64_t value) {
+	LOG(INFO)<< key << ":\t" << std::to_string(value);
 }
 
 }

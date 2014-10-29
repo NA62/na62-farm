@@ -66,7 +66,9 @@
 #define OPTION_ZMQ_IO_THREADS (char*)"zmqIoThreads"
 #define OPTION_ACTIVE_POLLING (char*)"activePolling"
 #define OPTION_POLLING_DELAY (char*)"pollingDelay"
+#define OPTION_POLLING_SLEEP_MICROS (char*)"pollingSleepMicros"
 #define OPTION_MAX_FRAME_AGGREGATION (char*)"maxFramesAggregation"
+#define OPTION_MAX_EMPTY_POLLS_BEFORE_SENDING (char*)"maxEmptyPollsBeforeSending"
 
 /*
  * MUVs
@@ -160,7 +162,7 @@ public:
 		(OPTION_ZMQ_IO_THREADS, po::value<int>()->default_value(1),
 				"Number of ZMQ IO threads")
 
-		(OPTION_PH_SCHEDULER, po::value<int>()->default_value(1),
+		(OPTION_PH_SCHEDULER, po::value<int>()->default_value(2),
 				"Process scheduling policy to be used for the PacketHandler threads. 1: FIFO, 2: RR")
 
 		(OPTION_ACTIVE_POLLING, po::value<int>()->default_value(1),
@@ -169,8 +171,15 @@ public:
 		(OPTION_POLLING_DELAY, po::value<float>()->default_value(1E5),
 				"Number of ticks to wait between two polls")
 
-		(OPTION_MAX_FRAME_AGGREGATION, po::value<int>()->default_value(1024),
+		(OPTION_POLLING_SLEEP_MICROS, po::value<int>()->default_value(1E5),
+				"Number of microseconds to sleep if polling was unsuccessful during the last tries")
+
+		(OPTION_MAX_FRAME_AGGREGATION, po::value<int>()->default_value(100000),
 				"Maximum number of frames aggregated before spawning a TBB job to process them")
+
+		(OPTION_MAX_EMPTY_POLLS_BEFORE_SENDING,
+				po::value<int>()->default_value(50),
+				"Maximum number of unsuccessful polls before sending frames")
 
 		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
