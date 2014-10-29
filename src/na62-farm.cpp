@@ -149,7 +149,7 @@ int main(int argc, char* argv[]) {
 		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
 				i);
 		packetHandlers.push_back(handler);
-		handler->startThread(i, "PacketHandler", i, 15);
+		handler->startThread(i, "PacketHandler", i, 15, MyOptions::GetInt(OPTION_PH_SCHEDULER));
 	}
 
 	CommandConnector c;

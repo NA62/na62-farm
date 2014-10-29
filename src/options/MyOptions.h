@@ -62,6 +62,7 @@
 /*
  * Performance
  */
+#define OPTION_PH_SCHEDULER (char*) "packetHandlerScheduler"
 #define OPTION_ZMQ_IO_THREADS (char*)"zmqIoThreads"
 #define OPTION_ACTIVE_POLLING (char*)"activePolling"
 
@@ -157,6 +158,9 @@ public:
 		(OPTION_ZMQ_IO_THREADS, po::value<int>()->default_value(1),
 				"Number of ZMQ IO threads")
 
+		(OPTION_PH_SCHEDULER, po::value<int>()->default_value(1),
+				"Process scheduling policy to be used for the PacketHandler threads. 1: FIFO, 2: RR")
+
 		(OPTION_ACTIVE_POLLING, po::value<int>()->default_value(1),
 				"Use active polling (high CPU usage, might be faster depending on the number of pf_ring queues)")
 
@@ -165,6 +169,7 @@ public:
 
 		(OPTION_INCREMENT_BURST_AT_EOB, po::value<int>()->default_value(1),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
+
 		(OPTION_STRAW_PORT, po::value<int>()->default_value(58916),
 				"UDP-Port to be used to receive raw data stream coming from the Straws.")
 
