@@ -30,7 +30,7 @@
 
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
-#include "../socket/PacketHandler.h"
+#include "../socket/HandleFrameTask.h"
 #include "../socket/FragmentStore.h"
 
 using namespace boost::interprocess;
@@ -74,6 +74,10 @@ void MonitorConnector::handleUpdate() {
 	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
 	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
 
+	setDifferentialData("FramesSent", NetworkHandler::GetFramesSent());
+	setContinuousData("OutFramesQueued",
+			NetworkHandler::getNumberOfEnqueuedFrames());
+
 	IPCHandler::sendStatistics("PF_BytesReceived",
 			std::to_string(NetworkHandler::GetBytesReceived()));
 	IPCHandler::sendStatistics("PF_PacksReceived",
@@ -91,27 +95,27 @@ void MonitorConnector::handleUpdate() {
 		statistics << "0x" << std::hex << (int) sourceID << ";";
 
 		setDetectorDifferentialData("MEPsReceived",
-				PacketHandler::GetMEPsReceivedBySourceID(sourceID), sourceID);
+				HandleFrameTask::GetMEPsReceivedBySourceID(sourceID), sourceID);
 		statistics << std::dec
-				<< PacketHandler::GetMEPsReceivedBySourceID(sourceID) << ";";
+				<< HandleFrameTask::GetMEPsReceivedBySourceID(sourceID) << ";";
 
 		setDetectorDifferentialData("EventsReceived",
-				PacketHandler::GetEventsReceivedBySourceID(sourceID)
+				HandleFrameTask::GetEventsReceivedBySourceID(sourceID)
 						/ (float) SourceIDManager::getExpectedPacksBySourceID(
 								sourceID), sourceID);
 		statistics << std::dec
-				<< PacketHandler::GetEventsReceivedBySourceID(sourceID) << ";";
+				<< HandleFrameTask::GetEventsReceivedBySourceID(sourceID) << ";";
 
 		setDetectorDifferentialData("WaitingFragments",
-				PacketHandler::GetEventsReceivedBySourceID(sourceID)
+				HandleFrameTask::GetEventsReceivedBySourceID(sourceID)
 						- L2Builder::GetEventsSentToStorage()
 								* (float) SourceIDManager::getExpectedPacksBySourceID(
 										sourceID), sourceID);
 
 		setDetectorDifferentialData("BytesReceived",
-				PacketHandler::GetBytesReceivedBySourceID(sourceID), sourceID);
+				HandleFrameTask::GetBytesReceivedBySourceID(sourceID), sourceID);
 		statistics << std::dec
-				<< PacketHandler::GetBytesReceivedBySourceID(sourceID) << ";";
+				<< HandleFrameTask::GetBytesReceivedBySourceID(sourceID) << ";";
 	}
 
 	if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT > 0) {
@@ -119,22 +123,24 @@ void MonitorConnector::handleUpdate() {
 	}
 
 	setDetectorDifferentialData("MEPsReceived",
-			PacketHandler::GetMEPsReceivedBySourceID(SOURCE_ID_LKr),
+			HandleFrameTask::GetMEPsReceivedBySourceID(SOURCE_ID_LKr),
 			SOURCE_ID_LKr);
 	statistics << std::dec
-			<< PacketHandler::GetMEPsReceivedBySourceID(SOURCE_ID_LKr) << ";";
+			<< HandleFrameTask::GetMEPsReceivedBySourceID(SOURCE_ID_LKr) << ";";
 
 	setDetectorDifferentialData("EventsReceived",
-			PacketHandler::GetEventsReceivedBySourceID(SOURCE_ID_LKr),
+			HandleFrameTask::GetEventsReceivedBySourceID(SOURCE_ID_LKr)
+					/ (float) SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT,
 			SOURCE_ID_LKr);
+
 	statistics << std::dec
-			<< PacketHandler::GetEventsReceivedBySourceID(SOURCE_ID_LKr) << ";";
+			<< HandleFrameTask::GetEventsReceivedBySourceID(SOURCE_ID_LKr) << ";";
 
 	setDetectorDifferentialData("BytesReceived",
-			PacketHandler::GetBytesReceivedBySourceID(SOURCE_ID_LKr),
+			HandleFrameTask::GetBytesReceivedBySourceID(SOURCE_ID_LKr),
 			SOURCE_ID_LKr);
 	statistics << std::dec
-			<< PacketHandler::GetBytesReceivedBySourceID(SOURCE_ID_LKr) << ";";
+			<< HandleFrameTask::GetBytesReceivedBySourceID(SOURCE_ID_LKr) << ";";
 
 	IPCHandler::sendStatistics("DetectorData", statistics.str());
 
@@ -189,6 +195,8 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("L1TriggersSent",
 			std::to_string(cream::L1DistributionHandler::GetL1TriggersSent()));
 
+	LOG(INFO)<<"Enqueued tasks:\t" << HandleFrameTask::getNumberOfQeuedTasks();
+
 	LOG(INFO)<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
 
 	LOG(INFO)<<"BurstID:\t" << HandleFrameTask::getCurrentBurstId();
@@ -208,7 +216,12 @@ float MonitorConnector::setDifferentialData(std::string key, uint64_t value) {
 	uint64_t lastValue = differentialInts_[key];
 
 	if (value != 0) {
-		LOG(INFO)<<key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")";
+		if (key == "BytesReceived") {
+			LOG(INFO)<<key << ":\t" << Utils::FormatSize(value - differentialInts_[key]) << " (" << Utils::FormatSize(value) <<")";
+		} else {
+			LOG(INFO)<<key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")";
+		}
+
 	}
 
 	differentialInts_[key + LAST_VALUE_SUFFIX] = differentialInts_[key];
@@ -235,13 +248,8 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 	detectorDifferentialInts_[detectorID][key] = value;
 }
 
-void MonitorConnector::setContinuousData(std::string key, float value) {
-	if (continuousFloats_.find(key) == continuousFloats_.end()
-			|| continuousFloats_[key + LAST_VALUE_SUFFIX] != value) {
-		LOG(INFO)<<"total " << key + ":\t" + std::to_string(value);
-	}
-	continuousFloats_[key] = value;
-	continuousFloats_[key + LAST_VALUE_SUFFIX] = value;
+void MonitorConnector::setContinuousData(std::string key, uint64_t value) {
+	LOG(INFO)<<key << ":\t" << std::to_string(value);
 }
 
 }
