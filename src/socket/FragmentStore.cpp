@@ -9,10 +9,11 @@
 
 namespace na62 {
 
-std::map<uint64_t, std::vector<DataContainer>> FragmentStore::fragmentsById_;
-tbb::spin_mutex FragmentStore::newFragmentMutex_;
+const uint FragmentStore::numberOfFragmentStores_;
+std::map<uint64_t, std::vector<DataContainer>> FragmentStore::fragmentsById_[];
+tbb::spin_mutex FragmentStore::newFragmentMutexes_[];
 
-uint FragmentStore::numberOfFragmentsReceived_ = 0;
-uint FragmentStore::numberOfReassembledFrames_ = 0;
+std::atomic<uint> FragmentStore::numberOfFragmentsReceived_(0);
+std::atomic<uint> FragmentStore::numberOfReassembledFrames_(0);
 
 } /* namespace na62 */

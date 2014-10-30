@@ -33,7 +33,6 @@
 #include <l0/MEPFragment.h>
 #include <LKr/L1DistributionHandler.h>
 #include <LKr/LkrFragment.h>
-#include <LKr/LKRMEP.h>
 #include "../options/MyOptions.h"
 #include <structs/Event.h>
 #include <structs/Network.h>

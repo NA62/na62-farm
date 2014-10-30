@@ -11,7 +11,6 @@
 #include <l0/MEP.h>
 #include <l0/MEPFragment.h>
 #include <LKr/LkrFragment.h>
-#include <LKr/LKRMEP.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
@@ -164,32 +163,17 @@ tbb::task* HandleFrameTask::execute() {
 				L1Builder::buildEvent(mep->getEvent(i), currentBurstID_);
 			}
 		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// CREAM Data //////////////////////////////////////////////////
-			/*
-			 * The LKRMEP will not be stored directly. Instead the LkrFragments will store the MEP they
-			 * are stored in and also delete it as soon as all Fragments of the MEP are deleted
-			 */
-			cream::LKRMEP* mep = new cream::LKRMEP(UDPPayload, UdpDataLength,
-					container.data);
+			cream::LkrFragment* fragment = new cream::LkrFragment(UDPPayload,
+					UdpDataLength, container.data);
 
-//			LOG(ERROR)<< "Received LKR data with EventNumber "
-//			<< (int) mep->getEvent(0)->getEventNumber() << ", crateID "
-//			<< (int) mep->getEvent(0)->getCrateID() << " and CREAMID "
-//			<< (int) mep->getEvent(0)->getCREAMID();
+			PacketHandler::MEPsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
+					std::memory_order_relaxed);
+			PacketHandler::EventsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
+					std::memory_order_relaxed);
+			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(
+					container.length, std::memory_order_relaxed);
 
-			PacketHandler::MEPsReceivedBySourceID_[SOURCE_ID_LKr]++;
-			PacketHandler::EventsReceivedBySourceID_[SOURCE_ID_LKr] +=
-					mep->getNumberOfEvents();
-			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr] +=
-					container.length;
-
-			/*
-			 * Build events with all MEP fragments
-			 * getNumberOfEvents() will change while executing L2Builder::buildEvent. So we have to cache it
-			 */
-			const uint numberOfStoredEvents = mep->getNumberOfEvents();
-			for (uint i = 0; i != numberOfStoredEvents; i++) {
-				L2Builder::buildEvent(mep->getEvent(i));
-			}
+			L2Builder::buildEvent(fragment);
 		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
 			if (nextBurstID_ != currentBurstID_
 					&& eobFrameReceivedTime_.elapsed().wall / 1E6

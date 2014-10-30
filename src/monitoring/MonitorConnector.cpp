@@ -102,6 +102,12 @@ void MonitorConnector::handleUpdate() {
 		statistics << std::dec
 				<< PacketHandler::GetEventsReceivedBySourceID(sourceID) << ";";
 
+		setDetectorDifferentialData("WaitingFragments",
+				PacketHandler::GetEventsReceivedBySourceID(sourceID)
+						- L2Builder::GetEventsSentToStorage()
+								* (float) SourceIDManager::getExpectedPacksBySourceID(
+										sourceID), sourceID);
+
 		setDetectorDifferentialData("BytesReceived",
 				PacketHandler::GetBytesReceivedBySourceID(sourceID), sourceID);
 		statistics << std::dec
