@@ -170,7 +170,7 @@ public:
 		(OPTION_POLLING_DELAY, po::value<float>()->default_value(1E5),
 				"Number of ticks to wait between two polls")
 
-		(OPTION_POLLING_SLEEP_MICROS, po::value<int>()->default_value(1E5),
+		(OPTION_POLLING_SLEEP_MICROS, po::value<int>()->default_value(1E4),
 				"Number of microseconds to sleep if polling was unsuccessful during the last tries")
 
 		(OPTION_MAX_FRAME_AGGREGATION, po::value<int>()->default_value(100000),
