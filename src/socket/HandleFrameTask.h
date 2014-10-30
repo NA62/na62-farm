@@ -42,8 +42,13 @@ private:
 	static uint32_t currentBurstID_;
 	static uint32_t nextBurstID_;
 	static boost::timer::cpu_timer eobFrameReceivedTime_;
-	
+
 	static std::atomic<uint> queuedTasksNum_;
+
+	static uint highestSourceID_;
+	static std::atomic<uint64_t>* MEPsReceivedBySourceID_;
+	static std::atomic<uint64_t>* EventsReceivedBySourceID_;
+	static std::atomic<uint64_t>* BytesReceivedBySourceID_;
 
 	void processFrame(DataContainer&& container);
 public:
@@ -66,9 +71,21 @@ public:
 		nextBurstID_ = burstID;
 		eobFrameReceivedTime_.start();
 	}
-	
+
 	static inline uint getNumberOfQeuedTasks() {
 		return queuedTasksNum_;
+	}
+
+	static inline uint64_t GetMEPsReceivedBySourceID(uint8_t sourceID) {
+		return MEPsReceivedBySourceID_[sourceID];
+	}
+
+	static inline uint64_t GetEventsReceivedBySourceID(uint8_t sourceID) {
+		return EventsReceivedBySourceID_[sourceID];
+	}
+
+	static inline uint64_t GetBytesReceivedBySourceID(uint8_t sourceID) {
+		return BytesReceivedBySourceID_[sourceID];
 	}
 };
 

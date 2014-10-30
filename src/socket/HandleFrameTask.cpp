@@ -50,6 +50,10 @@ uint32_t HandleFrameTask::nextBurstID_;
 
 boost::timer::cpu_timer HandleFrameTask::eobFrameReceivedTime_;
 std::atomic<uint> HandleFrameTask::queuedTasksNum_;
+uint HandleFrameTask::highestSourceID_;
+std::atomic<uint64_t>* HandleFrameTask::MEPsReceivedBySourceID_;
+std::atomic<uint64_t>* HandleFrameTask::EventsReceivedBySourceID_;
+std::atomic<uint64_t>* HandleFrameTask::BytesReceivedBySourceID_;
 
 HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers) :
 		containers(std::move(_containers)) {
@@ -68,6 +72,20 @@ void HandleFrameTask::initialize() {
 
 	currentBurstID_ = Options::GetInt(OPTION_FIRST_BURST_ID);
 	nextBurstID_ = currentBurstID_;
+
+	highestSourceID_ = SourceIDManager::LARGEST_L0_DATA_SOURCE_ID;
+	if (highestSourceID_ < SOURCE_ID_LKr) { // Add LKr
+		highestSourceID_ = SOURCE_ID_LKr;
+	}
+	MEPsReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID_ + 1];
+	EventsReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID_ + 1];
+	BytesReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID_ + 1];
+
+	for (uint i = 0; i != highestSourceID_ + 1; i++) {
+		MEPsReceivedBySourceID_[i] = 0;
+		EventsReceivedBySourceID_[i] = 0;
+		BytesReceivedBySourceID_[i] = 0;
+	}
 }
 
 void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
@@ -164,11 +182,11 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				currentBurstID_ = nextBurstID_;
 			}
 
-			PacketHandler::MEPsReceivedBySourceID_[mep->getSourceID()].fetch_add(
-					1, std::memory_order_relaxed);
-			PacketHandler::EventsReceivedBySourceID_[mep->getSourceID()].fetch_add(
+			MEPsReceivedBySourceID_[mep->getSourceID()].fetch_add(1,
+					std::memory_order_relaxed);
+			EventsReceivedBySourceID_[mep->getSourceID()].fetch_add(
 					mep->getNumberOfEvents(), std::memory_order_relaxed);
-			PacketHandler::BytesReceivedBySourceID_[mep->getSourceID()].fetch_add(
+			BytesReceivedBySourceID_[mep->getSourceID()].fetch_add(
 					container.length, std::memory_order_relaxed);
 
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
@@ -178,12 +196,12 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			cream::LkrFragment* fragment = new cream::LkrFragment(UDPPayload,
 					UdpDataLength, container.data);
 
-			PacketHandler::MEPsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
+			MEPsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
 					std::memory_order_relaxed);
-			PacketHandler::EventsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
+			EventsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
 					std::memory_order_relaxed);
-			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(
-					container.length, std::memory_order_relaxed);
+			BytesReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(container.length,
+					std::memory_order_relaxed);
 
 			L2Builder::buildEvent(fragment);
 		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////

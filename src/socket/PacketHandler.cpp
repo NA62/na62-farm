@@ -49,10 +49,6 @@ namespace na62 {
 
 uint NUMBER_OF_EBS = 0;
 
-std::atomic<uint64_t>* PacketHandler::MEPsReceivedBySourceID_;
-std::atomic<uint64_t>* PacketHandler::EventsReceivedBySourceID_;
-std::atomic<uint64_t>* PacketHandler::BytesReceivedBySourceID_;
-
 PacketHandler::PacketHandler(int threadNum) :
 		threadNum_(threadNum), running_(true) {
 	NUMBER_OF_EBS = Options::GetInt(OPTION_NUMBER_OF_EBS);
@@ -62,19 +58,6 @@ PacketHandler::~PacketHandler() {
 }
 
 void PacketHandler::initialize() {
-	int highestSourceID = SourceIDManager::LARGEST_L0_DATA_SOURCE_ID;
-	if (highestSourceID < SOURCE_ID_LKr) { // Add LKr
-		highestSourceID = SOURCE_ID_LKr;
-	}
-	MEPsReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID + 1];
-	EventsReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID + 1];
-	BytesReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID + 1];
-
-	for (int i = 0; i <= highestSourceID; i++) {
-		MEPsReceivedBySourceID_[i] = 0;
-		EventsReceivedBySourceID_[i] = 0;
-		BytesReceivedBySourceID_[i] = 0;
-	}
 }
 
 void PacketHandler::thread() {
