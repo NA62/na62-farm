@@ -73,6 +73,7 @@ void MonitorConnector::handleUpdate() {
 
 	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
 	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
+
 	setDifferentialData("FramesSent", NetworkHandler::GetFramesSent());
 	setContinuousData("OutFramesQueued",
 			NetworkHandler::getNumberOfEnqueuedFrames());
@@ -248,7 +249,7 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 }
 
 void MonitorConnector::setContinuousData(std::string key, uint64_t value) {
-	LOG(INFO)<< key << ":\t" << std::to_string(value);
+	LOG(INFO)<<key << ":\t" << std::to_string(value);
 }
 
 }

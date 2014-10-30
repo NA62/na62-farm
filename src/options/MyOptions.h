@@ -68,7 +68,6 @@
 #define OPTION_POLLING_DELAY (char*)"pollingDelay"
 #define OPTION_POLLING_SLEEP_MICROS (char*)"pollingSleepMicros"
 #define OPTION_MAX_FRAME_AGGREGATION (char*)"maxFramesAggregation"
-#define OPTION_MAX_EMPTY_POLLS_BEFORE_SENDING (char*)"maxEmptyPollsBeforeSending"
 
 /*
  * MUVs
@@ -176,10 +175,6 @@ public:
 
 		(OPTION_MAX_FRAME_AGGREGATION, po::value<int>()->default_value(100000),
 				"Maximum number of frames aggregated before spawning a TBB job to process them")
-
-		(OPTION_MAX_EMPTY_POLLS_BEFORE_SENDING,
-				po::value<int>()->default_value(50),
-				"Maximum number of unsuccessful polls before sending frames")
 
 		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")

@@ -40,6 +40,8 @@
 #include <socket/EthernetUtils.h>
 #include <socket/NetworkHandler.h>
 #include <eventBuilding/SourceIDManager.h>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/time_duration.hpp>
 
 #include "HandleFrameTask.h"
 
@@ -86,11 +88,13 @@ void PacketHandler::thread() {
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
 	const uint pollDelay = Options::GetFloat(OPTION_POLLING_DELAY);
 
+	const uint minUsecBetweenL1Requests = Options::GetInt(
+	OPTION_MIN_USEC_BETWEEN_L1_REQUESTS);
+
 	const uint framesToBeGathered = Options::GetInt(
 	OPTION_MAX_FRAME_AGGREGATION);
 
-	const uint maxUnsuccessfulReadsBeforeSending = Options::GetInt(
-	OPTION_MAX_EMPTY_POLLS_BEFORE_SENDING);
+	boost::timer::cpu_timer sendTimer;
 
 	while (running_) {
 		/*
@@ -101,8 +105,7 @@ void PacketHandler::thread() {
 
 		result = 0;
 		data = nullptr;
-		uint unsuccessfullCounter = 0;
-		bool goToSleep = 0;
+		bool goToSleep = false;
 
 		/*
 		 * Try to receive [framesToBeCollected] frames
@@ -119,14 +122,26 @@ void PacketHandler::thread() {
 				char* buff = new char[hdr.len];
 				memcpy(buff, data, hdr.len);
 				frames.push_back( { buff, (uint16_t) hdr.len, true });
+				goToSleep = false;
 			} else {
-				unsuccessfullCounter++;
-				if (unsuccessfullCounter % maxUnsuccessfulReadsBeforeSending
-						== 0) {
+				if (sendTimer.elapsed().wall / 1000
+						> minUsecBetweenL1Requests) {
 					/*
 					 * We didn't receive anything for a while -> send enqueued frames
 					 */
-					NetworkHandler::DoSendQueuedFrames(threadNum_);
+					if (threadNum_ == 0) {
+						NetworkHandler::DoSendQueuedFrames(threadNum_);
+					}
+					sendTimer.start();
+
+					/*
+					 * Push the aggregated frames to a new task if we didn't receive anything
+					 * since we last sent something
+					 */
+					if (goToSleep) {
+						break;
+					}
+					goToSleep = true;
 				} else {
 					/*
 					 * Spin wait a while. This block is not optimized by the compiler

@@ -47,6 +47,7 @@ public:
 
 private:
 	int threadNum_; bool running_;
+
 	/**
 	 * @return <true> In case of success, false in case of a serious error (we should stop the thread in this case)
 	 */

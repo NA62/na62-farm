@@ -168,7 +168,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					1, std::memory_order_relaxed);
 			PacketHandler::EventsReceivedBySourceID_[mep->getSourceID()].fetch_add(
 					mep->getNumberOfEvents(), std::memory_order_relaxed);
-			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(
+			PacketHandler::BytesReceivedBySourceID_[mep->getSourceID()].fetch_add(
 					container.length, std::memory_order_relaxed);
 
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
