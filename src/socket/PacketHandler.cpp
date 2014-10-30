@@ -88,6 +88,7 @@ void PacketHandler::thread() {
 
 		result = 0;
 		data = nullptr;
+		uint numberOfSendsDuringAggregation = 0;
 		bool goToSleep = false;
 
 		/*
@@ -118,13 +119,13 @@ void PacketHandler::thread() {
 					sendTimer.start();
 
 					/*
-					 * Push the aggregated frames to a new task if we didn't receive anything
-					 * since we last sent something
+					 * Push the aggregated frames to a new task if already tried to send something
+					 * two times during current frame aggregation
 					 */
-					if (goToSleep) {
+					if (++numberOfSendsDuringAggregation == 2) {
+						goToSleep = true;
 						break;
 					}
-					goToSleep = true;
 				} else {
 					/*
 					 * Spin wait a while. This block is not optimized by the compiler
@@ -135,8 +136,6 @@ void PacketHandler::thread() {
 				}
 			}
 		}
-
-//		LOG(INFO)<< frames.size() << "\t" << unsuccessfullCounter;
 
 		if (!frames.empty()) {
 			/*
