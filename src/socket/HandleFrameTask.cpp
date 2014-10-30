@@ -49,12 +49,19 @@ uint32_t HandleFrameTask::currentBurstID_;
 uint32_t HandleFrameTask::nextBurstID_;
 
 boost::timer::cpu_timer HandleFrameTask::eobFrameReceivedTime_;
+std::atomic<uint> HandleFrameTask::queuedTasksNum_;
+uint HandleFrameTask::highestSourceID_;
+std::atomic<uint64_t>* HandleFrameTask::MEPsReceivedBySourceID_;
+std::atomic<uint64_t>* HandleFrameTask::EventsReceivedBySourceID_;
+std::atomic<uint64_t>* HandleFrameTask::BytesReceivedBySourceID_;
 
-HandleFrameTask::HandleFrameTask(DataContainer&& _container) :
-		container(_container) {
+HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers) :
+		containers(std::move(_containers)) {
+	queuedTasksNum_.fetch_add(1, std::memory_order_relaxed);
 }
 
 HandleFrameTask::~HandleFrameTask() {
+	queuedTasksNum_.fetch_sub(1, std::memory_order_relaxed);
 }
 
 void HandleFrameTask::initialize() {
@@ -65,6 +72,20 @@ void HandleFrameTask::initialize() {
 
 	currentBurstID_ = Options::GetInt(OPTION_FIRST_BURST_ID);
 	nextBurstID_ = currentBurstID_;
+
+	highestSourceID_ = SourceIDManager::LARGEST_L0_DATA_SOURCE_ID;
+	if (highestSourceID_ < SOURCE_ID_LKr) { // Add LKr
+		highestSourceID_ = SOURCE_ID_LKr;
+	}
+	MEPsReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID_ + 1];
+	EventsReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID_ + 1];
+	BytesReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID_ + 1];
+
+	for (uint i = 0; i != highestSourceID_ + 1; i++) {
+		MEPsReceivedBySourceID_[i] = 0;
+		EventsReceivedBySourceID_[i] = 0;
+		BytesReceivedBySourceID_[i] = 0;
+	}
 }
 
 void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
@@ -79,26 +100,34 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 		NetworkHandler::AsyncSendFrame(std::move(responseArp));
 	}
 }
+
 tbb::task* HandleFrameTask::execute() {
+	for (DataContainer& container : containers) {
+		processFrame(std::move(container));
+	}
+	return nullptr;
+}
+
+void HandleFrameTask::processFrame(DataContainer&& container) {
 	try {
 		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
-		uint16_t etherType = ntohs(hdr->eth.ether_type);
-		uint8_t ipProto = hdr->ip.protocol;
+		const uint16_t etherType = /*ntohs*/(hdr->eth.ether_type);
+		const uint8_t ipProto = hdr->ip.protocol;
 		uint16_t destPort = ntohs(hdr->udp.dest);
-		uint32_t dstIP = hdr->ip.daddr;
+		const uint32_t dstIP = hdr->ip.daddr;
 
 		/*
 		 * Check if we received an ARP request
 		 */
-		if (etherType != ETHERTYPE_IP || ipProto != IPPROTO_UDP) {
-			if (etherType == ETHERTYPE_ARP) {
+		if (etherType != 0x0008/*ETHERTYPE_IP*/|| ipProto != IPPROTO_UDP) {
+			if (etherType == 0x0608/*ETHERTYPE_ARP*/) {
 				// this will delete the data
 				processARPRequest((struct ARP_HDR*) container.data);
-				return nullptr;
+				return;
 			} else {
 				// Just ignore this frame as it's not IP nor ARP
 				delete[] container.data;
-				return nullptr;
+				return;
 			}
 		}
 
@@ -107,7 +136,7 @@ tbb::task* HandleFrameTask::execute() {
 		 */
 		if (!checkFrame(hdr, container.length)) {
 			delete[] container.data;
-			return nullptr;
+			return;
 		}
 
 		/*
@@ -115,13 +144,13 @@ tbb::task* HandleFrameTask::execute() {
 		 */
 		if (MyIP != dstIP) {
 			delete[] container.data;
-			return nullptr;
+			return;
 		}
 
 		if (hdr->isFragment()) {
 			container = FragmentStore::addFragment(std::move(container));
 			if (container.data == nullptr) {
-				return nullptr;
+				return;
 			}
 			hdr = (struct UDP_HDR*) container.data;
 			destPort = ntohs(hdr->udp.dest);
@@ -153,11 +182,12 @@ tbb::task* HandleFrameTask::execute() {
 				currentBurstID_ = nextBurstID_;
 			}
 
-			PacketHandler::MEPsReceivedBySourceID_[mep->getSourceID()]++;
-			PacketHandler::EventsReceivedBySourceID_[mep->getSourceID()] +=
-					mep->getNumberOfEvents();
-			PacketHandler::BytesReceivedBySourceID_[mep->getSourceID()] +=
-					container.length;
+			MEPsReceivedBySourceID_[mep->getSourceID()].fetch_add(1,
+					std::memory_order_relaxed);
+			EventsReceivedBySourceID_[mep->getSourceID()].fetch_add(
+					mep->getNumberOfEvents(), std::memory_order_relaxed);
+			BytesReceivedBySourceID_[mep->getSourceID()].fetch_add(
+					container.length, std::memory_order_relaxed);
 
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
 				L1Builder::buildEvent(mep->getEvent(i), currentBurstID_);
@@ -166,12 +196,12 @@ tbb::task* HandleFrameTask::execute() {
 			cream::LkrFragment* fragment = new cream::LkrFragment(UDPPayload,
 					UdpDataLength, container.data);
 
-			PacketHandler::MEPsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
+			MEPsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
 					std::memory_order_relaxed);
-			PacketHandler::EventsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
+			EventsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
 					std::memory_order_relaxed);
-			PacketHandler::BytesReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(
-					container.length, std::memory_order_relaxed);
+			BytesReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(container.length,
+					std::memory_order_relaxed);
 
 			L2Builder::buildEvent(fragment);
 		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
@@ -196,7 +226,6 @@ tbb::task* HandleFrameTask::execute() {
 	} catch (NA62Error const& e) {
 		delete[] container.data;
 	}
-	return nullptr;
 }
 
 bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {

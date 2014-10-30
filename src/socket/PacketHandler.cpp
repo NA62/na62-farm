@@ -26,6 +26,7 @@
 #include <cstring>
 #include <iostream>
 #include <queue>
+#include <thread>
 
 #include <exceptions/UnknownCREAMSourceIDFound.h>
 #include <exceptions/UnknownSourceIDFound.h>
@@ -39,16 +40,14 @@
 #include <socket/EthernetUtils.h>
 #include <socket/NetworkHandler.h>
 #include <eventBuilding/SourceIDManager.h>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/time_duration.hpp>
 
 #include "HandleFrameTask.h"
 
 namespace na62 {
 
 uint NUMBER_OF_EBS = 0;
-
-std::atomic<uint64_t>* PacketHandler::MEPsReceivedBySourceID_;
-std::atomic<uint64_t>* PacketHandler::EventsReceivedBySourceID_;
-std::atomic<uint64_t>* PacketHandler::BytesReceivedBySourceID_;
 
 PacketHandler::PacketHandler(int threadNum) :
 		threadNum_(threadNum), running_(true) {
@@ -59,87 +58,106 @@ PacketHandler::~PacketHandler() {
 }
 
 void PacketHandler::initialize() {
-	int highestSourceID = SourceIDManager::LARGEST_L0_DATA_SOURCE_ID;
-	if (highestSourceID < SOURCE_ID_LKr) { // Add LKr
-		highestSourceID = SOURCE_ID_LKr;
-	}
-
-	MEPsReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID + 1];
-	EventsReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID + 1];
-	BytesReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID + 1];
-
-	for (int i = 0; i <= highestSourceID; i++) {
-		MEPsReceivedBySourceID_[i] = 0;
-		EventsReceivedBySourceID_[i] = 0;
-		BytesReceivedBySourceID_[i] = 0;
-	}
 }
 
 void PacketHandler::thread() {
 	const u_char* data; // = new char[MTU];
 	struct pfring_pkthdr hdr;
 	memset(&hdr, 0, sizeof(hdr));
-	register int result = 0;
-	int sleepMicros = 1;
+	int result = 0;
+
+	const int sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
 
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
+	const uint pollDelay = Options::GetFloat(OPTION_POLLING_DELAY);
+
+	const uint minUsecBetweenL1Requests = Options::GetInt(
+	OPTION_MIN_USEC_BETWEEN_L1_REQUESTS);
+
+	const uint framesToBeGathered = Options::GetInt(
+	OPTION_MAX_FRAME_AGGREGATION);
+
+	boost::timer::cpu_timer sendTimer;
 
 	while (running_) {
-		result = 0;
-		data = NULL;
 		/*
-		 * The actual  polling!
-		 * Do not wait for incoming packets as this will block the ring and make sending impossible
+		 * We want to aggregate several frames if we already have more HandleFrameTasks running than there are CPU cores available
 		 */
-		result = NetworkHandler::GetNextFrame(&hdr, &data, 0, false,
-				threadNum_);
-		if (result > 0) {
-			char* buff = new char[hdr.len];
-			memcpy(buff, data, hdr.len);
+		std::vector<DataContainer> frames;
+		frames.reserve(framesToBeGathered);
 
+		result = 0;
+		data = nullptr;
+		bool goToSleep = false;
+
+		/*
+		 * Try to receive [framesToBeCollected] frames
+		 */
+		for (uint i = 0; i != framesToBeGathered; i++) {
+			/*
+			 * The actual  polling!
+			 * Do not wait for incoming packets as this will block the ring and make sending impossible
+			 */
+			result = NetworkHandler::GetNextFrame(&hdr, &data, 0, false,
+					threadNum_);
+
+			if (result > 0) {
+				char* buff = new char[hdr.len];
+				memcpy(buff, data, hdr.len);
+				frames.push_back( { buff, (uint16_t) hdr.len, true });
+				goToSleep = false;
+			} else {
+				if (sendTimer.elapsed().wall / 1000
+						> minUsecBetweenL1Requests) {
+					/*
+					 * We didn't receive anything for a while -> send enqueued frames
+					 */
+					if (threadNum_ == 0) {
+						NetworkHandler::DoSendQueuedFrames(threadNum_);
+					}
+					sendTimer.start();
+
+					/*
+					 * Push the aggregated frames to a new task if we didn't receive anything
+					 * since we last sent something
+					 */
+					if (goToSleep) {
+						break;
+					}
+					goToSleep = true;
+				} else {
+					/*
+					 * Spin wait a while. This block is not optimized by the compiler
+					 */
+					for (volatile uint i = 0; i < pollDelay; i++) {
+						asm("");
+					}
+				}
+			}
+		}
+
+//		LOG(INFO)<< frames.size() << "\t" << unsuccessfullCounter;
+
+		if (!frames.empty()) {
 			/*
 			 * Start a new task which will check the frame
 			 *
-			 * TODO: instead of spawning one task per frame it could be useful to aggregate several frames
-			 * depending on how many tasks are still running (N~2^(runningTasks-thread::hardware_concurrency()))
 			 */
-			DataContainer container = { buff, (uint16_t) hdr.len, true };
 			HandleFrameTask* task =
 					new (tbb::task::allocate_root()) HandleFrameTask(
-							std::move(container));
+							std::move(frames));
 			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
-
-			sleepMicros = 1;
 		} else {
-			/*
-			 * Use the time to send some packets
-			 */
-			if (cream::L1DistributionHandler::DoSendMRP(threadNum_)
-					|| NetworkHandler::DoSendQueuedFrames(threadNum_) != 0) {
-				sleepMicros = 1;
-				continue;
-			}
+			goToSleep = true;
+		}
 
-			if (activePolling || (sleepMicros < 100 && !activePolling)) {
+		if (goToSleep) {
+			if (!activePolling) {
 				/*
-				 * Spin wait
+				 * Allow other threads to run
 				 */
-				for (volatile int i = 0; i < sleepMicros * 1E4; i++) {
-					asm("");
-				}
-			}
-
-			if (sleepMicros < 64) {
-				sleepMicros *= 2;
-			} else {
-//				boost::this_thread::interruption_point();
-				if (!activePolling) {
-					/*
-					 * Allow other threads to execute
-					 */
-					boost::this_thread::sleep(
-							boost::posix_time::microsec(sleepMicros));
-				}
+				boost::this_thread::sleep(
+						boost::posix_time::microsec(sleepMicros));
 			}
 		}
 	}

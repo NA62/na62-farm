@@ -52,7 +52,7 @@ private:
 	float setDifferentialData(std::string key, uint64_t value);
 	void setDetectorDifferentialData(std::string key, uint64_t value,
 			uint8_t detectorID);
-	void setContinuousData(std::string key, float value);
+	void setContinuousData(std::string key, uint64_t value);
 
 	boost::asio::io_service monitoringService;
 
@@ -62,9 +62,6 @@ private:
 
 	std::map<std::string, uint64_t> differentialInts_;
 	std::map<uint8_t, std::map<std::string, uint64_t> > detectorDifferentialInts_;
-	std::map<std::string, float> continuousFloats_;
-
-	std::map<std::string, bool> existingKey_;
 
 	static STATE currentState_;
 };

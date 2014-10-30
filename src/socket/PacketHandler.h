@@ -29,24 +29,9 @@ public:
 
 	static void initialize();
 
-	static inline uint64_t GetMEPsReceivedBySourceID(uint8_t sourceID) {
-		return MEPsReceivedBySourceID_[sourceID];
-	}
-
-	static inline uint64_t GetEventsReceivedBySourceID(uint8_t sourceID) {
-		return EventsReceivedBySourceID_[sourceID];
-	}
-
-	static inline uint64_t GetBytesReceivedBySourceID(uint8_t sourceID) {
-		return BytesReceivedBySourceID_[sourceID];
-	}
-
-	static std::atomic<uint64_t>* MEPsReceivedBySourceID_;
-	static std::atomic<uint64_t>* EventsReceivedBySourceID_;
-	static std::atomic<uint64_t>* BytesReceivedBySourceID_;
-
 private:
 	int threadNum_; bool running_;
+
 	/**
 	 * @return <true> In case of success, false in case of a serious error (we should stop the thread in this case)
 	 */
