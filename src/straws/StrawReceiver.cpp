@@ -72,6 +72,7 @@ void StrawReceiver::processFrame(DataContainer&& data, uint burstID) {
 	memcpy(sendData, &sendDataLength, 4);
 	memcpy(sendData + 4, &(udpIpHdr->ip.saddr), 4);
 
+
 	/*
 	 * Write data
 	 */
