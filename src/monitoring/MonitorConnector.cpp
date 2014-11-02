@@ -27,6 +27,7 @@
 #include <socket/NetworkHandler.h>
 #include <utils/Utils.h>
 #include <monitoring/IPCHandler.h>
+#include <eventBuilding/Event.h>
 
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
@@ -95,52 +96,59 @@ void MonitorConnector::handleUpdate() {
 		statistics << "0x" << std::hex << (int) sourceID << ";";
 
 		setDetectorDifferentialData("MEPsReceived",
-				HandleFrameTask::GetMEPsReceivedBySourceID(sourceID), sourceID);
+				HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum),
+				sourceID);
 		statistics << std::dec
-				<< HandleFrameTask::GetMEPsReceivedBySourceID(sourceID) << ";";
+				<< HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum)
+				<< ";";
 
 		setDetectorDifferentialData("EventsReceived",
-				HandleFrameTask::GetEventsReceivedBySourceID(sourceID)
-						/ (float) SourceIDManager::getExpectedPacksBySourceID(
-								sourceID), sourceID);
+				Event::getMissingEventsBySourceNum(soruceIDNum),
+				sourceID);
 		statistics << std::dec
-				<< HandleFrameTask::GetEventsReceivedBySourceID(sourceID) << ";";
-
-		setDetectorDifferentialData("WaitingFragments",
-				HandleFrameTask::GetEventsReceivedBySourceID(sourceID)
-						- L2Builder::GetEventsSentToStorage()
-								* (float) SourceIDManager::getExpectedPacksBySourceID(
-										sourceID), sourceID);
+				<<Event::getMissingEventsBySourceNum(soruceIDNum)
+				<< ";";
 
 		setDetectorDifferentialData("BytesReceived",
-				HandleFrameTask::GetBytesReceivedBySourceID(sourceID), sourceID);
+				HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum),
+				sourceID);
 		statistics << std::dec
-				<< HandleFrameTask::GetBytesReceivedBySourceID(sourceID) << ";";
+				<< HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum)
+				<< ";";
 	}
 
-	if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT > 0) {
+	if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT != 0) {
 		statistics << "0x" << std::hex << (int) SOURCE_ID_LKr << ";";
+
+		/*
+		 * Store CREAM specific statistics stored at SourceIDManager::NUMBER_OF_L0_DATA_SOURCES as sourceNum
+		 */
+		setDetectorDifferentialData("MEPsReceived",
+				HandleFrameTask::GetMEPsReceivedBySourceNum(
+						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES),
+				SOURCE_ID_LKr);
+		statistics << std::dec
+				<< HandleFrameTask::GetMEPsReceivedBySourceNum(
+						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES) << ";";
+
+		setDetectorDifferentialData("EventsReceived",
+				Event::getMissingEventsBySourceNum(
+						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES),
+				SOURCE_ID_LKr);
+
+		statistics << std::dec
+				<< Event::getMissingEventsBySourceNum(
+						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES) << ";";
+
+		setDetectorDifferentialData("BytesReceived",
+				HandleFrameTask::GetBytesReceivedBySourceNum(
+						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES),
+				SOURCE_ID_LKr);
+		statistics << std::dec
+				<< HandleFrameTask::GetBytesReceivedBySourceNum(
+						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES) << ";";
+
 	}
-
-	setDetectorDifferentialData("MEPsReceived",
-			HandleFrameTask::GetMEPsReceivedBySourceID(SOURCE_ID_LKr),
-			SOURCE_ID_LKr);
-	statistics << std::dec
-			<< HandleFrameTask::GetMEPsReceivedBySourceID(SOURCE_ID_LKr) << ";";
-
-	setDetectorDifferentialData("EventsReceived",
-			HandleFrameTask::GetEventsReceivedBySourceID(SOURCE_ID_LKr)
-					/ (float) SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT,
-			SOURCE_ID_LKr);
-
-	statistics << std::dec
-			<< HandleFrameTask::GetEventsReceivedBySourceID(SOURCE_ID_LKr) << ";";
-
-	setDetectorDifferentialData("BytesReceived",
-			HandleFrameTask::GetBytesReceivedBySourceID(SOURCE_ID_LKr),
-			SOURCE_ID_LKr);
-	statistics << std::dec
-			<< HandleFrameTask::GetBytesReceivedBySourceID(SOURCE_ID_LKr) << ";";
 
 	IPCHandler::sendStatistics("DetectorData", statistics.str());
 

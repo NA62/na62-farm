@@ -31,7 +31,13 @@ private:
 	static uint downscaleFactor_;
 
 public:
-	static void buildEvent(cream::LkrFragment* lkrFragment);
+	/**
+	 * Adds the fragment to the corresponding event and processes the L2 trigger
+	 * algorithm if the L2 event building is finished
+	 *
+	 * @return true if the event is complete and therefore L2 has been processed, false otherwise
+	 */
+	static bool buildEvent(cream::LkrFragment* lkrFragment);
 
 	static void processL2(Event *event);
 

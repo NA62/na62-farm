@@ -24,7 +24,7 @@ std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
 
 uint L2Builder::downscaleFactor_ = 0;
 
-void L2Builder::buildEvent(cream::LkrFragment* LkrFragment) {
+bool L2Builder::buildEvent(cream::LkrFragment* LkrFragment) {
 	Event *event = EventPool::GetEvent(LkrFragment->getEventNumber());
 
 	/*
@@ -32,7 +32,7 @@ void L2Builder::buildEvent(cream::LkrFragment* LkrFragment) {
 	 */
 	if (event == nullptr) {
 		delete LkrFragment;
-		return;
+		return false;
 	}
 
 	/*
@@ -43,7 +43,9 @@ void L2Builder::buildEvent(cream::LkrFragment* LkrFragment) {
 		 * This event is complete -> process it
 		 */
 		processL2(event);
+		return true;
 	}
+	return false;
 }
 
 void L2Builder::processL2(Event *event) {

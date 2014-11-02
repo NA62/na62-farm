@@ -45,10 +45,9 @@ private:
 
 	static std::atomic<uint> queuedTasksNum_;
 
-	static uint highestSourceID_;
-	static std::atomic<uint64_t>* MEPsReceivedBySourceID_;
-	static std::atomic<uint64_t>* EventsReceivedBySourceID_;
-	static std::atomic<uint64_t>* BytesReceivedBySourceID_;
+	static uint highestSourceNum_;
+	static std::atomic<uint64_t>* MEPsReceivedBySourceNum_;
+	static std::atomic<uint64_t>* BytesReceivedBySourceNum_;
 
 	void processFrame(DataContainer&& container);
 public:
@@ -76,16 +75,12 @@ public:
 		return queuedTasksNum_;
 	}
 
-	static inline uint64_t GetMEPsReceivedBySourceID(uint8_t sourceID) {
-		return MEPsReceivedBySourceID_[sourceID];
+	static inline uint64_t GetMEPsReceivedBySourceNum(uint8_t sourceNum) {
+		return MEPsReceivedBySourceNum_[sourceNum];
 	}
 
-	static inline uint64_t GetEventsReceivedBySourceID(uint8_t sourceID) {
-		return EventsReceivedBySourceID_[sourceID];
-	}
-
-	static inline uint64_t GetBytesReceivedBySourceID(uint8_t sourceID) {
-		return BytesReceivedBySourceID_[sourceID];
+	static inline uint64_t GetBytesReceivedBySourceNum(uint8_t sourceNum) {
+		return BytesReceivedBySourceNum_[sourceNum];
 	}
 };
 

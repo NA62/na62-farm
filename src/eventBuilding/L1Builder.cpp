@@ -41,7 +41,7 @@ bool L1Builder::requestZSuppressedLkrData_;
 
 uint L1Builder::downscaleFactor_ = 0;
 
-void L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
+bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 	Event *event = EventPool::GetEvent(fragment->getEventNumber());
 
 	/*
@@ -49,12 +49,12 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 	 */
 	if (event == nullptr) {
 		delete fragment;
-		return;
+		return false;
 	}
 
 	if (fragment->getEventNumber() % downscaleFactor_ != 0) {
 		delete fragment;
-		return;
+		return false;
 	}
 
 	/*
@@ -65,7 +65,9 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 		 * This event is complete -> process it
 		 */
 		processL1(event);
+		return true;
 	}
+	return false;
 }
 
 void L1Builder::processL1(Event *event) {
