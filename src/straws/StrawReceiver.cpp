@@ -66,9 +66,8 @@ void StrawReceiver::processFrame(DataContainer&& data, uint burstID) {
 	/*
 	 * Write header
 	 */
-	const uint32_t myIP = NetworkHandler::GetMyIP();
 	memcpy(sendData, &sendDataLength, 4);
-	memcpy(sendData + 4, &myIP, 4);
+	memcpy(sendData + 4, &(reinterpret_cast<UDP_HDR*>(data.data)->ip.saddr), 4);
 
 	/*
 	 * Write data
