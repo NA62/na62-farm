@@ -50,10 +50,9 @@ uint32_t HandleFrameTask::nextBurstID_;
 
 boost::timer::cpu_timer HandleFrameTask::eobFrameReceivedTime_;
 std::atomic<uint> HandleFrameTask::queuedTasksNum_;
-uint HandleFrameTask::highestSourceID_;
-std::atomic<uint64_t>* HandleFrameTask::MEPsReceivedBySourceID_;
-std::atomic<uint64_t>* HandleFrameTask::EventsReceivedBySourceID_;
-std::atomic<uint64_t>* HandleFrameTask::BytesReceivedBySourceID_;
+uint HandleFrameTask::highestSourceNum_;
+std::atomic<uint64_t>* HandleFrameTask::MEPsReceivedBySourceNum_;
+std::atomic<uint64_t>* HandleFrameTask::BytesReceivedBySourceNum_;
 
 HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers) :
 		containers(std::move(_containers)) {
@@ -73,18 +72,18 @@ void HandleFrameTask::initialize() {
 	currentBurstID_ = Options::GetInt(OPTION_FIRST_BURST_ID);
 	nextBurstID_ = currentBurstID_;
 
-	highestSourceID_ = SourceIDManager::LARGEST_L0_DATA_SOURCE_ID;
-	if (highestSourceID_ < SOURCE_ID_LKr) { // Add LKr
-		highestSourceID_ = SOURCE_ID_LKr;
-	}
-	MEPsReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID_ + 1];
-	EventsReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID_ + 1];
-	BytesReceivedBySourceID_ = new std::atomic<uint64_t>[highestSourceID_ + 1];
+	/*
+	 * All L0 data sources and LKr:
+	 */
+	highestSourceNum_ = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES;
 
-	for (uint i = 0; i != highestSourceID_ + 1; i++) {
-		MEPsReceivedBySourceID_[i] = 0;
-		EventsReceivedBySourceID_[i] = 0;
-		BytesReceivedBySourceID_[i] = 0;
+	MEPsReceivedBySourceNum_ = new std::atomic<uint64_t>[highestSourceNum_ + 1];
+	BytesReceivedBySourceNum_ =
+			new std::atomic<uint64_t>[highestSourceNum_ + 1];
+
+	for (uint i = 0; i != highestSourceNum_ + 1; i++) {
+		MEPsReceivedBySourceNum_[i] = 0;
+		BytesReceivedBySourceNum_[i] = 0;
 	}
 }
 
@@ -182,26 +181,26 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				currentBurstID_ = nextBurstID_;
 			}
 
-			MEPsReceivedBySourceID_[mep->getSourceID()].fetch_add(1,
+			uint sourceNum = SourceIDManager::SourceIDToNum(mep->getSourceID());
+
+			MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
 					std::memory_order_relaxed);
-			EventsReceivedBySourceID_[mep->getSourceID()].fetch_add(
-					mep->getNumberOfEvents(), std::memory_order_relaxed);
-			BytesReceivedBySourceID_[mep->getSourceID()].fetch_add(
-					container.length, std::memory_order_relaxed);
+			BytesReceivedBySourceNum_[sourceNum].fetch_add(container.length,
+					std::memory_order_relaxed);
 
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
-				L1Builder::buildEvent(mep->getEvent(i), currentBurstID_);
+				// Add every fragment
+				L1Builder::buildEvent(mep->getFragment(i), currentBurstID_);
 			}
 		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// CREAM Data //////////////////////////////////////////////////
 			cream::LkrFragment* fragment = new cream::LkrFragment(UDPPayload,
 					UdpDataLength, container.data);
 
-			MEPsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
+			MEPsReceivedBySourceNum_[highestSourceNum_].fetch_add(1,
 					std::memory_order_relaxed);
-			EventsReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(1,
-					std::memory_order_relaxed);
-			BytesReceivedBySourceID_[SOURCE_ID_LKr].fetch_add(container.length,
-					std::memory_order_relaxed);
+
+			BytesReceivedBySourceNum_[highestSourceNum_].fetch_add(
+					container.length, std::memory_order_relaxed);
 
 			L2Builder::buildEvent(fragment);
 		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////

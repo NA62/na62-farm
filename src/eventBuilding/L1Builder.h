@@ -39,7 +39,13 @@ private:
 	static void sendL1RequestToCREAMS(Event * event);
 
 public:
-	static void buildEvent(l0::MEPFragment* fragment, uint32_t burstID);
+	/**
+	 * Adds the fragment to the corresponding event and processes the L1 trigger
+	 * algorithm if the event building is finished
+	 *
+	 * @ return true if the event is complete and therefore L1 has been processed, false otherwise
+	 */
+	static bool buildEvent(l0::MEPFragment* fragment, uint32_t burstID);
 
 	static inline const std::atomic<uint64_t>* GetL1TriggerStats() {
 		return L1Triggers_;

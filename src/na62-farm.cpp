@@ -118,6 +118,8 @@ int main(int argc, char* argv[]) {
 	L1Builder::initialize();
 	L2Builder::initialize();
 
+	Event::initialize();
+
 	Event::setPrintMissingSourceIds(
 			MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES));
 
