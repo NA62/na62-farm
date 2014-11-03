@@ -37,6 +37,7 @@
 #define OPTION_CREAM_MULTICAST_GROUP (char*)"creamMulticastIP"
 #define OPTION_CREAM_MULTICAST_PORT (char*)"creamMulticastPort"
 #define OPTION_MAX_TRIGGERS_PER_L1MRP (char*)"maxTriggerPerL1MRP"
+#define OPTION_L1_DISPATCHER_ADDRESS (char*)"l1DispatcherAddress"
 
 #define OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST (char*)"maxNumberOfEventsPerBurst"
 
@@ -144,6 +145,11 @@ public:
 
 		(OPTION_MAX_TRIGGERS_PER_L1MRP, po::value<int>()->default_value(100),
 				"Maximum number of Triggers per L1 MRP")
+
+		(OPTION_L1_DISPATCHER_ADDRESS,
+				po::value<std::string>()->default_value(
+						"tcp://localhost:131816"),
+				"Address of L1Dispatcher the MRPs should be sent to")
 
 		(OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG,
 				po::value<int>()->default_value(0),

@@ -24,6 +24,7 @@
 #include <l2/L2TriggerProcessor.h>
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/Event.h>
+#include <socket/ZMQHandler.h>
 
 #include "eventBuilding/L1Builder.h"
 #include "eventBuilding/L2Builder.h"
@@ -31,7 +32,6 @@
 #include "monitoring/MonitorConnector.h"
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
-#include "socket/ZMQHandler.h"
 #include "socket/HandleFrameTask.h"
 #include "monitoring/CommandConnector.h"
 #include "straws/StrawReceiver.h"
@@ -133,7 +133,8 @@ int main(int argc, char* argv[]) {
 			Options::GetInt(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS),
 			Options::GetString(OPTION_CREAM_MULTICAST_GROUP),
 			Options::GetInt(OPTION_CREAM_RECEIVER_PORT),
-			Options::GetInt(OPTION_CREAM_MULTICAST_PORT));
+			Options::GetInt(OPTION_CREAM_MULTICAST_PORT),
+			Options::GetString(OPTION_L1_DISPATCHER_ADDRESS));
 
 	/*
 	 * L1 Distribution handler
