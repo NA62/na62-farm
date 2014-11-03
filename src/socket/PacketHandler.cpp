@@ -169,6 +169,13 @@ void PacketHandler::thread() {
 			}
 		}
 
+		if (goToSleep && threadNum_ == 0) {
+			/*
+			 * Send ARP requests and only go to sleep if nothing was sent
+			 */
+			goToSleep = !NetworkHandler::DoSendQueuedFrames(threadNum_);
+		}
+
 		if (!frames.empty()) {
 			/*
 			 * Start a new task which will check the frame

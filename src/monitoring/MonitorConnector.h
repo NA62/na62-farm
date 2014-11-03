@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <cstdbool>
 #include <map>
+#include <vector>
 #include <string>
 #include <monitoring/IPCHandler.h>
 

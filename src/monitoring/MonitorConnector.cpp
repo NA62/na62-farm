@@ -171,7 +171,6 @@ void MonitorConnector::handleUpdate() {
 						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES)
 						/ (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT),
 				SOURCE_ID_LKr);
-
 	}
 
 	IPCHandler::sendStatistics("DetectorData", statistics.str());
