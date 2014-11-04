@@ -20,11 +20,11 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <sys/types.h>
-#include <algorithm>
 #include <cstdbool>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <algorithm>
 #include <queue>
 #include <thread>
 
