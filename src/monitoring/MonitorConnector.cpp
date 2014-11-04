@@ -148,6 +148,9 @@ void MonitorConnector::handleUpdate() {
 				<< HandleFrameTask::GetBytesReceivedBySourceNum(
 						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES) << ";";
 
+		setDetectorDifferentialData("NonRequestedCreamFrags",
+				Event::getNumberOfNonRequestedCreamFragments(),
+				SOURCE_ID_LKr);
 	}
 
 	IPCHandler::sendStatistics("DetectorData", statistics.str());
