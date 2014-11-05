@@ -75,6 +75,11 @@ void MonitorConnector::handleUpdate() {
 
 	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
 	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
+	if (getDifferentialValue("FramesReceived") != 0) {
+		setContinuousData("FrameSize",
+				getDifferentialValue("BytesReceived")
+						/ getDifferentialValue("FramesReceived"));
+	}
 
 	setDifferentialData("FramesSent", NetworkHandler::GetFramesSent());
 	setContinuousData("OutFramesQueued",
@@ -234,7 +239,8 @@ void MonitorConnector::handleUpdate() {
 	NetworkHandler::PrintStats();
 }
 
-float MonitorConnector::setDifferentialData(std::string key, uint64_t value) {
+uint64_t MonitorConnector::setDifferentialData(std::string key,
+		uint64_t value) {
 
 	if (differentialInts_.find(key) == differentialInts_.end()) {
 		differentialInts_[key + LAST_VALUE_SUFFIX] = 0;
@@ -254,6 +260,13 @@ float MonitorConnector::setDifferentialData(std::string key, uint64_t value) {
 	differentialInts_[key + LAST_VALUE_SUFFIX] = differentialInts_[key];
 	differentialInts_[key] = value;
 	return value - lastValue;
+}
+
+uint64_t MonitorConnector::getDifferentialValue(std::string key) {
+	if (differentialInts_.find(key) != differentialInts_.end()) {
+		return differentialInts_[key] - differentialInts_[key + LAST_VALUE_SUFFIX];
+	}
+	return 0;
 }
 
 void MonitorConnector::setDetectorDifferentialData(std::string key,
