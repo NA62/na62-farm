@@ -70,6 +70,8 @@ void PacketHandler::thread() {
 	memset(&hdr, 0, sizeof(hdr));
 	int receivedFrame = 0;
 
+	const int sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
+
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
 	const uint pollDelay = Options::GetFloat(OPTION_POLLING_DELAY);
 
