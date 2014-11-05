@@ -86,7 +86,7 @@ void L1Builder::processL1(Event *event) {
 	uint8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event);
 	uint16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
 
-	L1Triggers_[l1TriggerTypeWord]++; // The second 8 bits are the L1 trigger type word
+	L1Triggers_[l1TriggerTypeWord].fetch_add(1, std::memory_order_relaxed); // The second 8 bits are the L1 trigger type word
 	event->setL1Processed(L0L1Trigger);
 
 	if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT != 0) {

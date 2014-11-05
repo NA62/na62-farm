@@ -150,6 +150,13 @@ void MonitorConnector::handleUpdate() {
 		setDetectorDifferentialData("NonRequestedCreamFrags",
 				Event::getNumberOfNonRequestedCreamFragments(),
 				SOURCE_ID_LKr);
+
+		setDetectorDifferentialData("Rcv/Exp MEPs",
+				HandleFrameTask::GetMEPsReceivedBySourceNum(
+						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES)
+						/ (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT),
+				SOURCE_ID_LKr);
+
 	}
 
 	IPCHandler::sendStatistics("DetectorData", statistics.str());
@@ -191,7 +198,6 @@ void MonitorConnector::handleUpdate() {
 	setDifferentialData("BytesToMerger", bytesToStorage);
 	setDifferentialData("EventsToMerger", eventsToStorage);
 
-
 	IPCHandler::sendStatistics("BytesToMerger", std::to_string(bytesToStorage));
 	IPCHandler::sendStatistics("EventsToMerger",
 			std::to_string(eventsToStorage));
@@ -217,7 +223,8 @@ void MonitorConnector::handleUpdate() {
 
 	setDifferentialData("Sleeps", PacketHandler::sleeps_);
 	setDifferentialData("Spins", PacketHandler::spins_);
-	setContinuousData("SendTimer", PacketHandler::sendTimer.elapsed().wall / 1000);
+	setContinuousData("SendTimer",
+			PacketHandler::sendTimer.elapsed().wall / 1000);
 
 	NetworkHandler::PrintStats();
 }
