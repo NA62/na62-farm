@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <vector>
 #include <utils/AExecutable.h>
+#include <boost/timer/timer.hpp>
 
 namespace na62 {
 struct DataContainer;
@@ -29,8 +30,19 @@ public:
 
 	static void initialize();
 
+	static std::atomic<uint> spins_;
+	static std::atomic<uint> sleeps_;
+	static boost::timer::cpu_timer sendTimer;
+
+	/*
+	 * Number of times a HandleFrameTask object has been created and enqueued
+	 */
+	static std::atomic<uint> frameHandleTasksSpawned_;
+
 private:
-	int threadNum_; bool running_;
+	int threadNum_;
+	bool running_;
+	static uint NUMBER_OF_EBS;
 
 	/**
 	 * @return <true> In case of success, false in case of a serious error (we should stop the thread in this case)

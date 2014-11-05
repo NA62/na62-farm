@@ -33,6 +33,7 @@
 #include "../eventBuilding/L2Builder.h"
 #include "../socket/HandleFrameTask.h"
 #include "../socket/FragmentStore.h"
+#include "../socket/PacketHandler.h"
 
 using namespace boost::interprocess;
 
@@ -74,6 +75,11 @@ void MonitorConnector::handleUpdate() {
 
 	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
 	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
+	if (getDifferentialValue("FramesReceived") != 0) {
+		setContinuousData("FrameSize",
+				getDifferentialValue("BytesReceived")
+						/ getDifferentialValue("FramesReceived"));
+	}
 
 	setDifferentialData("FramesSent", NetworkHandler::GetFramesSent());
 	setContinuousData("OutFramesQueued",
@@ -103,11 +109,9 @@ void MonitorConnector::handleUpdate() {
 				<< ";";
 
 		setDetectorDifferentialData("EventsReceived",
-				Event::getMissingEventsBySourceNum(soruceIDNum),
-				sourceID);
+				Event::getMissingEventsBySourceNum(soruceIDNum), sourceID);
 		statistics << std::dec
-				<<Event::getMissingEventsBySourceNum(soruceIDNum)
-				<< ";";
+				<< Event::getMissingEventsBySourceNum(soruceIDNum) << ";";
 
 		setDetectorDifferentialData("BytesReceived",
 				HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum),
@@ -147,6 +151,16 @@ void MonitorConnector::handleUpdate() {
 		statistics << std::dec
 				<< HandleFrameTask::GetBytesReceivedBySourceNum(
 						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES) << ";";
+
+		setDetectorDifferentialData("NonRequestedCreamFrags",
+				Event::getNumberOfNonRequestedCreamFragments(),
+				SOURCE_ID_LKr);
+
+		setDetectorDifferentialData("Rcv/Exp MEPs",
+				HandleFrameTask::GetMEPsReceivedBySourceNum(
+						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES)
+						/ (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT),
+				SOURCE_ID_LKr);
 
 	}
 
@@ -212,10 +226,21 @@ void MonitorConnector::handleUpdate() {
 
 	LOG(INFO)<<"State:\t" << currentState_;
 
+	setDifferentialData("Sleeps", PacketHandler::sleeps_);
+	setDifferentialData("Spins", PacketHandler::spins_);
+	setContinuousData("SendTimer",
+			PacketHandler::sendTimer.elapsed().wall / 1000);
+	setDifferentialData("SpawnedTasks",
+			PacketHandler::frameHandleTasksSpawned_);
+	setContinuousData("AggregationSize",
+			NetworkHandler::GetFramesReceived()
+					/ (float) PacketHandler::frameHandleTasksSpawned_);
+
 	NetworkHandler::PrintStats();
 }
 
-float MonitorConnector::setDifferentialData(std::string key, uint64_t value) {
+uint64_t MonitorConnector::setDifferentialData(std::string key,
+		uint64_t value) {
 
 	if (differentialInts_.find(key) == differentialInts_.end()) {
 		differentialInts_[key + LAST_VALUE_SUFFIX] = 0;
@@ -235,6 +260,13 @@ float MonitorConnector::setDifferentialData(std::string key, uint64_t value) {
 	differentialInts_[key + LAST_VALUE_SUFFIX] = differentialInts_[key];
 	differentialInts_[key] = value;
 	return value - lastValue;
+}
+
+uint64_t MonitorConnector::getDifferentialValue(std::string key) {
+	if (differentialInts_.find(key) != differentialInts_.end()) {
+		return differentialInts_[key] - differentialInts_[key + LAST_VALUE_SUFFIX];
+	}
+	return 0;
 }
 
 void MonitorConnector::setDetectorDifferentialData(std::string key,

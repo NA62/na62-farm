@@ -66,10 +66,12 @@ void L2Builder::processL2(Event *event) {
 				/*
 				 * Send Event to merger
 				 */
-				BytesSentToStorage_ += StorageHandler::SendEvent(event);
-				EventsSentToStorage_++;
+				BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
+						std::memory_order_relaxed);
+				;
+				EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 			}
-			L2Triggers_[L2Trigger]++;
+			L2Triggers_[L2Trigger].fetch_add(1, std::memory_order_relaxed);
 			EventPool::FreeEvent(event);
 		}
 	} else {
@@ -78,10 +80,11 @@ void L2Builder::processL2(Event *event) {
 
 		event->setL2Processed(L2Trigger);
 		if (event->isL2Accepted()) {
-			BytesSentToStorage_ += StorageHandler::SendEvent(event);
-			EventsSentToStorage_++;
+			BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
+					std::memory_order_relaxed);
+			EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 		}
-		L2Triggers_[L2Trigger]++;
+		L2Triggers_[L2Trigger].fetch_add(1, std::memory_order_relaxed);
 		EventPool::FreeEvent(event);
 	}
 }
