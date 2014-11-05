@@ -33,6 +33,7 @@
 #include "../eventBuilding/L2Builder.h"
 #include "../socket/HandleFrameTask.h"
 #include "../socket/FragmentStore.h"
+#include "../socket/PacketHandler.h"
 
 using namespace boost::interprocess;
 
@@ -103,11 +104,9 @@ void MonitorConnector::handleUpdate() {
 				<< ";";
 
 		setDetectorDifferentialData("EventsReceived",
-				Event::getMissingEventsBySourceNum(soruceIDNum),
-				sourceID);
+				Event::getMissingEventsBySourceNum(soruceIDNum), sourceID);
 		statistics << std::dec
-				<<Event::getMissingEventsBySourceNum(soruceIDNum)
-				<< ";";
+				<< Event::getMissingEventsBySourceNum(soruceIDNum) << ";";
 
 		setDetectorDifferentialData("BytesReceived",
 				HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum),
@@ -192,6 +191,7 @@ void MonitorConnector::handleUpdate() {
 	setDifferentialData("BytesToMerger", bytesToStorage);
 	setDifferentialData("EventsToMerger", eventsToStorage);
 
+
 	IPCHandler::sendStatistics("BytesToMerger", std::to_string(bytesToStorage));
 	IPCHandler::sendStatistics("EventsToMerger",
 			std::to_string(eventsToStorage));
@@ -214,6 +214,10 @@ void MonitorConnector::handleUpdate() {
 	LOG(INFO)<<"NextBurstID:\t" << HandleFrameTask::getNextBurstId();
 
 	LOG(INFO)<<"State:\t" << currentState_;
+
+	setDifferentialData("Sleeps", PacketHandler::sleeps_);
+	setDifferentialData("Spins", PacketHandler::spins_);
+	setContinuousData("SendTimer", PacketHandler::sendTimer.elapsed().wall / 1000);
 
 	NetworkHandler::PrintStats();
 }
