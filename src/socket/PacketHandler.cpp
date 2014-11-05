@@ -52,6 +52,7 @@ std::atomic<uint> PacketHandler::sleeps_;
 boost::timer::cpu_timer PacketHandler::sendTimer;
 
 uint PacketHandler::NUMBER_OF_EBS = 0;
+std::atomic<uint> PacketHandler::frameHandleTasksSpawned_(0);
 
 PacketHandler::PacketHandler(int threadNum) :
 		threadNum_(threadNum), running_(true) {
@@ -65,7 +66,6 @@ void PacketHandler::initialize() {
 }
 
 void PacketHandler::thread() {
-	const u_char* data; // = new char[MTU];
 	struct pfring_pkthdr hdr;
 	memset(&hdr, 0, sizeof(hdr));
 	int receivedFrame = 0;
@@ -83,12 +83,7 @@ void PacketHandler::thread() {
 
 	//boost::timer::cpu_timer sendTimer;
 
-	boost::timer::cpu_timer timeWithoutReceiving;
-	uint maxUsecsWithoutReceiving = sleepMicros / 100;
-	if (maxUsecsWithoutReceiving < 10) {
-		maxUsecsWithoutReceiving = 10;
-	}
-
+	char* buff; // = new char[MTU];
 	while (running_) {
 		/*
 		 * We want to aggregate several frames if we already have more HandleFrameTasks running than there are CPU cores available
@@ -97,73 +92,70 @@ void PacketHandler::thread() {
 		frames.reserve(framesToBeGathered);
 
 		receivedFrame = 0;
-		data = nullptr;
+		buff = nullptr;
 		bool goToSleep = false;
+
+		uint framesReceivedSinceLastSend = 0xFFFF;
+		uint stepAtLastSend = 0;
 
 		/*
 		 * Try to receive [framesToBeCollected] frames
 		 */
-		for (uint i = 0; i != framesToBeGathered; i++) {
+		for (uint stepNum = 0; stepNum != framesToBeGathered; stepNum++) {
 			/*
 			 * The actual  polling!
 			 * Do not wait for incoming packets as this will block the ring and make sending impossible
 			 */
-			receivedFrame = NetworkHandler::GetNextFrame(&hdr, &data, 0, false,
+			receivedFrame = NetworkHandler::GetNextFrame(&hdr, &buff, 0, false,
 					threadNum_);
 
 			if (receivedFrame > 0) {
-				char* buff = new char[hdr.len];
-				memcpy(buff, data, hdr.len);
-				frames.push_back( { buff, (uint16_t) hdr.len, true });
+				char* data = new char[hdr.len];
+				memcpy(data, buff, hdr.len);
+				frames.push_back( { data, (uint16_t) hdr.len, true });
 				goToSleep = false;
-				timeWithoutReceiving.start();
-			}
+				framesReceivedSinceLastSend++;
+			} else {
+				if (threadNum_ == 0
+						&& sendTimer.elapsed().wall / 1000
+								> minUsecBetweenL1Requests) {
+					/*
+					 * We didn't receive anything for a while -> send enqueued frames
+					 */
+					sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
+					if (NetworkHandler::DoSendQueuedFrames(threadNum_)) {
+						sleepMicros =
+								sleepMicros > minUsecBetweenL1Requests ?
+										minUsecBetweenL1Requests : sleepMicros;
+					}
+					sendTimer.start();
+					framesReceivedSinceLastSend = 0;
+					stepAtLastSend = stepNum;
 
-			if (threadNum_ == 0
-					&& sendTimer.elapsed().wall / 1000
-							> minUsecBetweenL1Requests) {
-				/*
-				 * We didn't receive anything for a while -> send enqueued frames
-				 */
-				sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
-				if (NetworkHandler::DoSendQueuedFrames(threadNum_)) {
-					sleepMicros =
-							sleepMicros > minUsecBetweenL1Requests ?
-									minUsecBetweenL1Requests : sleepMicros;
-				}
-				sendTimer.start();
+					/*
+					 * Push the aggregated frames to a new task if already tried to send something
+					 * two times during current frame aggregation
+					 */
+				} else {
+					/*
+					 * If we didn't receive anything at the first try or in average for a while go to sleep
+					 */
+					if (stepNum == 0
+							|| (framesReceivedSinceLastSend == 0
+									&& stepNum > stepAtLastSend + 10)) {
+						goToSleep = true;
+						break;
+					}
 
-				/*
-				 * Push the aggregated frames to a new task if already tried to send something
-				 * two times during current frame aggregation
-				 */
-			} else if (receivedFrame == 0) {
-				/*
-				 * If we didn't receive anything for a while go to sleep
-				 */
-				if (timeWithoutReceiving.elapsed().wall / 1000
-						> maxUsecsWithoutReceiving) {
-					goToSleep = true;
-					break;
-				}
-
-				/*
-				 * If we didn't receive anything at the first try go back to sleep
-				 */
-				if (i == 0) {
-					goToSleep = true;
-					break;
-				}
-
-				/*
-				 * Spin wait a while. This block is not optimized by the compiler
-				 */
-				spins_++;
-				for (volatile uint i = 0; i < pollDelay; i++) {
-					asm("");
+					/*
+					 * Spin wait a while. This block is not optimized by the compiler
+					 */
+					spins_++;
+					for (volatile uint i = 0; i < pollDelay; i++) {
+						asm("");
+					}
 				}
 			}
-
 		}
 
 		if (!frames.empty()) {
@@ -177,6 +169,7 @@ void PacketHandler::thread() {
 			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 
 			goToSleep = false;
+			frameHandleTasksSpawned_++;
 		} else {
 			goToSleep = true;
 		}

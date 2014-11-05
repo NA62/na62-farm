@@ -125,7 +125,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				return;
 			} else {
 				// Just ignore this frame as it's not IP nor ARP
-				delete[] container.data;
+				container.free();
 				return;
 			}
 		}
@@ -134,7 +134,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check checksum errors
 		 */
 		if (!checkFrame(hdr, container.length)) {
-			delete[] container.data;
+			container.free();
 			return;
 		}
 
@@ -142,7 +142,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check if we are really the destination of the IP datagram
 		 */
 		if (MyIP != dstIP) {
-			delete[] container.data;
+			container.free();
 			return;
 		}
 
@@ -216,14 +216,14 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			 * Packet with unknown UDP port received
 			 */
 			LOG(ERROR)<<"Packet with unknown UDP port received: " << destPort;
-			delete[] container.data;
+			container.free();
 		}
 	} catch (UnknownSourceIDFound const& e) {
-		delete[] container.data;
+		container.free();
 	} catch (UnknownCREAMSourceIDFound const&e) {
-		delete[] container.data;
+		container.free();
 	} catch (NA62Error const& e) {
-		delete[] container.data;
+		container.free();
 	}
 }
 
@@ -233,7 +233,7 @@ bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
 	 */
 	//				if (!EthernetUtils::CheckData((char*) &hdr->ip, sizeof(iphdr))) {
 	//					LOG(ERROR) << "Packet with broken IP-checksum received");
-	//					delete[] container.data;
+	//					container.free();
 	//					continue;
 	//				}
 	if (hdr->isFragment()) {
@@ -264,7 +264,7 @@ bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
 	//				 */
 	//				if (!EthernetUtils::CheckUDP(hdr, (const char *) (&hdr->udp) + sizeof(struct udphdr), ntohs(hdr->udp.len) - sizeof(struct udphdr))) {
 	//					LOG(ERROR) << "Packet with broken UDP-checksum received" );
-	//					delete[] container.data;
+	//					container.free();
 	//					continue;
 	//				}
 	return true;

@@ -34,8 +34,14 @@ public:
 	static std::atomic<uint> sleeps_;
 	static boost::timer::cpu_timer sendTimer;
 
+	/*
+	 * Number of times a HandleFrameTask object has been created and enqueued
+	 */
+	static std::atomic<uint> frameHandleTasksSpawned_;
+
 private:
-	int threadNum_; bool running_;
+	int threadNum_;
+	bool running_;
 	static uint NUMBER_OF_EBS;
 
 	/**

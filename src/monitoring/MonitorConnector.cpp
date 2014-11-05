@@ -225,6 +225,11 @@ void MonitorConnector::handleUpdate() {
 	setDifferentialData("Spins", PacketHandler::spins_);
 	setContinuousData("SendTimer",
 			PacketHandler::sendTimer.elapsed().wall / 1000);
+	setDifferentialData("SpawnedTasks",
+			PacketHandler::frameHandleTasksSpawned_);
+	setContinuousData("AggregationSize",
+			NetworkHandler::GetFramesReceived()
+					/ (float) PacketHandler::frameHandleTasksSpawned_);
 
 	NetworkHandler::PrintStats();
 }
