@@ -76,32 +76,37 @@ void PacketHandler::thread() {
 	const uint minUsecBetweenL1Requests = Options::GetInt(
 	OPTION_MIN_USEC_BETWEEN_L1_REQUESTS);
 
-	uint sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
+	const uint maxSleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
+	uint sleepMicros = maxSleepMicros;
+	if (threadNum_ == 0 && maxSleepMicros > minUsecBetweenL1Requests) {
+		sleepMicros = minUsecBetweenL1Requests;
+	}
 
 	const uint framesToBeGathered = Options::GetInt(
 	OPTION_MAX_FRAME_AGGREGATION);
 
+	boost::timer::cpu_timer aggregationTimer;
+
 	//boost::timer::cpu_timer sendTimer;
 
 	char* buff; // = new char[MTU];
+
+	std::vector<DataContainer> frames;
+	frames.reserve(framesToBeGathered);
 	while (running_) {
 		/*
 		 * We want to aggregate several frames if we already have more HandleFrameTasks running than there are CPU cores available
 		 */
-		std::vector<DataContainer> frames;
-		frames.reserve(framesToBeGathered);
 
 		receivedFrame = 0;
 		buff = nullptr;
-		bool goToSleep = false;
 
-		uint framesReceivedSinceLastSend = 0xFFFF;
-		uint stepAtLastSend = 0;
+		uint tries = 0;
 
 		/*
 		 * Try to receive [framesToBeCollected] frames
 		 */
-		for (uint stepNum = 0; stepNum != framesToBeGathered; stepNum++) {
+		while (frames.size() != framesToBeGathered) {
 			/*
 			 * The actual  polling!
 			 * Do not wait for incoming packets as this will block the ring and make sending impossible
@@ -113,8 +118,7 @@ void PacketHandler::thread() {
 				char* data = new char[hdr.len];
 				memcpy(data, buff, hdr.len);
 				frames.push_back( { data, (uint16_t) hdr.len, true });
-				goToSleep = false;
-				framesReceivedSinceLastSend++;
+				tries = 0;
 			} else {
 				if (threadNum_ == 0
 						&& sendTimer.elapsed().wall / 1000
@@ -122,59 +126,38 @@ void PacketHandler::thread() {
 					/*
 					 * We didn't receive anything for a while -> send enqueued frames
 					 */
-					sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
-					if (NetworkHandler::DoSendQueuedFrames(threadNum_)) {
-						sleepMicros =
-								sleepMicros > minUsecBetweenL1Requests ?
-										minUsecBetweenL1Requests : sleepMicros;
-					}
+					NetworkHandler::DoSendQueuedFrames(threadNum_);
 					sendTimer.start();
-					framesReceivedSinceLastSend = 0;
-					stepAtLastSend = stepNum;
-
-					/*
-					 * Push the aggregated frames to a new task if already tried to send something
-					 * two times during current frame aggregation
-					 */
 				} else {
-					/*
-					 * If we didn't receive anything at the first try or in average for a while go to sleep
-					 */
-					if (stepNum == 0
-							|| (framesReceivedSinceLastSend == 0
-									&& stepNum > stepAtLastSend + 10)) {
-						goToSleep = true;
+					if (tries++ != 2) {
+						spins_++;
+						for (volatile uint i = 0; i < pollDelay; i++) {
+							asm("");
+						}
+					} else {
 						break;
-					}
-
-					/*
-					 * Spin wait a while. This block is not optimized by the compiler
-					 */
-					spins_++;
-					for (volatile uint i = 0; i < pollDelay; i++) {
-						asm("");
 					}
 				}
 			}
 		}
 
-		if (!frames.empty()) {
+		if (frames.size() == framesToBeGathered
+				|| (!frames.empty()
+						&& aggregationTimer.elapsed().wall / 1000 > 10000 /*10 ms*/)) {
 			/*
 			 * Start a new task which will check the frame
-			 *
 			 */
 			HandleFrameTask* task =
 					new (tbb::task::allocate_root()) HandleFrameTask(
 							std::move(frames));
 			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 
-			goToSleep = false;
-			frameHandleTasksSpawned_++;
-		} else {
-			goToSleep = true;
-		}
+			frames.clear();
+			frames.reserve(framesToBeGathered);
 
-		if (goToSleep) {
+			frameHandleTasksSpawned_++;
+			aggregationTimer.start();
+		} else {
 			sleeps_++;
 			if (!activePolling) {
 				/*
