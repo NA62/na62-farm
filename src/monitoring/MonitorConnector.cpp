@@ -73,17 +73,26 @@ void MonitorConnector::handleUpdate() {
 
 	IPCHandler::updateState(currentState_);
 
-	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
-	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
-	if (getDifferentialValue("FramesReceived") != 0) {
-		setContinuousData("FrameSize",
-				getDifferentialValue("BytesReceived")
-						/ getDifferentialValue("FramesReceived"));
-	}
+	LOG(INFO)<<"Enqueued tasks:\t" << HandleFrameTask::getNumberOfQeuedTasks();
 
-	setDifferentialData("FramesSent", NetworkHandler::GetFramesSent());
-	setContinuousData("OutFramesQueued",
-			NetworkHandler::getNumberOfEnqueuedFrames());
+	LOG(INFO)<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
+
+	LOG(INFO)<<"BurstID:\t" << HandleFrameTask::getCurrentBurstId();
+	LOG(INFO)<<"NextBurstID:\t" << HandleFrameTask::getNextBurstId();
+
+	LOG(INFO)<<"State:\t" << currentState_;
+
+	setDifferentialData("Sleeps", PacketHandler::sleeps_);
+	setDifferentialData("Spins", PacketHandler::spins_);
+	setContinuousData("SendTimer",
+			PacketHandler::sendTimer.elapsed().wall / 1000);
+	setDifferentialData("SpawnedTasks",
+			PacketHandler::frameHandleTasksSpawned_);
+	setContinuousData("AggregationSize",
+			NetworkHandler::GetFramesReceived()
+					/ (float) PacketHandler::frameHandleTasksSpawned_);
+
+	NetworkHandler::PrintStats();
 
 	IPCHandler::sendStatistics("PF_BytesReceived",
 			std::to_string(NetworkHandler::GetBytesReceived()));
@@ -92,6 +101,7 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("PF_PacksDropped",
 			std::to_string(NetworkHandler::GetFramesDropped()));
 
+	LOG(INFO)<<"########################";
 	/*
 	 * Number of Events and data rate from all detectors
 	 */
@@ -194,9 +204,18 @@ void MonitorConnector::handleUpdate() {
 		}
 	}
 
+	LOG(INFO)<<"########################";
+
+	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
+	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
+	if (getDifferentialValue("FramesReceived") != 0) {
+		setContinuousData("FrameSize",
+				getDifferentialValue("BytesReceived")
+						/ getDifferentialValue("FramesReceived"));
+	}
+
 	IPCHandler::sendStatistics("L1TriggerData", L1Stats.str());
 	IPCHandler::sendStatistics("L2TriggerData", L2Stats.str());
-
 	uint32_t bytesToStorage = L2Builder::GetBytesSentToStorage();
 	uint32_t eventsToStorage = L2Builder::GetEventsSentToStorage();
 
@@ -217,26 +236,11 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("L1TriggersSent",
 			std::to_string(cream::L1DistributionHandler::GetL1TriggersSent()));
 
-	LOG(INFO)<<"Enqueued tasks:\t" << HandleFrameTask::getNumberOfQeuedTasks();
+	setDifferentialData("FramesSent", NetworkHandler::GetFramesSent());
+	setContinuousData("OutFramesQueued",
+			NetworkHandler::getNumberOfEnqueuedFrames());
 
 	LOG(INFO)<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
-
-	LOG(INFO)<<"BurstID:\t" << HandleFrameTask::getCurrentBurstId();
-	LOG(INFO)<<"NextBurstID:\t" << HandleFrameTask::getNextBurstId();
-
-	LOG(INFO)<<"State:\t" << currentState_;
-
-	setDifferentialData("Sleeps", PacketHandler::sleeps_);
-	setDifferentialData("Spins", PacketHandler::spins_);
-	setContinuousData("SendTimer",
-			PacketHandler::sendTimer.elapsed().wall / 1000);
-	setDifferentialData("SpawnedTasks",
-			PacketHandler::frameHandleTasksSpawned_);
-	setContinuousData("AggregationSize",
-			NetworkHandler::GetFramesReceived()
-					/ (float) PacketHandler::frameHandleTasksSpawned_);
-
-	NetworkHandler::PrintStats();
 }
 
 uint64_t MonitorConnector::setDifferentialData(std::string key,
@@ -264,7 +268,8 @@ uint64_t MonitorConnector::setDifferentialData(std::string key,
 
 uint64_t MonitorConnector::getDifferentialValue(std::string key) {
 	if (differentialInts_.find(key) != differentialInts_.end()) {
-		return differentialInts_[key] - differentialInts_[key + LAST_VALUE_SUFFIX];
+		return differentialInts_[key]
+				- differentialInts_[key + LAST_VALUE_SUFFIX];
 	}
 	return 0;
 }

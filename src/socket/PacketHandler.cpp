@@ -95,8 +95,7 @@ void PacketHandler::thread() {
 		buff = nullptr;
 		bool goToSleep = false;
 
-		uint framesReceivedSinceLastSend = 0xFFFF;
-		uint stepAtLastSend = 0;
+		uint spinsInARow = 0;
 
 		/*
 		 * Try to receive [framesToBeCollected] frames
@@ -114,7 +113,7 @@ void PacketHandler::thread() {
 				memcpy(data, buff, hdr.len);
 				frames.push_back( { data, (uint16_t) hdr.len, true });
 				goToSleep = false;
-				framesReceivedSinceLastSend++;
+				spinsInARow = 0;
 			} else {
 				if (threadNum_ == 0
 						&& sendTimer.elapsed().wall / 1000
@@ -127,10 +126,9 @@ void PacketHandler::thread() {
 						sleepMicros =
 								sleepMicros > minUsecBetweenL1Requests ?
 										minUsecBetweenL1Requests : sleepMicros;
+						spinsInARow = 0;
 					}
 					sendTimer.start();
-					framesReceivedSinceLastSend = 0;
-					stepAtLastSend = stepNum;
 
 					/*
 					 * Push the aggregated frames to a new task if already tried to send something
@@ -140,9 +138,7 @@ void PacketHandler::thread() {
 					/*
 					 * If we didn't receive anything at the first try or in average for a while go to sleep
 					 */
-					if (stepNum == 0
-							|| (framesReceivedSinceLastSend == 0
-									&& stepNum > stepAtLastSend + 10)) {
+					if (stepNum == 0 || (spinsInARow++ == 10)) {
 						goToSleep = true;
 						break;
 					}
