@@ -20,11 +20,11 @@
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <sys/types.h>
+#include <algorithm>
 #include <cstdbool>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
-#include <algorithm>
 #include <queue>
 #include <thread>
 
@@ -69,8 +69,6 @@ void PacketHandler::thread() {
 	struct pfring_pkthdr hdr;
 	memset(&hdr, 0, sizeof(hdr));
 	int receivedFrame = 0;
-
-	const int sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
 
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
 	const uint pollDelay = Options::GetFloat(OPTION_POLLING_DELAY);
@@ -169,13 +167,6 @@ void PacketHandler::thread() {
 					}
 				}
 			}
-		}
-
-		if (goToSleep && threadNum_ == 0) {
-			/*
-			 * Send ARP requests and only go to sleep if nothing was sent
-			 */
-			goToSleep = !NetworkHandler::DoSendQueuedFrames(threadNum_);
 		}
 
 		if (!frames.empty()) {
