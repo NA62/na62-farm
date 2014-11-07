@@ -238,7 +238,7 @@ void MonitorConnector::handleUpdate() {
 
 	setDifferentialData("FramesSent", NetworkHandler::GetFramesSent());
 	setContinuousData("OutFramesQueued",
-			NetworkHandler::getNumberOfEnqueuedFrames());
+			NetworkHandler::getNumberOfEnqueuedSendFrames());
 
 	LOG(INFO)<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
 }

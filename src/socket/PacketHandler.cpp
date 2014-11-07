@@ -73,6 +73,9 @@ void PacketHandler::thread() {
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
 	const uint pollDelay = Options::GetFloat(OPTION_POLLING_DELAY);
 
+	const uint maxAggregationMicros = Options::GetInt(
+	OPTION_MAX_AGGREGATION_TIME);
+
 	const uint minUsecBetweenL1Requests = Options::GetInt(
 	OPTION_MIN_USEC_BETWEEN_L1_REQUESTS);
 
@@ -97,6 +100,7 @@ void PacketHandler::thread() {
 
 		uint spinsInARow = 0;
 
+		boost::timer::cpu_timer aggregationTimer;
 		/*
 		 * Try to receive [framesToBeCollected] frames
 		 */
@@ -135,10 +139,21 @@ void PacketHandler::thread() {
 					 * two times during current frame aggregation
 					 */
 				} else {
+					if (threadNum_ == 0
+							&& NetworkHandler::getNumberOfEnqueuedSendFrames()
+									!= 0) {
+						continue;
+					}
+
 					/*
 					 * If we didn't receive anything at the first try or in average for a while go to sleep
 					 */
-					if (stepNum == 0 || (spinsInARow++ == 10)) {
+					if ((stepNum == 0 || spinsInARow++ == 10
+							|| aggregationTimer.elapsed().wall / 1000
+									> maxAggregationMicros)
+							&& (threadNum_ != 0
+									|| NetworkHandler::getNumberOfEnqueuedSendFrames()
+											== 0)) {
 						goToSleep = true;
 						break;
 					}
