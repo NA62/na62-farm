@@ -430,7 +430,7 @@
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1081300677" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.release.774630746" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.release"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.release.152491866" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.release">
+							<tool command="icpc" id="cdt.managedbuild.tool.gnu.cpp.linker.exe.release.152491866" name="ICC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.release">
 								<option id="gnu.cpp.link.option.libs.2035759574" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="na62-farm-lib-networking"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="na62-trigger-algorithms"/>

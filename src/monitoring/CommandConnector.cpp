@@ -7,7 +7,6 @@
 
 #include "CommandConnector.h"
 
-#include <boost/lexical_cast.hpp>
 #include <monitoring/IPCHandler.h>
 
 #ifdef USE_GLOG
@@ -66,7 +65,7 @@ void CommandConnector::thread() {
 				}
 			} else if (command == "updatenextburstid") {
 				if(!MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
-					uint32_t burst = boost::lexical_cast<int>(strings[1]);
+					uint32_t burst = atoi(strings[1].c_str());
 #ifdef USE_GLOG
 					LOG(INFO) << "Received new burstID: " << burst;
 					HandleFrameTask::setNextBurstId(burst);
