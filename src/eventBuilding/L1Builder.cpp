@@ -72,7 +72,7 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 
 void L1Builder::processL1(Event *event) {
 	uint8_t l0TriggerTypeWord = 1;
-	if (SourceIDManager::CheckL0SourceID(SOURCE_ID_L0TP)) {
+	if (SourceIDManager::L0TP_ACTIVE) {
 		l0::MEPFragment* L0TPEvent = event->getL0TPSubevent()->getFragment(0);
 		L0TpHeader* L0TPData = (L0TpHeader*) L0TPEvent->getPayload();
 		event->setFinetime(L0TPData->refFineTime);
