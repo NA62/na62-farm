@@ -68,6 +68,7 @@
 #define OPTION_POLLING_DELAY (char*)"pollingDelay"
 #define OPTION_POLLING_SLEEP_MICROS (char*)"pollingSleepMicros"
 #define OPTION_MAX_FRAME_AGGREGATION (char*)"maxFramesAggregation"
+#define OPTION_MAX_AGGREGATION_TIME (char*)"maxAggregationTime"
 
 /*
  * MUVs
@@ -174,7 +175,10 @@ public:
 				"Number of microseconds to sleep if polling was unsuccessful during the last tries")
 
 		(OPTION_MAX_FRAME_AGGREGATION, po::value<int>()->default_value(100000),
-				"Maximum number of frames aggregated before spawning a TBB job to process them")
+				"Maximum number of frames aggregated before spawning a TBB task to process them")
+
+		(OPTION_MAX_AGGREGATION_TIME, po::value<int>()->default_value(100000),
+				"Maximum time for one frame aggregation period before spawning a new TBB task in microseconds")
 
 		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")

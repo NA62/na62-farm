@@ -7,6 +7,7 @@
 #include <boost/bind.hpp>
 #include <eventBuilding/SourceIDManager.h>
 #include <tbb/task.h>
+#include <thread>
 
 #ifdef USE_GLOG
 #include <glog/logging.h>
@@ -130,7 +131,7 @@ int main(int argc, char* argv[]) {
 			Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP),
 			Options::GetInt(OPTION_NUMBER_OF_EBS),
 			Options::GetInt(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS),
-			Options::GetString(OPTION_CREAM_MULTICAST_GROUP),
+			Options::GetStringList(OPTION_CREAM_MULTICAST_GROUP),
 			Options::GetInt(OPTION_CREAM_RECEIVER_PORT),
 			Options::GetInt(OPTION_CREAM_MULTICAST_PORT));
 
@@ -151,7 +152,10 @@ int main(int argc, char* argv[]) {
 		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
 				i);
 		packetHandlers.push_back(handler);
-		handler->startThread(i, "PacketHandler", i, 15, MyOptions::GetInt(OPTION_PH_SCHEDULER));
+
+		uint coresPerSocket = std::thread::hardware_concurrency()/4/*2hyperthreading2sockets*/;
+		uint cpuMask = i % 2 == 0 ? i/2:coresPerSocket+i/2;
+		handler->startThread(i, "PacketHandler", cpuMask, 15, MyOptions::GetInt(OPTION_PH_SCHEDULER));
 	}
 
 	CommandConnector c;
