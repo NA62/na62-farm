@@ -42,6 +42,12 @@ using namespace na62;
 std::vector<PacketHandler*> packetHandlers;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
+	google::ShutdownGoogleLogging();
+	std::cout << "#############################################" << std::endl;
+	std::cout << "#############################################" << std::endl;
+	std::cout << "#############################################" << std::endl;
+	std::cout << "#############################################" << std::endl;
+	std::cout << "#############################################" << std::endl;
 	std::cout << "Received signal " << signal_number << " - Shutting down"
 			<< std::endl;
 
@@ -51,24 +57,26 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 		ZMQHandler::Stop();
 		AExecutable::InterruptAll();
 
-		std::cout << "Stopping packet handlers" << std::endl;
+		LOG(INFO)<< "Stopping packet handlers";
 		for (auto& handler : packetHandlers) {
 			handler->stopRunning();
 		}
 
-		std::cout << "Stopping storage handler" << std::endl;
+		LOG(INFO)<< "Stopping storage handler";
 		StorageHandler::onShutDown();
+
+		LOG(INFO)<< "Stopping STRAW receiver";
 		StrawReceiver::onShutDown();
 
 		usleep(1000);
-		std::cout << "Stopping IPC handler" << std::endl;
+		LOG(INFO)<< "Stopping IPC handler";
 		IPCHandler::shutDown();
 
-		std::cout << "Stopping ZMQ handler" << std::endl;
+		LOG(INFO)<< "Stopping ZMQ handler";
 		ZMQHandler::shutdown();
 
-		std::cout << "Cleanly shut down na62-farm" << std::endl;
-		AExecutable::JoinAll();
+		LOG(INFO)<< "Cleanly shut down na62-farm";
+		exit(0);
 	}
 }
 
@@ -153,9 +161,11 @@ int main(int argc, char* argv[]) {
 				i);
 		packetHandlers.push_back(handler);
 
-		uint coresPerSocket = std::thread::hardware_concurrency()/4/*2hyperthreading2sockets*/;
-		uint cpuMask = i % 2 == 0 ? i/2:coresPerSocket+i/2;
-		handler->startThread(i, "PacketHandler", cpuMask, 15, MyOptions::GetInt(OPTION_PH_SCHEDULER));
+		uint coresPerSocket = std::thread::hardware_concurrency()
+				/ 2/*hyperthreading*/;
+		uint cpuMask = i % 2 == 0 ? i / 2 : coresPerSocket + i / 2;
+		handler->startThread(i, "PacketHandler", cpuMask, 15,
+				MyOptions::GetInt(OPTION_PH_SCHEDULER));
 	}
 
 	CommandConnector c;

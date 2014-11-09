@@ -41,15 +41,15 @@ public:
 
 	static void processL2(Event *event);
 
-	static inline const std::atomic<uint64_t>* GetL2TriggerStats() {
+	static inline std::atomic<uint64_t>* GetL2TriggerStats() {
 		return L2Triggers_;
 	}
 
-	static inline const uint64_t GetBytesSentToStorage() {
+	static inline uint64_t GetBytesSentToStorage() {
 		return BytesSentToStorage_;
 	}
 
-	static inline const uint64_t GetEventsSentToStorage() {
+	static inline uint64_t GetEventsSentToStorage() {
 		return EventsSentToStorage_;
 	}
 

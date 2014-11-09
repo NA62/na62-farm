@@ -206,7 +206,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
 			if (nextBurstID_ != currentBurstID_
 					&& eobFrameReceivedTime_.elapsed().wall / 1E6
-							> 2000 /*2s*/) {
+					> 2000 /*2s*/) {
 				currentBurstID_ = nextBurstID_;
 			}
 

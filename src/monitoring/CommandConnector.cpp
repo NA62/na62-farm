@@ -40,6 +40,9 @@ void CommandConnector::thread() {
 		 * Synchronious receive:
 		 */
 		message = IPCHandler::getNextCommand();
+		if (message == "") {
+			continue;
+		}
 
 #ifdef USE_GLOG
 		LOG(INFO)<< "Received command: " << message;
