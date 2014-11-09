@@ -56,7 +56,7 @@ std::vector<std::string> StorageHandler::GetMergerAddresses() {
 void StorageHandler::initialize() {
 	for (std::string address : GetMergerAddresses()) {
 		LOG(INFO)<< "Connecting to merger: " << address;
-		zmq::socket_t* socket = ZMQHandler::GenerateSocket(ZMQ_PUSH);
+		zmq::socket_t* socket = ZMQHandler::GenerateSocket("StorageHandler", ZMQ_PUSH);
 		socket->connect(address.c_str());
 		mergerSockets_.push_back(socket);
 	}
@@ -86,6 +86,7 @@ void StorageHandler::onShutDown() {
 	for (auto socket : mergerSockets_) {
 		ZMQHandler::DestroySocket(socket);
 	}
+	mergerSockets_.clear();
 }
 
 char* StorageHandler::ResizeBuffer(char* buffer, const int oldLength,

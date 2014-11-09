@@ -47,7 +47,7 @@ public:
 	 */
 	static bool buildEvent(l0::MEPFragment* fragment, uint32_t burstID);
 
-	static inline const std::atomic<uint64_t>* GetL1TriggerStats() {
+	static inline std::atomic<uint64_t>* GetL1TriggerStats() {
 		return L1Triggers_;
 	}
 

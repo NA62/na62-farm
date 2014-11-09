@@ -35,6 +35,7 @@
 #include "../socket/FragmentStore.h"
 #include "../socket/PacketHandler.h"
 
+
 using namespace boost::interprocess;
 
 namespace na62 {
@@ -61,10 +62,14 @@ MonitorConnector::~MonitorConnector() {
 
 void MonitorConnector::onInterruption() {
 	LOG(ERROR)<<"Stopping MonitorConnector";
+	timer_.cancel();
 	monitoringService.stop();
 }
 
 void MonitorConnector::handleUpdate() {
+	if (!IPCHandler::isRunning()) {
+		return;
+	}
 	// Invoke this method every second
 	timer_.expires_from_now(boost::posix_time::milliseconds(1000));
 	timer_.async_wait(boost::bind(&MonitorConnector::handleUpdate, this));
@@ -241,6 +246,7 @@ void MonitorConnector::handleUpdate() {
 			NetworkHandler::getNumberOfEnqueuedSendFrames());
 
 	LOG(INFO)<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
+	LOG(INFO)<<"=======================================";
 }
 
 uint64_t MonitorConnector::setDifferentialData(std::string key,

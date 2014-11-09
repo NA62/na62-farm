@@ -71,7 +71,7 @@ void PacketHandler::thread() {
 	int receivedFrame = 0;
 
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
-	const uint pollDelay = Options::GetFloat(OPTION_POLLING_DELAY);
+	const uint pollDelay = Options::GetDouble(OPTION_POLLING_DELAY);
 
 	const uint maxAggregationMicros = Options::GetInt(
 	OPTION_MAX_AGGREGATION_TIME);
@@ -113,6 +113,7 @@ void PacketHandler::thread() {
 					threadNum_);
 
 			if (receivedFrame > 0) {
+
 				char* data = new char[hdr.len];
 				memcpy(data, buff, hdr.len);
 				frames.push_back( { data, (uint16_t) hdr.len, true });
@@ -122,6 +123,7 @@ void PacketHandler::thread() {
 				if (threadNum_ == 0
 						&& sendTimer.elapsed().wall / 1000
 								> minUsecBetweenL1Requests) {
+
 					/*
 					 * We didn't receive anything for a while -> send enqueued frames
 					 */
@@ -139,11 +141,14 @@ void PacketHandler::thread() {
 					 * two times during current frame aggregation
 					 */
 				} else {
-					if (threadNum_ == 0
-							&& NetworkHandler::getNumberOfEnqueuedSendFrames()
-									!= 0) {
-						continue;
+					if (!running_) {
+						goto finish;
 					}
+//					if (threadNum_ == 0
+//							&& NetworkHandler::getNumberOfEnqueuedSendFrames()
+//									!= 0) {
+//						continue;
+//					}
 
 					/*
 					 * If we didn't receive anything at the first try or in average for a while go to sleep
@@ -196,7 +201,8 @@ void PacketHandler::thread() {
 			}
 		}
 	}
-	std::cout << "Stopping PacketHandler thread " << threadNum_ << std::endl;
+	finish: std::cout << "Stopping PacketHandler thread " << threadNum_
+			<< std::endl;
 }
 }
 /* namespace na62 */
