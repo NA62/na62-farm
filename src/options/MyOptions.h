@@ -136,8 +136,8 @@ public:
 				po::value<int>()->default_value(1000),
 				"Minimum time between two MRPs sent to the CREAMs")
 
-		(OPTION_CREAM_MULTICAST_GROUP, po::value<std::string>()->required(),
-				"The multicast group IP for L1 requests to the CREAMs (MRP)")
+		(OPTION_CREAM_MULTICAST_GROUP, po::value<std::string>()->default_value("239.1.1.1"),
+				"Comma separated list of multicast group IPs for L1 requests to the CREAMs (MRP)")
 
 		(OPTION_CREAM_MULTICAST_PORT, po::value<int>()->default_value(58914),
 				"The port all L1 multicast MRPs to the CREAMs should be sent to")
