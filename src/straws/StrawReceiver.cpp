@@ -44,7 +44,8 @@ std::vector<std::string> StrawReceiver::getZmqAddresses() {
 
 void StrawReceiver::initialize() {
 	for (std::string address : getZmqAddresses()) {
-		zmq::socket_t* socket = ZMQHandler::GenerateSocket("Straw-"+address, ZMQ_PUSH);
+		zmq::socket_t* socket = ZMQHandler::GenerateSocket("Straw-" + address,
+				ZMQ_PUSH);
 		socket->connect(address.c_str());
 		pushSockets_.push_back(socket);
 	}
