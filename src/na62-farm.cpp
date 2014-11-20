@@ -109,14 +109,6 @@ int main(int argc, char* argv[]) {
 			Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES),
 			Options::GetInt(OPTION_MUV_CREAM_CRATE_ID));
 
-	/*
-	 * Monitor
-	 */
-	LOG(INFO)<<"Starting Monitoring Services";
-	monitoring::MonitorConnector monitor;
-	monitoring::MonitorConnector::setState(INITIALIZING);
-	monitor.startThread("MonitorConnector");
-
 	PacketHandler::initialize();
 
 	HandleFrameTask::initialize();
@@ -142,6 +134,14 @@ int main(int argc, char* argv[]) {
 			Options::GetStringList(OPTION_CREAM_MULTICAST_GROUP),
 			Options::GetInt(OPTION_CREAM_RECEIVER_PORT),
 			Options::GetInt(OPTION_CREAM_MULTICAST_PORT));
+
+	/*
+	 * Monitor
+	 */
+	LOG(INFO)<<"Starting Monitoring Services";
+	monitoring::MonitorConnector monitor;
+	monitoring::MonitorConnector::setState(INITIALIZING);
+	monitor.startThread("MonitorConnector");
 
 	/*
 	 * L1 Distribution handler
