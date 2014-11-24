@@ -22,6 +22,7 @@
 #include <vector>
 #include <boost/algorithm/string.hpp>
 
+#include "../eventBuilding/StorageHandler.h"
 #include "../options/MyOptions.h"
 #include "../socket/HandleFrameTask.h"
 
@@ -74,6 +75,9 @@ void CommandConnector::thread() {
 					HandleFrameTask::setNextBurstId(burst);
 #endif
 				}
+			} else if (command == "runningmergers") {
+				std::string mergerList=strings[1];
+				StorageHandler::setMergers(mergerList);
 			}
 		}
 	}
