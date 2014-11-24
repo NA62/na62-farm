@@ -42,11 +42,17 @@ public:
 
 	static std::string GetMergerAddress();
 
+	/**
+	 * Change the list of mergers to be used for sending data to
+	 * @param mergerList comma or semicolon separated list of hostnames or IPs of the mergers to be used
+	 */
+	static void setMergers(std::string mergerList);
+
 private:
 	static char* ResizeBuffer(char* buffer, const int oldLength,
 			const int newLength);
 
-	static std::vector<std::string> GetMergerAddresses();
+	static std::vector<std::string> GetMergerAddresses(std::string mergerList);
 
 	/**
 	 * Generates the raw data as it should be send to the merger

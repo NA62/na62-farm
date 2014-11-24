@@ -124,7 +124,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				processARPRequest((struct ARP_HDR*) container.data);
 				return;
 			} else {
-				// Just ignore this frame as it's not IP nor ARP
+				// Just ignore this frame as it's neither IP nor ARP
 				container.free();
 				return;
 			}
@@ -175,9 +175,9 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			 * we would increment the burstID while we are still processing events from the last burst.
 			 */
 			if (nextBurstID_ != currentBurstID_
-					&& mep->getFirstEventNum() < 1000
+					//&& mep->getFirstEventNum() < 1000
 					&& eobFrameReceivedTime_.elapsed().wall / 1E6
-							> 1000 /*1s*/) {
+							> 2000 /*2s*/) {
 				currentBurstID_ = nextBurstID_;
 			}
 
