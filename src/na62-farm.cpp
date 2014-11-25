@@ -43,13 +43,13 @@ std::vector<PacketHandler*> packetHandlers;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
 	google::ShutdownGoogleLogging();
-	std::cout << "#############################################" << std::endl;
-	std::cout << "#############################################" << std::endl;
-	std::cout << "#############################################" << std::endl;
-	std::cout << "#############################################" << std::endl;
-	std::cout << "#############################################" << std::endl;
-	std::cout << "Received signal " << signal_number << " - Shutting down"
-			<< std::endl;
+	LOG_INFO << "#############################################" << ENDL;
+	LOG_INFO << "#############################################" << ENDL;
+	LOG_INFO << "#############################################" << ENDL;
+	LOG_INFO << "#############################################" << ENDL;
+	LOG_INFO << "#############################################" << ENDL;
+	LOG_INFO << "Received signal " << signal_number << " - Shutting down"
+			<< ENDL;
 
 	IPCHandler::updateState(INITIALIZING);
 	usleep(100);
@@ -153,8 +153,8 @@ int main(int argc, char* argv[]) {
 	 * Packet Handler
 	 */
 	unsigned int numberOfPacketHandler = NetworkHandler::GetNumberOfQueues();
-	std::cout << "Starting " << numberOfPacketHandler
-			<< " PacketHandler threads" << std::endl;
+	LOG_INFO << "Starting " << numberOfPacketHandler
+			<< " PacketHandler threads" << ENDL;
 
 	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
 		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(

@@ -19,6 +19,8 @@
 #include <algorithm>
 #include <iterator>
 
+#include <options/Logging.h>
+
 namespace na62 {
 
 class FragmentStore {
@@ -132,10 +134,10 @@ private:
 
 			if (currentData->getFragmentOffsetInBytes() + sizeof(ether_header)
 					+ sizeof(iphdr) != currentOffset) {
-				std::cerr
+				LOG_ERROR
 						<< "Error while reassembling IP fragments: sum of fragment lengths is "
 						<< currentOffset << " but offset of current frame is "
-						<< currentData->getFragmentOffsetInBytes() << std::endl;
+						<< currentData->getFragmentOffsetInBytes() << ENDL;
 
 				for (DataContainer& fragment : fragments) {
 					if (fragment.data != nullptr) {
