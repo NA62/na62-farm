@@ -175,7 +175,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			 * we would increment the burstID while we are still processing events from the last burst.
 			 */
 			if (nextBurstID_ != currentBurstID_
-					//&& mep->getFirstEventNum() < 1000
+			//&& mep->getFirstEventNum() < 1000
 					&& eobFrameReceivedTime_.elapsed().wall / 1E6
 							> 2000 /*2s*/) {
 				currentBurstID_ = nextBurstID_;
@@ -215,7 +215,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			/*
 			 * Packet with unknown UDP port received
 			 */
-			LOG(ERROR)<<"Packet with unknown UDP port received: " << destPort;
+			LOG_ERROR<<"Packet with unknown UDP port received: " << destPort << ENDL;
 			container.free();
 		}
 	} catch (UnknownSourceIDFound const& e) {
@@ -232,7 +232,7 @@ bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
 	 * Check IP-Header
 	 */
 	//				if (!EthernetUtils::CheckData((char*) &hdr->ip, sizeof(iphdr))) {
-	//					LOG(ERROR) << "Packet with broken IP-checksum received");
+	//					LOG_ERROR << "Packet with broken IP-checksum received");
 	//					container.free();
 	//					continue;
 	//				}
@@ -245,8 +245,9 @@ bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
 		 * Does not need to be equal because of ethernet padding
 		 */
 		if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) > length) {
-			LOG(ERROR)<<
-			"Received IP-Packet with less bytes than ip.tot_len field! " << (ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length;
+			LOG_ERROR <<
+			"Received IP-Packet with less bytes than ip.tot_len field! " <<
+			(ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length << ENDL;
 			return false;
 		}
 	}
@@ -255,7 +256,7 @@ bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
 	 * Does not need to be equal because of ethernet padding
 	 */
 	if (ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr) > length) {
-		LOG(ERROR)<<"Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length;
+		LOG_ERROR<<"Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length;
 		return false;
 	}
 
@@ -263,7 +264,7 @@ bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
 	//				 * Check UDP checksum
 	//				 */
 	//				if (!EthernetUtils::CheckUDP(hdr, (const char *) (&hdr->udp) + sizeof(struct udphdr), ntohs(hdr->udp.len) - sizeof(struct udphdr))) {
-	//					LOG(ERROR) << "Packet with broken UDP-checksum received" );
+	//					LOG_ERROR << "Packet with broken UDP-checksum received" ) << ENDL;
 	//					container.free();
 	//					continue;
 	//				}

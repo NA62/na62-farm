@@ -10,9 +10,6 @@
 #include <tbb/task.h>
 #include <tbb/tick_count.h>
 #include <tbb/tbb_thread.h>
-#ifdef USE_GLOG
-#include <glog/logging.h>
-#endif
 #include <linux/pf_ring.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
