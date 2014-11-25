@@ -41,6 +41,7 @@
 #include <socket/NetworkHandler.h>
 #include <eventBuilding/SourceIDManager.h>
 #include <boost/timer/timer.hpp>
+#include <options/Logging.h>
 
 #include "HandleFrameTask.h"
 
@@ -201,8 +202,8 @@ void PacketHandler::thread() {
 			}
 		}
 	}
-	finish: std::cout << "Stopping PacketHandler thread " << threadNum_
-			<< std::endl;
+	finish: LOG_INFO<<"Stopping PacketHandler thread " << threadNum_
+	<< ENDL;
 }
 }
 /* namespace na62 */
