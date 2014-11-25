@@ -9,9 +9,6 @@
 #include <tbb/task.h>
 #include <thread>
 
-#ifdef USE_GLOG
-#include <glog/logging.h>
-#endif
 #include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
 #include <options/Options.h>
@@ -57,25 +54,25 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 		ZMQHandler::Stop();
 		AExecutable::InterruptAll();
 
-		LOG(INFO)<< "Stopping packet handlers";
+		LOG_INFO<< "Stopping packet handlers";
 		for (auto& handler : packetHandlers) {
 			handler->stopRunning();
 		}
 
-		LOG(INFO)<< "Stopping storage handler";
+		LOG_INFO<< "Stopping storage handler";
 		StorageHandler::onShutDown();
 
-		LOG(INFO)<< "Stopping STRAW receiver";
+		LOG_INFO<< "Stopping STRAW receiver";
 		StrawReceiver::onShutDown();
 
 		usleep(1000);
-		LOG(INFO)<< "Stopping IPC handler";
+		LOG_INFO<< "Stopping IPC handler";
 		IPCHandler::shutDown();
 
-		LOG(INFO)<< "Stopping ZMQ handler";
+		LOG_INFO<< "Stopping ZMQ handler";
 		ZMQHandler::shutdown();
 
-		LOG(INFO)<< "Cleanly shut down na62-farm";
+		LOG_INFO<< "Cleanly shut down na62-farm";
 		exit(0);
 	}
 }
@@ -138,7 +135,7 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Monitor
 	 */
-	LOG(INFO)<<"Starting Monitoring Services";
+	LOG_INFO<<"Starting Monitoring Services";
 	monitoring::MonitorConnector monitor;
 	monitoring::MonitorConnector::setState(INITIALIZING);
 	monitor.startThread("MonitorConnector");

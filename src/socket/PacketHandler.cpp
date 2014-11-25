@@ -10,9 +10,6 @@
 #include <tbb/task.h>
 #include <tbb/tick_count.h>
 #include <tbb/tbb_thread.h>
-#ifdef USE_GLOG
-#include <glog/logging.h>
-#endif
 #include <linux/pf_ring.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
@@ -55,6 +52,10 @@ boost::timer::cpu_timer PacketHandler::sendTimer;
 uint PacketHandler::NUMBER_OF_EBS = 0;
 std::atomic<uint> PacketHandler::frameHandleTasksSpawned_(0);
 
+uint32_t PacketHandler::currentBurstID_;
+uint32_t PacketHandler::nextBurstID_;
+boost::timer::cpu_timer PacketHandler::burstChangedTimer_;
+
 PacketHandler::PacketHandler(int threadNum) :
 		threadNum_(threadNum), running_(true) {
 	NUMBER_OF_EBS = Options::GetInt(OPTION_NUMBER_OF_EBS);
@@ -64,6 +65,8 @@ PacketHandler::~PacketHandler() {
 }
 
 void PacketHandler::initialize() {
+	currentBurstID_ = Options::GetInt(OPTION_FIRST_BURST_ID);
+	nextBurstID_ = currentBurstID_;
 }
 
 void PacketHandler::thread() {
@@ -177,12 +180,22 @@ void PacketHandler::thread() {
 
 		if (!frames.empty()) {
 			/*
+			 * Check if the burstID is already updated and the update is long enough ago. Otherwise
+			 * we would increment the burstID while we are still processing events from the last burst.
+			 */
+			if (nextBurstID_ != currentBurstID_
+			//&& mep->getFirstEventNum() < 1000
+					&& burstChangedTimer_.elapsed().wall / 1E6 > 1000 /*1s*/) {
+				currentBurstID_ = nextBurstID_;
+			}
+
+			/*
 			 * Start a new task which will check the frame
 			 *
 			 */
 			HandleFrameTask* task =
 					new (tbb::task::allocate_root()) HandleFrameTask(
-							std::move(frames));
+							std::move(frames), currentBurstID_);
 			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 
 			goToSleep = false;

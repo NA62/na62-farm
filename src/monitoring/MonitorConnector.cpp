@@ -17,9 +17,6 @@
 
 #include "../socket/HandleFrameTask.h"
 
-#ifdef USE_GLOG
-#include <glog/logging.h>
-#endif
 #include <iostream>
 
 #include <eventBuilding/SourceIDManager.h>
@@ -28,13 +25,13 @@
 #include <utils/Utils.h>
 #include <monitoring/IPCHandler.h>
 #include <eventBuilding/Event.h>
+#include <options/Logging.h>
 
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
 #include "../socket/HandleFrameTask.h"
 #include "../socket/FragmentStore.h"
 #include "../socket/PacketHandler.h"
-
 
 using namespace boost::interprocess;
 
@@ -45,7 +42,7 @@ STATE MonitorConnector::currentState_;
 MonitorConnector::MonitorConnector() :
 		timer_(monitoringService) {
 
-	LOG(INFO)<<"Started monitor connector";
+	LOG_INFO<<"Started monitor connector";
 }
 
 void MonitorConnector::thread() {
@@ -61,7 +58,7 @@ MonitorConnector::~MonitorConnector() {
 }
 
 void MonitorConnector::onInterruption() {
-	LOG(ERROR)<<"Stopping MonitorConnector";
+	LOG_ERROR << "Stopping MonitorConnector" << ENDL;
 	timer_.cancel();
 	monitoringService.stop();
 }
@@ -78,14 +75,14 @@ void MonitorConnector::handleUpdate() {
 
 	IPCHandler::updateState(currentState_);
 
-	LOG(INFO)<<"Enqueued tasks:\t" << HandleFrameTask::getNumberOfQeuedTasks();
+	LOG_INFO<<"Enqueued tasks:\t" << HandleFrameTask::getNumberOfQeuedTasks();
 
-	LOG(INFO)<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
+	LOG_INFO<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
 
-	LOG(INFO)<<"BurstID:\t" << HandleFrameTask::getCurrentBurstId();
-	LOG(INFO)<<"NextBurstID:\t" << HandleFrameTask::getNextBurstId();
+	LOG_INFO<<"BurstID:\t" << PacketHandler::getCurrentBurstId();
+	LOG_INFO<<"NextBurstID:\t" << PacketHandler::getNextBurstId();
 
-	LOG(INFO)<<"State:\t" << currentState_;
+	LOG_INFO<<"State:\t" << currentState_;
 
 	setDifferentialData("Sleeps", PacketHandler::sleeps_);
 	setDifferentialData("Spins", PacketHandler::spins_);
@@ -106,7 +103,7 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("PF_PacksDropped",
 			std::to_string(NetworkHandler::GetFramesDropped()));
 
-	LOG(INFO)<<"########################";
+	LOG_INFO<<"########################";
 	/*
 	 * Number of Events and data rate from all detectors
 	 */
@@ -209,7 +206,7 @@ void MonitorConnector::handleUpdate() {
 		}
 	}
 
-	LOG(INFO)<<"########################";
+	LOG_INFO<<"########################";
 
 	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
 	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
@@ -245,8 +242,8 @@ void MonitorConnector::handleUpdate() {
 	setContinuousData("OutFramesQueued",
 			NetworkHandler::getNumberOfEnqueuedSendFrames());
 
-	LOG(INFO)<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
-	LOG(INFO)<<"=======================================";
+	LOG_INFO<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
+	LOG_INFO<<"=======================================";
 }
 
 uint64_t MonitorConnector::setDifferentialData(std::string key,
@@ -260,9 +257,9 @@ uint64_t MonitorConnector::setDifferentialData(std::string key,
 
 	if (value != 0) {
 		if (key == "BytesReceived") {
-			LOG(INFO)<<key << ":\t" << Utils::FormatSize(value - differentialInts_[key]) << " (" << Utils::FormatSize(value) <<")";
+			LOG_INFO<<key << ":\t" << Utils::FormatSize(value - differentialInts_[key]) << " (" << Utils::FormatSize(value) <<")";
 		} else {
-			LOG(INFO)<<key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")";
+			LOG_INFO<<key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")";
 		}
 
 	}
@@ -292,7 +289,7 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 	}
 	lastValue = detectorDifferentialInts_[detectorID][key];
 
-	LOG(INFO)<<key << std::to_string((int) detectorID) << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")";
+	LOG_INFO<<key << std::to_string((int) detectorID) << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")";
 
 	detectorDifferentialInts_[detectorID][key + LAST_VALUE_SUFFIX] =
 			detectorDifferentialInts_[detectorID][key];
@@ -300,7 +297,7 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 }
 
 void MonitorConnector::setContinuousData(std::string key, uint64_t value) {
-	LOG(INFO)<<key << ":\t" << std::to_string(value);
+	LOG_INFO<<key << ":\t" << std::to_string(value);
 }
 
 }

@@ -14,9 +14,6 @@
 #include <tbb/spin_mutex.h>
 #include <sstream>
 
-#ifdef USE_GLOG
-#include <glog/logging.h>
-#endif
 #include <l0/MEPFragment.h>
 #include <l0/Subevent.h>
 #include <LKr/LkrFragment.h>
@@ -49,7 +46,9 @@ std::vector<std::string> StorageHandler::GetMergerAddresses(
 	boost::split(mergers, mergerList, boost::is_any_of(";,"));
 
 	if (mergers.empty()) {
-		LOG(ERROR)<< "List of running mergers is empty => Stopping now!";
+		LOG_ERROR << "List of running mergers is empty => Stopping now!"
+				<< ENDL;
+		;
 		exit(1);
 	}
 
@@ -71,7 +70,7 @@ void StorageHandler::setMergers(std::string mergerList) {
 	mergerSockets_.clear();
 
 	for (std::string address : GetMergerAddresses(mergerList)) {
-		LOG(INFO)<< "Connecting to merger: " << address;
+		LOG_INFO<< "Connecting to merger: " << address;
 		zmq::socket_t* socket = ZMQHandler::GenerateSocket("StorageHandler", ZMQ_PUSH);
 		socket->connect(address.c_str());
 		mergerSockets_.push_back(socket);
@@ -306,7 +305,7 @@ int StorageHandler::SendEvent(const Event* event) {
 			break;
 		} catch (const zmq::error_t& ex) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-				LOG(ERROR)<< ex.what();
+				LOG_ERROR << ex.what() << ENDL;
 
 				onShutDown();
 				return 0;
