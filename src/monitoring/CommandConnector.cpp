@@ -21,7 +21,7 @@
 
 #include "../eventBuilding/StorageHandler.h"
 #include "../options/MyOptions.h"
-#include "../socket/HandleFrameTask.h"
+#include "../socket/PacketHandler.h"
 
 namespace na62 {
 
@@ -54,15 +54,15 @@ void CommandConnector::thread() {
 			std::string command = strings[0];
 			if (command == "eob_timestamp") {
 				if(MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
-					uint32_t burst = HandleFrameTask::getCurrentBurstId()+1;
-					HandleFrameTask::setNextBurstId(burst);
+					uint32_t burst = PacketHandler::getCurrentBurstId()+1;
+					PacketHandler::setNextBurstId(burst);
 					LOG_INFO << "Got EOB time: Incrementing burstID to" << burst << ENDL;
 				}
 			} else if (command == "updatenextburstid") {
 				if(!MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
 					uint32_t burst = atoi(strings[1].c_str());
 					LOG_INFO << "Received new burstID: " << burst << ENDL;
-					HandleFrameTask::setNextBurstId(burst);
+					PacketHandler::setNextBurstId(burst);
 				}
 			} else if (command == "runningmergers") {
 				std::string mergerList=strings[1];

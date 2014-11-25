@@ -45,17 +45,13 @@ uint16_t HandleFrameTask::CREAM_Port;
 uint16_t HandleFrameTask::STRAW_PORT;
 uint32_t HandleFrameTask::MyIP;
 
-uint32_t HandleFrameTask::currentBurstID_;
-uint32_t HandleFrameTask::nextBurstID_;
-
-boost::timer::cpu_timer HandleFrameTask::eobFrameReceivedTime_;
 std::atomic<uint> HandleFrameTask::queuedTasksNum_;
 uint HandleFrameTask::highestSourceNum_;
 std::atomic<uint64_t>* HandleFrameTask::MEPsReceivedBySourceNum_;
 std::atomic<uint64_t>* HandleFrameTask::BytesReceivedBySourceNum_;
 
-HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers) :
-		containers(std::move(_containers)) {
+HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers, uint burstID) :
+		containers_(std::move(_containers)), burstID_(burstID) {
 	queuedTasksNum_.fetch_add(1, std::memory_order_relaxed);
 }
 
@@ -68,9 +64,6 @@ void HandleFrameTask::initialize() {
 	CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
 	STRAW_PORT = Options::GetInt(OPTION_STRAW_PORT);
 	MyIP = NetworkHandler::GetMyIP();
-
-	currentBurstID_ = Options::GetInt(OPTION_FIRST_BURST_ID);
-	nextBurstID_ = currentBurstID_;
 
 	/*
 	 * All L0 data sources and LKr:
@@ -101,7 +94,7 @@ void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
 }
 
 tbb::task* HandleFrameTask::execute() {
-	for (DataContainer& container : containers) {
+	for (DataContainer& container : containers_) {
 		processFrame(std::move(container));
 	}
 	return nullptr;
@@ -170,17 +163,6 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			l0::MEP* mep = new l0::MEP(UDPPayload, UdpDataLength,
 					container.data);
 
-			/*
-			 * If the event has a small number we should check if the burstID is already updated and the update is long enough ago. Otherwise
-			 * we would increment the burstID while we are still processing events from the last burst.
-			 */
-			if (nextBurstID_ != currentBurstID_
-			//&& mep->getFirstEventNum() < 1000
-					&& eobFrameReceivedTime_.elapsed().wall / 1E6
-							> 2000 /*2s*/) {
-				currentBurstID_ = nextBurstID_;
-			}
-
 			uint sourceNum = SourceIDManager::SourceIDToNum(mep->getSourceID());
 
 			MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
@@ -190,7 +172,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 
 			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
 				// Add every fragment
-				L1Builder::buildEvent(mep->getFragment(i), currentBurstID_);
+				L1Builder::buildEvent(mep->getFragment(i), burstID_);
 			}
 		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// CREAM Data //////////////////////////////////////////////////
 			cream::LkrFragment* fragment = new cream::LkrFragment(UDPPayload,
@@ -204,13 +186,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 
 			L2Builder::buildEvent(fragment);
 		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
-			if (nextBurstID_ != currentBurstID_
-					&& eobFrameReceivedTime_.elapsed().wall / 1E6
-							> 2000 /*2s*/) {
-				currentBurstID_ = nextBurstID_;
-			}
-
-			StrawReceiver::processFrame(std::move(container), currentBurstID_);
+			StrawReceiver::processFrame(std::move(container), burstID_);
 		} else {
 			/*
 			 * Packet with unknown UDP port received

@@ -79,8 +79,8 @@ void MonitorConnector::handleUpdate() {
 
 	LOG_INFO<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
 
-	LOG_INFO<<"BurstID:\t" << HandleFrameTask::getCurrentBurstId();
-	LOG_INFO<<"NextBurstID:\t" << HandleFrameTask::getNextBurstId();
+	LOG_INFO<<"BurstID:\t" << PacketHandler::getCurrentBurstId();
+	LOG_INFO<<"NextBurstID:\t" << PacketHandler::getNextBurstId();
 
 	LOG_INFO<<"State:\t" << currentState_;
 
