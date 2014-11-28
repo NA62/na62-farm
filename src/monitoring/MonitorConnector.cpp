@@ -25,7 +25,9 @@
 #include <utils/Utils.h>
 #include <monitoring/IPCHandler.h>
 #include <eventBuilding/Event.h>
+#include <eventBuilding/UnfinishedEventsCollector.h>
 #include <options/Logging.h>
+
 
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
@@ -244,6 +246,8 @@ void MonitorConnector::handleUpdate() {
 
 	LOG_INFO<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
 	LOG_INFO<<"=======================================";
+
+	IPCHandler::sendStatistics("UnfinishedEventsData", UnfinishedEventsCollector::toJson());
 }
 
 uint64_t MonitorConnector::setDifferentialData(std::string key,
