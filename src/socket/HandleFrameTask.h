@@ -2,7 +2,7 @@
  * HandleFrameTask.h
  *
  *  Created on: Jun 27, 2014
- *      Author: root
+ *      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
 #ifndef HANDLEFRAMETASK_H_

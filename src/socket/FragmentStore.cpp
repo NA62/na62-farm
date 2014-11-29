@@ -2,7 +2,7 @@
  * FragmentStore.cpp
  *
  *  Created on: Sep 29, 2014
- *      Author: root
+ *      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
 #include "FragmentStore.h"
