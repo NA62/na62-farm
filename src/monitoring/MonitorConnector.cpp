@@ -28,7 +28,6 @@
 #include <eventBuilding/UnfinishedEventsCollector.h>
 #include <options/Logging.h>
 
-
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
 #include "../socket/HandleFrameTask.h"
@@ -60,7 +59,7 @@ MonitorConnector::~MonitorConnector() {
 }
 
 void MonitorConnector::onInterruption() {
-	LOG_ERROR << "Stopping MonitorConnector" << ENDL;
+	LOG_ERROR<< "Stopping MonitorConnector" << ENDL;
 	timer_.cancel();
 	monitoringService.stop();
 }
@@ -116,10 +115,12 @@ void MonitorConnector::handleUpdate() {
 		statistics << "0x" << std::hex << (int) sourceID << ";";
 
 		setDetectorDifferentialData("MEPsReceived",
-				HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum),
+				HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum)
+						/ SourceIDManager::getExpectedPacksBySourceID(sourceID),
 				sourceID);
 		statistics << std::dec
 				<< HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum)
+						/ SourceIDManager::getExpectedPacksBySourceID(sourceID)
 				<< ";";
 
 		setDetectorDifferentialData("EventsReceived",
@@ -143,11 +144,14 @@ void MonitorConnector::handleUpdate() {
 		 */
 		setDetectorDifferentialData("MEPsReceived",
 				HandleFrameTask::GetMEPsReceivedBySourceNum(
-						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES),
+						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES)
+						/ (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT),
 				SOURCE_ID_LKr);
 		statistics << std::dec
 				<< HandleFrameTask::GetMEPsReceivedBySourceNum(
-						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES) << ";";
+						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES)
+						/ (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT)
+				<< ";";
 
 		setDetectorDifferentialData("EventsReceived",
 				Event::getMissingEventsBySourceNum(
@@ -169,13 +173,6 @@ void MonitorConnector::handleUpdate() {
 		setDetectorDifferentialData("NonRequestedCreamFrags",
 				Event::getNumberOfNonRequestedCreamFragments(),
 				SOURCE_ID_LKr);
-
-		setDetectorDifferentialData("Rcv/Exp MEPs",
-				HandleFrameTask::GetMEPsReceivedBySourceNum(
-						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES)
-						/ (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT),
-				SOURCE_ID_LKr);
-
 	}
 
 	IPCHandler::sendStatistics("DetectorData", statistics.str());
@@ -247,7 +244,8 @@ void MonitorConnector::handleUpdate() {
 	LOG_INFO<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
 	LOG_INFO<<"=======================================";
 
-	IPCHandler::sendStatistics("UnfinishedEventsData", UnfinishedEventsCollector::toJson());
+	IPCHandler::sendStatistics("UnfinishedEventsData",
+			UnfinishedEventsCollector::toJson());
 }
 
 uint64_t MonitorConnector::setDifferentialData(std::string key,
