@@ -121,7 +121,7 @@ public:
 				"Defines a list of CREAMs that must appear in the normal creamCrate list but should not be activated")
 
 		(OPTION_TS_SOURCEID, po::value<std::string>()->required(),
-				"Source ID of the detector which timestamp should be written into the final event and sent to the LKr for L1-triggers.")
+				"Source ID of the detector whose timestamp should be written into the final event and sent to the LKr for L1-triggers.")
 
 		(OPTION_FIRST_BURST_ID, po::value<int>()->required(),
 				"The current or first burst ID. This must be set if a PC starts during a run.")
@@ -183,7 +183,7 @@ public:
 		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
 
-		(OPTION_INCREMENT_BURST_AT_EOB, po::value<bool>()->default_value(true),
+		(OPTION_INCREMENT_BURST_AT_EOB, po::value<bool>()->default_value(false),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
 
 		(OPTION_STRAW_PORT, po::value<int>()->default_value(58916),

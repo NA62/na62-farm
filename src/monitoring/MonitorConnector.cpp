@@ -114,14 +114,17 @@ void MonitorConnector::handleUpdate() {
 		uint8_t sourceID = SourceIDManager::SourceNumToID(soruceIDNum);
 		statistics << "0x" << std::hex << (int) sourceID << ";";
 
-		setDetectorDifferentialData("MEPsReceived",
-				HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum)
-						/ SourceIDManager::getExpectedPacksBySourceID(sourceID),
-				sourceID);
-		statistics << std::dec
-				<< HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum)
-						/ SourceIDManager::getExpectedPacksBySourceID(sourceID)
-				<< ";";
+		if (SourceIDManager::getExpectedPacksBySourceID(sourceID) > 0) {
+			setDetectorDifferentialData("MEPsReceived",
+					HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum)
+							/ SourceIDManager::getExpectedPacksBySourceID(
+									sourceID), sourceID);
+
+			statistics << std::dec
+					<< HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum)
+							/ SourceIDManager::getExpectedPacksBySourceID(
+									sourceID) << ";";
+		}
 
 		setDetectorDifferentialData("EventsReceived",
 				Event::getMissingEventsBySourceNum(soruceIDNum), sourceID);
