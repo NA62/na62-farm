@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
 	L1Builder::initialize();
 	L2Builder::initialize();
 
-	Event::initialize();
+	Event::initialize(Options::GetBool(OPTION_WRITE_BROKEN_CREAM_INFO));
 
 	Event::setPrintMissingSourceIds(
 			MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES));
