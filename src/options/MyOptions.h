@@ -82,6 +82,12 @@
 #define OPTION_STRAW_ZMQ_PORT (char*)"strawZmqPort"
 #define OPTION_STRAW_ZMQ_DST_HOSTS (char*)"strawZmqDstHosts"
 
+/*
+ * Debugging
+ */
+
+#define OPTION_WRITE_BROKEN_CREAM_INFO (char*)"printBrokenCreamInfo"
+
 namespace na62 {
 class MyOptions: public Options {
 public:
@@ -136,7 +142,8 @@ public:
 				po::value<int>()->default_value(1000),
 				"Minimum time between two MRPs sent to the CREAMs")
 
-		(OPTION_CREAM_MULTICAST_GROUP, po::value<std::string>()->default_value("239.1.1.1"),
+		(OPTION_CREAM_MULTICAST_GROUP,
+				po::value<std::string>()->default_value("239.1.1.1"),
 				"Comma separated list of multicast group IPs for L1 requests to the CREAMs (MRP)")
 
 		(OPTION_CREAM_MULTICAST_PORT, po::value<int>()->default_value(58914),
@@ -198,6 +205,10 @@ public:
 
 		(OPTION_STRAW_ZMQ_DST_HOSTS, po::value<std::string>()->required(),
 				"Comma separated list of all hosts that have a ZMQ PULL socket listening to the strawZmqPort to receive STRAW data")
+
+		(OPTION_WRITE_BROKEN_CREAM_INFO,
+				po::value<bool>()->default_value(false),
+				"If set to 1, information about broken cream data (already received/not requested) is written to /tmp/farm-logs)")
 
 				;
 

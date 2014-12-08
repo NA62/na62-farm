@@ -12,6 +12,7 @@
 #include <LKr/LkrFragment.h>
 
 #include <l2/L2TriggerProcessor.h>
+#include <structs/Network.h>
 #include "StorageHandler.h"
 
 namespace na62 {
@@ -24,21 +25,23 @@ std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
 
 uint L2Builder::downscaleFactor_ = 0;
 
-bool L2Builder::buildEvent(cream::LkrFragment* LkrFragment) {
-	Event *event = EventPool::GetEvent(LkrFragment->getEventNumber());
+bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
+	Event *event = EventPool::GetEvent(fragment->getEventNumber());
 
 	/*
 	 * If the event number is too large event is null and we have to drop the data
 	 */
 	if (event == nullptr) {
-		delete LkrFragment;
+		delete fragment;
 		return false;
 	}
+
+	UDP_HDR* etherFrame = (UDP_HDR*)fragment->getEtherFrame();
 
 	/*
 	 * Add new packet to EventCollector
 	 */
-	if (event->addLkrFragment(LkrFragment)) {
+	if (event->addLkrFragment(fragment, etherFrame->ip.saddr)) {
 		/*
 		 * This event is complete -> process it
 		 */
