@@ -83,7 +83,7 @@ void L1Builder::processL1(Event *event) {
 	/*
 	 * Store the global event timestamp taken from the reverence detector
 	 */
-	l0::MEPFragment* tsFragment = event->getL0SubeventBySourceID(
+	l0::MEPFragment* tsFragment = event->getL0SubeventBySourceIDNum(
 			SourceIDManager::TS_SOURCEID_NUM)->getFragment(0);
 	event->setTimestamp(tsFragment->getTimestamp());
 
