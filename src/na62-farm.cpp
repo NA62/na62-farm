@@ -21,6 +21,7 @@
 #include <l2/L2TriggerProcessor.h>
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/Event.h>
+#include <options/TriggerOptions.h>
 
 #include "eventBuilding/L1Builder.h"
 #include "eventBuilding/L2Builder.h"
@@ -90,6 +91,7 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Static Class initializations
 	 */
+	TriggerOptions::Load(argc, argv);
 	MyOptions::Load(argc, argv);
 
 	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
