@@ -21,6 +21,7 @@
 #include <l2/L2TriggerProcessor.h>
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/Event.h>
+#include <options/TriggerOptions.h>
 
 #include "eventBuilding/L1Builder.h"
 #include "eventBuilding/L2Builder.h"
@@ -90,9 +91,17 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Static Class initializations
 	 */
+	TriggerOptions::Load(argc, argv);
 	MyOptions::Load(argc, argv);
 
 	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
+
+	L1TriggerProcessor::initialize(
+			TriggerOptions::GetDouble(OPTION_L1_BYPASS_PROBABILITY),
+			TriggerOptions::GetInt(OPTION_L1_BYPASS_TRIGGER_WORD));
+	L2TriggerProcessor::initialize(
+			TriggerOptions::GetDouble(OPTION_L2_BYPASS_PROBABILITY),
+			TriggerOptions::GetInt(OPTION_L2_BYPASS_TRIGGER_WORD));
 
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread
