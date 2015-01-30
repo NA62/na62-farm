@@ -41,13 +41,13 @@ std::vector<PacketHandler*> packetHandlers;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
 	google::ShutdownGoogleLogging();
-	LOG_INFO << "#############################################" << ENDL;
-	LOG_INFO << "#############################################" << ENDL;
-	LOG_INFO << "#############################################" << ENDL;
-	LOG_INFO << "#############################################" << ENDL;
-	LOG_INFO << "#############################################" << ENDL;
-	LOG_INFO << "Received signal " << signal_number << " - Shutting down"
-			<< ENDL;
+	LOG_INFO<< "#############################################" << ENDL;
+	LOG_INFO<< "#############################################" << ENDL;
+	LOG_INFO<< "#############################################" << ENDL;
+	LOG_INFO<< "#############################################" << ENDL;
+	LOG_INFO<< "#############################################" << ENDL;
+	LOG_INFO<< "Received signal " << signal_number << " - Shutting down"
+	<< ENDL;
 
 	IPCHandler::updateState(INITIALIZING);
 	usleep(100);
@@ -101,7 +101,8 @@ int main(int argc, char* argv[]) {
 			TriggerOptions::GetInt(OPTION_L1_BYPASS_TRIGGER_WORD));
 	L2TriggerProcessor::initialize(
 			TriggerOptions::GetDouble(OPTION_L2_BYPASS_PROBABILITY),
-			TriggerOptions::GetInt(OPTION_L2_BYPASS_TRIGGER_WORD));
+			TriggerOptions::GetInt(OPTION_L2_BYPASS_TRIGGER_WORD),
+			TriggerOptions::GetInt(OPTION_L1_BYPASS_TRIGGER_WORD));
 
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread
@@ -159,8 +160,8 @@ int main(int argc, char* argv[]) {
 	 * Packet Handler
 	 */
 	unsigned int numberOfPacketHandler = NetworkHandler::GetNumberOfQueues();
-	LOG_INFO << "Starting " << numberOfPacketHandler
-			<< " PacketHandler threads" << ENDL;
+	LOG_INFO<< "Starting " << numberOfPacketHandler
+	<< " PacketHandler threads" << ENDL;
 
 	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
 		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
