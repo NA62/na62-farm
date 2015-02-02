@@ -95,6 +95,7 @@ int StorageHandler::SendEvent(const Event* event) {
 
 	/*
 	 * Send the event to the merger with a zero copy message
+	 * message_t will free data as soon as it's sent and destroyed by ZMQ
 	 */
 	zmq::message_t zmqMessage((void*) data, data->length * 4,
 			(zmq::free_fn*) ZMQHandler::freeZmqMessage);
