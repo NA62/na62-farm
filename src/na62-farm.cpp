@@ -22,6 +22,7 @@
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/Event.h>
 #include <options/TriggerOptions.h>
+#include <eventBuilding/EventSerializer.h>
 
 #include "eventBuilding/L1Builder.h"
 #include "eventBuilding/L2Builder.h"
@@ -33,6 +34,7 @@
 #include "socket/HandleFrameTask.h"
 #include "monitoring/CommandConnector.h"
 #include "straws/StrawReceiver.h"
+
 
 using namespace std;
 using namespace na62;
@@ -120,6 +122,7 @@ int main(int argc, char* argv[]) {
 
 	HandleFrameTask::initialize();
 
+	EventSerializer::initialize();
 	StorageHandler::initialize();
 	StrawReceiver::initialize();
 
