@@ -71,14 +71,10 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 }
 
 void L1Builder::processL1(Event *event) {
-	uint8_t l0TriggerTypeWord = 1;
-	if (SourceIDManager::L0TP_ACTIVE) {
-		l0::MEPFragment* L0TPEvent = event->getL0TPSubevent()->getFragment(0);
-		L0TpHeader* L0TPData = (L0TpHeader*) L0TPEvent->getPayload();
-		event->setFinetime(L0TPData->refFineTime);
-
-		l0TriggerTypeWord = L0TPData->l0TriggerType;
-	}
+	/*
+	 * Read the L0 trigger type word and the fine time from the L0TP data
+	 */
+	const uint8_t l0TriggerTypeWord = event->readTriggerTypeWordAndFineTime();
 
 	/*
 	 * Store the global event timestamp taken from the reverence detector
