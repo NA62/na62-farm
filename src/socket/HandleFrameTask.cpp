@@ -170,7 +170,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			BytesReceivedBySourceNum_[sourceNum].fetch_add(container.length,
 					std::memory_order_relaxed);
 
-			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
+			for (int i = mep->getNumberOfFragments() - 1; i >= 0; i--) {
 				// Add every fragment
 				L1Builder::buildEvent(mep->getFragment(i), burstID_);
 			}
