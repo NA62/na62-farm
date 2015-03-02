@@ -163,7 +163,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			l0::MEP* mep = new l0::MEP(UDPPayload, UdpDataLength,
 					container.data);
 
-			uint sourceNum = SourceIDManager::SourceIDToNum(mep->getSourceID());
+			uint sourceNum = SourceIDManager::sourceIDToNum(mep->getSourceID());
 
 			MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
 					std::memory_order_relaxed);
