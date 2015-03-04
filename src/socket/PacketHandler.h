@@ -13,6 +13,7 @@
 #include <atomic>
 #include <cstdint>
 #include <vector>
+#include <iostream>
 #include <utils/AExecutable.h>
 #include <boost/timer/timer.hpp>
 #include <eventBuilding/EventPool.h>
@@ -39,21 +40,9 @@ public:
 	 */
 	static std::atomic<uint> frameHandleTasksSpawned_;
 
-//	static void onBurstFinished() {
-//		for (uint eventNumber = 0;
-//				eventNumber != EventPool::getLargestTouchedEventnumber();
-//				eventNumber++) {
-//			Event* event = EventPool::getEvent(eventNumber);
-//			if (event->isL1Processed()) {
-//				if(!event->isL2Accepted()){
-//					std::cerr << event->getEventNumber() << std::endl;
-//				}
-//			}
-//		}
-//	}
-
 private:
-	int threadNum_;bool running_;
+	int threadNum_;
+	bool running_;
 	static uint NUMBER_OF_EBS;
 
 	/**

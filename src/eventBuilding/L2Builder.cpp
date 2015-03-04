@@ -36,7 +36,7 @@ bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
 		return false;
 	}
 
-	UDP_HDR* etherFrame = (UDP_HDR*)fragment->getEtherFrame();
+	const UDP_HDR* etherFrame = reinterpret_cast<const UDP_HDR*>(fragment->getEtherFrame());
 
 	/*
 	 * Add new packet to EventCollector
@@ -71,7 +71,6 @@ void L2Builder::processL2(Event *event) {
 				 */
 				BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
 						std::memory_order_relaxed);
-				;
 				EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 			}
 			L2Triggers_[L2Trigger].fetch_add(1, std::memory_order_relaxed);

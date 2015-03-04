@@ -97,14 +97,14 @@ void L1Builder::processL1(Event *event) {
 	event->setL1Processed(L0L1Trigger);
 
 	if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT != 0) {
-		if (L0L1Trigger != 0) {
+		if (l1TriggerTypeWord != 0) {
 			/*
 			 * Only request accepted events from LKr
 			 */
 			sendL1RequestToCREAMS(event);
 		}
 	} else {
-		if (L0L1Trigger != 0) {
+		if (l1TriggerTypeWord != 0) {
 			L2Builder::processL2(event);
 		}
 	}
@@ -112,7 +112,7 @@ void L1Builder::processL1(Event *event) {
 	/*
 	 * If the Event has been rejected by L1 we can destroy it now
 	 */
-	if (L0L1Trigger == 0) {
+	if (l1TriggerTypeWord == 0) {
 		EventPool::freeEvent(event);
 	}
 }

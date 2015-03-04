@@ -28,6 +28,7 @@
 #include <exceptions/UnknownSourceIDFound.h>
 #include <utils/DataDumper.h>
 #include <options/Options.h>
+#include <monitoring/BurstIdHandler.h>
 #include <socket/NetworkHandler.h>
 #include <structs/Network.h>
 
@@ -50,7 +51,8 @@ uint HandleFrameTask::highestSourceNum_;
 std::atomic<uint64_t>* HandleFrameTask::MEPsReceivedBySourceNum_;
 std::atomic<uint64_t>* HandleFrameTask::BytesReceivedBySourceNum_;
 
-HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers, uint burstID) :
+HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers,
+		uint burstID) :
 		containers_(std::move(_containers)), burstID_(burstID) {
 	queuedTasksNum_.fetch_add(1, std::memory_order_relaxed);
 }
@@ -97,6 +99,11 @@ tbb::task* HandleFrameTask::execute() {
 	for (DataContainer& container : containers_) {
 		processFrame(std::move(container));
 	}
+
+	if (queuedTasksNum_ == 1) {
+		BurstIdHandler::checkBurstFinished();
+	}
+
 	return nullptr;
 }
 
@@ -221,7 +228,7 @@ bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
 		 * Does not need to be equal because of ethernet padding
 		 */
 		if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) > length) {
-			LOG_ERROR <<
+			LOG_ERROR<<
 			"Received IP-Packet with less bytes than ip.tot_len field! " <<
 			(ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length << ENDL;
 			return false;
