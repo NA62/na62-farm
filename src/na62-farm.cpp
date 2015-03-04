@@ -11,6 +11,7 @@
 
 #include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
+#include <monitoring/BurstIdHandler.h>
 #include <options/Options.h>
 #include <socket/NetworkHandler.h>
 #include <unistd.h>
@@ -116,7 +117,7 @@ int main(int argc, char* argv[]) {
 			Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES),
 			Options::GetInt(OPTION_MUV_CREAM_CRATE_ID));
 
-	PacketHandler::initialize();
+	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID));
 
 	HandleFrameTask::initialize();
 
