@@ -54,6 +54,9 @@ public:
 		burstChangedTimer_.start();
 	}
 
+	/**
+	 * Method is called every time the last event of a burst has been processed
+	 */
 	static void onBurstFinished() {
 		for (uint eventNumber = 0;
 				eventNumber != EventPool::getLargestTouchedEventnumber();
