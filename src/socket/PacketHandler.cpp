@@ -187,7 +187,6 @@ void PacketHandler::thread() {
 			//&& mep->getFirstEventNum() < 1000
 					&& burstChangedTimer_.elapsed().wall / 1E6 > 1000 /*1s*/) {
 				currentBurstID_ = nextBurstID_;
-				onBurstFinished();
 			}
 
 			/*

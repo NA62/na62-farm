@@ -13,6 +13,7 @@
 #include <atomic>
 #include <cstdint>
 #include <vector>
+#include <iostream>
 #include <utils/AExecutable.h>
 #include <boost/timer/timer.hpp>
 #include <eventBuilding/EventPool.h>
@@ -58,20 +59,50 @@ public:
 	 * Method is called every time the last event of a burst has been processed
 	 */
 	static void onBurstFinished() {
+		int maxNumOfPrintouts = 100;
+
 		for (uint eventNumber = 0;
-				eventNumber != EventPool::getLargestTouchedEventnumber();
+				eventNumber != EventPool::getLargestTouchedEventnumber() + 1;
 				eventNumber++) {
+
 			Event* event = EventPool::getEvent(eventNumber);
-			if (event->isL1Processed()) {
-				if (!event->isL2Accepted()) {
-					std::cerr << event->getEventNumber() << std::endl;
+			if (event->isUnfinished()) {
+				if (maxNumOfPrintouts-- == 0) {
+					break;
 				}
+
+				std::cerr << "Unfinished event " << event->getEventNumber()
+						<< ": " << std::endl;
+				std::cerr << "\tMissing L0: " << std::endl;
+				for (auto& sourceIDAndSubIds : event->getMissingSourceIDs()) {
+					std::cerr << "\t"
+							<< SourceIDManager::sourceIdToDetectorName(
+									sourceIDAndSubIds.first) << ":"
+							<< std::endl;
+
+					for (auto& subID : sourceIDAndSubIds.second) {
+						std::cerr << "\t\t" << subID << ", ";
+					}
+					std::cerr << std::endl;
+				}
+				std::cerr << std::endl;
+
+				std::cerr << "\tMissing CREAMs (crate: cream IDs): " << std::endl;
+				for (auto& crateAndCreams : event->getMissingCreams()) {
+					std::cerr << "\t\t"<< crateAndCreams.first << ":\t";
+					for (auto& creamID : crateAndCreams.second) {
+						std::cerr << creamID << "\t";
+					}
+					std::cerr << std::endl;
+				}
+				std::cerr << std::endl;
 			}
 		}
 	}
 
 private:
-	int threadNum_;bool running_;
+	int threadNum_;
+	bool running_;
 	static uint NUMBER_OF_EBS;
 
 	/*
