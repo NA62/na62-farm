@@ -81,6 +81,7 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 }
 
 int main(int argc, char* argv[]) {
+	L1TriggerProcessor::initializeDownscaling();
 	/*
 	 * Signals
 	 */
