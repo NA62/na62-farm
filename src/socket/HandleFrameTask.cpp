@@ -163,14 +163,14 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			l0::MEP* mep = new l0::MEP(UDPPayload, UdpDataLength,
 					container.data);
 
-			uint sourceNum = SourceIDManager::SourceIDToNum(mep->getSourceID());
+			uint sourceNum = SourceIDManager::sourceIDToNum(mep->getSourceID());
 
 			MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
 					std::memory_order_relaxed);
 			BytesReceivedBySourceNum_[sourceNum].fetch_add(container.length,
 					std::memory_order_relaxed);
 
-			for (int i = mep->getNumberOfEvents() - 1; i >= 0; i--) {
+			for (int i = mep->getNumberOfFragments() - 1; i >= 0; i--) {
 				// Add every fragment
 				L1Builder::buildEvent(mep->getFragment(i), burstID_);
 			}

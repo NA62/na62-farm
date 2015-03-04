@@ -158,7 +158,7 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 		uint eventOffset32 = eventOffset / 4;
 		std::memcpy(eventBuffer + pointerTableOffset, &eventOffset32, 3);
 		std::memset(eventBuffer + pointerTableOffset + 3,
-				SourceIDManager::SourceNumToID(sourceNum), 1);
+				SourceIDManager::sourceNumToID(sourceNum), 1);
 		pointerTableOffset += 4;
 
 		/*

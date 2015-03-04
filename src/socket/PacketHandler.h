@@ -16,6 +16,7 @@
 #include <utils/AExecutable.h>
 #include <boost/timer/timer.hpp>
 #include <eventBuilding/EventPool.h>
+#include <eventBuilding/Event.h>
 
 namespace na62 {
 struct DataContainer;
@@ -57,7 +58,7 @@ public:
 //		for (uint eventNumber = 0;
 //				eventNumber != EventPool::getLargestTouchedEventnumber();
 //				eventNumber++) {
-//			Event* event = EventPool::GetEvent(eventNumber);
+//			Event* event = EventPool::getEvent(eventNumber);
 //			if (event->isL1Processed()) {
 //				if(!event->isL2Accepted()){
 //					std::cerr << event->getEventNumber() << std::endl;

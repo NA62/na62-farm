@@ -101,7 +101,8 @@ int main(int argc, char* argv[]) {
 			TriggerOptions::GetInt(OPTION_L1_BYPASS_TRIGGER_WORD));
 	L2TriggerProcessor::initialize(
 			TriggerOptions::GetDouble(OPTION_L2_BYPASS_PROBABILITY),
-			TriggerOptions::GetInt(OPTION_L2_BYPASS_TRIGGER_WORD));
+			TriggerOptions::GetInt(OPTION_L2_BYPASS_TRIGGER_WORD),
+			TriggerOptions::GetInt(OPTION_L1_BYPASS_TRIGGER_WORD));
 
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread

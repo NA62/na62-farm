@@ -111,7 +111,7 @@ void MonitorConnector::handleUpdate() {
 	std::stringstream statistics;
 	for (int soruceIDNum = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES - 1;
 			soruceIDNum >= 0; soruceIDNum--) {
-		uint8_t sourceID = SourceIDManager::SourceNumToID(soruceIDNum);
+		uint8_t sourceID = SourceIDManager::sourceNumToID(soruceIDNum);
 		statistics << "0x" << std::hex << (int) sourceID << ";";
 
 		if (SourceIDManager::getExpectedPacksBySourceID(sourceID) > 0) {
