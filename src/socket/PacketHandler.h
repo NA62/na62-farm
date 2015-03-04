@@ -54,18 +54,18 @@ public:
 		burstChangedTimer_.start();
 	}
 
-//	static void onBurstFinished() {
-//		for (uint eventNumber = 0;
-//				eventNumber != EventPool::getLargestTouchedEventnumber();
-//				eventNumber++) {
-//			Event* event = EventPool::getEvent(eventNumber);
-//			if (event->isL1Processed()) {
-//				if(!event->isL2Accepted()){
-//					std::cerr << event->getEventNumber() << std::endl;
-//				}
-//			}
-//		}
-//	}
+	static void onBurstFinished() {
+		for (uint eventNumber = 0;
+				eventNumber != EventPool::getLargestTouchedEventnumber();
+				eventNumber++) {
+			Event* event = EventPool::getEvent(eventNumber);
+			if (event->isL1Processed()) {
+				if (!event->isL2Accepted()) {
+					std::cerr << event->getEventNumber() << std::endl;
+				}
+			}
+		}
+	}
 
 private:
 	int threadNum_;bool running_;
