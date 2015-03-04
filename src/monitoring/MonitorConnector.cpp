@@ -131,9 +131,9 @@ void MonitorConnector::handleUpdate() {
 		statistics << std::dec
 				<< Event::getMissingEventsBySourceNum(soruceIDNum) << ";";
 
-		setDetectorDifferentialData("BytesReceived",
-				HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum),
-				sourceID);
+//		setDetectorDifferentialData("BytesReceived",
+//				HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum),
+//				sourceID);
 		statistics << std::dec
 				<< HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum)
 				<< ";";
@@ -165,10 +165,10 @@ void MonitorConnector::handleUpdate() {
 				<< Event::getMissingEventsBySourceNum(
 						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES) << ";";
 
-		setDetectorDifferentialData("BytesReceived",
-				HandleFrameTask::GetBytesReceivedBySourceNum(
-						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES),
-				SOURCE_ID_LKr);
+//		setDetectorDifferentialData("BytesReceived",
+//				HandleFrameTask::GetBytesReceivedBySourceNum(
+//						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES),
+//				SOURCE_ID_LKr);
 		statistics << std::dec
 				<< HandleFrameTask::GetBytesReceivedBySourceNum(
 						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES) << ";";
@@ -294,7 +294,7 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 	}
 	lastValue = detectorDifferentialInts_[detectorID][key];
 
-	LOG_INFO<<key << std::to_string((int) detectorID) << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")";
+	LOG_INFO<<key << SourceIDManager::sourceIdToDetectorName(detectorID) << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")";
 
 	detectorDifferentialInts_[detectorID][key + LAST_VALUE_SUFFIX] =
 			detectorDifferentialInts_[detectorID][key];
