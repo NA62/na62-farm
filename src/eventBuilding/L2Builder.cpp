@@ -26,7 +26,7 @@ std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
 uint L2Builder::downscaleFactor_ = 0;
 
 bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
-	Event *event = EventPool::GetEvent(fragment->getEventNumber());
+	Event *event = EventPool::getEvent(fragment->getEventNumber());
 
 	/*
 	 * If the event number is too large event is null and we have to drop the data
@@ -75,7 +75,7 @@ void L2Builder::processL2(Event *event) {
 				EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 			}
 			L2Triggers_[L2Trigger].fetch_add(1, std::memory_order_relaxed);
-			EventPool::FreeEvent(event);
+			EventPool::freeEvent(event);
 		}
 	} else {
 		uint8_t L2Trigger = L2TriggerProcessor::onNonZSuppressedLKrDataReceived(
@@ -88,7 +88,7 @@ void L2Builder::processL2(Event *event) {
 			EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 		}
 		L2Triggers_[L2Trigger].fetch_add(1, std::memory_order_relaxed);
-		EventPool::FreeEvent(event);
+		EventPool::freeEvent(event);
 	}
 }
 }

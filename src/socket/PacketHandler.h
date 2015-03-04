@@ -15,6 +15,7 @@
 #include <vector>
 #include <utils/AExecutable.h>
 #include <boost/timer/timer.hpp>
+#include <eventBuilding/EventPool.h>
 
 namespace na62 {
 struct DataContainer;
@@ -51,6 +52,19 @@ public:
 		nextBurstID_ = burstID;
 		burstChangedTimer_.start();
 	}
+
+//	static void onBurstFinished() {
+//		for (uint eventNumber = 0;
+//				eventNumber != EventPool::getLargestTouchedEventnumber();
+//				eventNumber++) {
+//			Event* event = EventPool::GetEvent(eventNumber);
+//			if (event->isL1Processed()) {
+//				if(!event->isL2Accepted()){
+//					std::cerr << event->getEventNumber() << std::endl;
+//				}
+//			}
+//		}
+//	}
 
 private:
 	int threadNum_;bool running_;

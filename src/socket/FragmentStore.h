@@ -1,6 +1,8 @@
 /*
  * FragmentStore.h
  *
+ * This class handles IP fragmentation
+ *
  *  Created on: Sep 29, 2014
  *      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */

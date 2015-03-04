@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
 	Event::setPrintMissingSourceIds(
 			MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES));
 
-	EventPool::Initialize(Options::GetInt(
+	EventPool::initialize(Options::GetInt(
 	OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST));
 
 	cream::L1DistributionHandler::Initialize(

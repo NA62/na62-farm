@@ -42,7 +42,7 @@ bool L1Builder::requestZSuppressedLkrData_;
 uint L1Builder::downscaleFactor_ = 0;
 
 bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
-	Event *event = EventPool::GetEvent(fragment->getEventNumber());
+	Event *event = EventPool::getEvent(fragment->getEventNumber());
 
 	/*
 	 * If the event number is too large event is null and we have to drop the data
@@ -113,7 +113,7 @@ void L1Builder::processL1(Event *event) {
 	 * If the Event has been rejected by L1 we can destroy it now
 	 */
 	if (L0L1Trigger == 0) {
-		EventPool::FreeEvent(event);
+		EventPool::freeEvent(event);
 	}
 }
 
