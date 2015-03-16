@@ -11,6 +11,7 @@
 
 #include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
+#include <monitoring/BurstIdHandler.h>
 #include <options/Options.h>
 #include <socket/NetworkHandler.h>
 #include <unistd.h>
@@ -99,12 +100,9 @@ int main(int argc, char* argv[]) {
 	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
 
 	L1TriggerProcessor::initialize(
-			TriggerOptions::GetDouble(OPTION_L1_BYPASS_PROBABILITY),
-			TriggerOptions::GetInt(OPTION_L1_BYPASS_TRIGGER_WORD));
+			TriggerOptions::GetDouble(OPTION_L1_BYPASS_PROBABILITY));
 	L2TriggerProcessor::initialize(
-			TriggerOptions::GetDouble(OPTION_L2_BYPASS_PROBABILITY),
-			TriggerOptions::GetInt(OPTION_L2_BYPASS_TRIGGER_WORD),
-			TriggerOptions::GetInt(OPTION_L1_BYPASS_TRIGGER_WORD));
+			TriggerOptions::GetDouble(OPTION_L2_BYPASS_PROBABILITY));
 
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread
@@ -118,7 +116,7 @@ int main(int argc, char* argv[]) {
 			Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES),
 			Options::GetInt(OPTION_MUV_CREAM_CRATE_ID));
 
-	PacketHandler::initialize();
+	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID));
 
 	HandleFrameTask::initialize();
 
@@ -129,12 +127,10 @@ int main(int argc, char* argv[]) {
 	L1Builder::initialize();
 	L2Builder::initialize();
 
-	Event::initialize(Options::GetBool(OPTION_WRITE_BROKEN_CREAM_INFO));
+	Event::initialize(MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES),
+			Options::GetBool(OPTION_WRITE_BROKEN_CREAM_INFO));
 
-	Event::setPrintMissingSourceIds(
-			MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES));
-
-	EventPool::Initialize(Options::GetInt(
+	EventPool::initialize(Options::GetInt(
 	OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST));
 
 	cream::L1DistributionHandler::Initialize(

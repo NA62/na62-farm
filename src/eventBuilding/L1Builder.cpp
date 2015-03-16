@@ -42,7 +42,7 @@ bool L1Builder::requestZSuppressedLkrData_;
 uint L1Builder::downscaleFactor_ = 0;
 
 bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
-	Event *event = EventPool::GetEvent(fragment->getEventNumber());
+	Event *event = EventPool::getEvent(fragment->getEventNumber());
 
 	/*
 	 * If the event number is too large event is null and we have to drop the data
@@ -71,10 +71,12 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 }
 
 void L1Builder::processL1(Event *event) {
+
 	/*
 	 * Read the L0 trigger type word and the fine time from the L0TP data
 	 */
 	const uint8_t l0TriggerTypeWord = event->readTriggerTypeWordAndFineTime();
+
 
 	/*
 	 * Store the global event timestamp taken from the reverence detector
@@ -86,21 +88,21 @@ void L1Builder::processL1(Event *event) {
 	/*
 	 * Process Level 1 trigger
 	 */
-	uint8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event);
-	uint16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
+	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event);
+	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
 
 	L1Triggers_[l1TriggerTypeWord].fetch_add(1, std::memory_order_relaxed); // The second 8 bits are the L1 trigger type word
 	event->setL1Processed(L0L1Trigger);
 
 	if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT != 0) {
-		if (L0L1Trigger != 0) {
+		if (l1TriggerTypeWord != 0) {
 			/*
 			 * Only request accepted events from LKr
 			 */
 			sendL1RequestToCREAMS(event);
 		}
 	} else {
-		if (L0L1Trigger != 0) {
+		if (l1TriggerTypeWord != 0) {
 			L2Builder::processL2(event);
 		}
 	}
@@ -108,14 +110,15 @@ void L1Builder::processL1(Event *event) {
 	/*
 	 * If the Event has been rejected by L1 we can destroy it now
 	 */
-	if (L0L1Trigger == 0) {
-		EventPool::FreeEvent(event);
+	if (l1TriggerTypeWord == 0) {
+		EventPool::freeEvent(event);
 	}
 }
 
 void L1Builder::sendL1RequestToCREAMS(Event* event) {
+	// Request non zero suppressed LKr data if either the requestZSuppressedLkrData_ is set or
 	cream::L1DistributionHandler::Async_RequestLKRDataMulticast(event,
-			requestZSuppressedLkrData_);
+			event->isRrequestZeroSuppressedCreamData() || requestZSuppressedLkrData_);
 }
 
 }

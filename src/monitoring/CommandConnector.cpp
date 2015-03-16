@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 #include <boost/algorithm/string.hpp>
+#include <monitoring/BurstIdHandler.h>
 
 #include "../eventBuilding/StorageHandler.h"
 #include "../options/MyOptions.h"
@@ -54,15 +55,15 @@ void CommandConnector::thread() {
 			std::string command = strings[0];
 			if (command == "eob_timestamp") {
 				if(MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
-					uint32_t burst = PacketHandler::getCurrentBurstId()+1;
-					PacketHandler::setNextBurstId(burst);
+					uint32_t burst = BurstIdHandler::getCurrentBurstId()+1;
+					BurstIdHandler::setNextBurstID(burst);
 					LOG_INFO << "Got EOB time: Incrementing burstID to" << burst << ENDL;
 				}
 			} else if (command == "updatenextburstid") {
 				if(!MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
 					uint32_t burst = atoi(strings[1].c_str());
 					LOG_INFO << "Received new burstID: " << burst << ENDL;
-					PacketHandler::setNextBurstId(burst);
+					BurstIdHandler::setNextBurstID(burst);
 				}
 			} else if (command == "runningmergers") {
 				std::string mergerList=strings[1];

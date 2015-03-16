@@ -53,7 +53,7 @@ private:
 	uint64_t getDifferentialValue(std::string key);
 
 	void setDetectorDifferentialData(std::string key, uint64_t value,
-			uint8_t detectorID);
+			uint_fast8_t detectorID);
 	void setContinuousData(std::string key, uint64_t value);
 
 	boost::asio::io_service monitoringService;
@@ -63,7 +63,7 @@ private:
 	Stopwatch updateWatch_;
 
 	std::map<std::string, uint64_t> differentialInts_;
-	std::map<uint8_t, std::map<std::string, uint64_t> > detectorDifferentialInts_;
+	std::map<uint_fast8_t, std::map<std::string, uint64_t> > detectorDifferentialInts_;
 
 	static STATE currentState_;
 };

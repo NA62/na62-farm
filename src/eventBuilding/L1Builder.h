@@ -23,7 +23,7 @@ class MEPFragment;
 
 namespace na62 {
 
-class L1Builder: public tbb::task {
+class L1Builder {
 private:
 	static std::atomic<uint64_t>* L1Triggers_;
 

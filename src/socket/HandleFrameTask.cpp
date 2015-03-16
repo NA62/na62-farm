@@ -28,6 +28,7 @@
 #include <exceptions/UnknownSourceIDFound.h>
 #include <utils/DataDumper.h>
 #include <options/Options.h>
+#include <monitoring/BurstIdHandler.h>
 #include <socket/NetworkHandler.h>
 #include <structs/Network.h>
 
@@ -40,9 +41,9 @@
 
 namespace na62 {
 
-uint16_t HandleFrameTask::L0_Port;
-uint16_t HandleFrameTask::CREAM_Port;
-uint16_t HandleFrameTask::STRAW_PORT;
+uint_fast16_t HandleFrameTask::L0_Port;
+uint_fast16_t HandleFrameTask::CREAM_Port;
+uint_fast16_t HandleFrameTask::STRAW_PORT;
 uint32_t HandleFrameTask::MyIP;
 
 std::atomic<uint> HandleFrameTask::queuedTasksNum_;
@@ -50,7 +51,8 @@ uint HandleFrameTask::highestSourceNum_;
 std::atomic<uint64_t>* HandleFrameTask::MEPsReceivedBySourceNum_;
 std::atomic<uint64_t>* HandleFrameTask::BytesReceivedBySourceNum_;
 
-HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers, uint burstID) :
+HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers,
+		uint burstID) :
 		containers_(std::move(_containers)), burstID_(burstID) {
 	queuedTasksNum_.fetch_add(1, std::memory_order_relaxed);
 }
@@ -97,15 +99,20 @@ tbb::task* HandleFrameTask::execute() {
 	for (DataContainer& container : containers_) {
 		processFrame(std::move(container));
 	}
+
+	if (queuedTasksNum_ == 1) {
+		BurstIdHandler::checkBurstFinished();
+	}
+
 	return nullptr;
 }
 
 void HandleFrameTask::processFrame(DataContainer&& container) {
 	try {
 		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
-		const uint16_t etherType = /*ntohs*/(hdr->eth.ether_type);
-		const uint8_t ipProto = hdr->ip.protocol;
-		uint16_t destPort = ntohs(hdr->udp.dest);
+		const uint_fast16_t etherType = /*ntohs*/(hdr->eth.ether_type);
+		const uint_fast8_t ipProto = hdr->ip.protocol;
+		uint_fast16_t destPort = ntohs(hdr->udp.dest);
 		const uint32_t dstIP = hdr->ip.daddr;
 
 		/*
@@ -149,7 +156,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		}
 
 		const char * UDPPayload = container.data + sizeof(struct UDP_HDR);
-		const uint16_t & UdpDataLength = ntohs(hdr->udp.len)
+		const uint_fast16_t & UdpDataLength = ntohs(hdr->udp.len)
 				- sizeof(struct udphdr);
 
 		/*
@@ -203,7 +210,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 	}
 }
 
-bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
+bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint_fast16_t length) {
 	/*
 	 * Check IP-Header
 	 */
@@ -221,7 +228,7 @@ bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
 		 * Does not need to be equal because of ethernet padding
 		 */
 		if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) > length) {
-			LOG_ERROR <<
+			LOG_ERROR<<
 			"Received IP-Packet with less bytes than ip.tot_len field! " <<
 			(ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length << ENDL;
 			return false;

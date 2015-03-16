@@ -26,7 +26,7 @@ std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
 uint L2Builder::downscaleFactor_ = 0;
 
 bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
-	Event *event = EventPool::GetEvent(fragment->getEventNumber());
+	Event *event = EventPool::getEvent(fragment->getEventNumber());
 
 	/*
 	 * If the event number is too large event is null and we have to drop the data
@@ -36,7 +36,7 @@ bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
 		return false;
 	}
 
-	UDP_HDR* etherFrame = (UDP_HDR*)fragment->getEtherFrame();
+	const UDP_HDR* etherFrame = reinterpret_cast<const UDP_HDR*>(fragment->getEtherFrame());
 
 	/*
 	 * Add new packet to EventCollector
@@ -56,7 +56,7 @@ void L2Builder::processL2(Event *event) {
 		/*
 		 * L1 already passed but non zero suppressed LKr data not yet requested -> Process Level 2 trigger
 		 */
-		uint8_t L2Trigger = L2TriggerProcessor::compute(event);
+		uint_fast8_t L2Trigger = L2TriggerProcessor::compute(event);
 
 		event->setL2Processed(L2Trigger);
 
@@ -71,14 +71,13 @@ void L2Builder::processL2(Event *event) {
 				 */
 				BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
 						std::memory_order_relaxed);
-				;
 				EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 			}
 			L2Triggers_[L2Trigger].fetch_add(1, std::memory_order_relaxed);
-			EventPool::FreeEvent(event);
+			EventPool::freeEvent(event);
 		}
 	} else {
-		uint8_t L2Trigger = L2TriggerProcessor::onNonZSuppressedLKrDataReceived(
+		uint_fast8_t L2Trigger = L2TriggerProcessor::onNonZSuppressedLKrDataReceived(
 				event);
 
 		event->setL2Processed(L2Trigger);
@@ -88,7 +87,7 @@ void L2Builder::processL2(Event *event) {
 			EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 		}
 		L2Triggers_[L2Trigger].fetch_add(1, std::memory_order_relaxed);
-		EventPool::FreeEvent(event);
+		EventPool::freeEvent(event);
 	}
 }
 }
