@@ -98,12 +98,9 @@ int main(int argc, char* argv[]) {
 	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
 
 	L1TriggerProcessor::initialize(
-			TriggerOptions::GetDouble(OPTION_L1_BYPASS_PROBABILITY),
-			TriggerOptions::GetInt(OPTION_L1_BYPASS_TRIGGER_WORD));
+			TriggerOptions::GetDouble(OPTION_L1_BYPASS_PROBABILITY));
 	L2TriggerProcessor::initialize(
-			TriggerOptions::GetDouble(OPTION_L2_BYPASS_PROBABILITY),
-			TriggerOptions::GetInt(OPTION_L2_BYPASS_TRIGGER_WORD),
-			TriggerOptions::GetInt(OPTION_L1_BYPASS_TRIGGER_WORD));
+			TriggerOptions::GetDouble(OPTION_L2_BYPASS_PROBABILITY));
 
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread

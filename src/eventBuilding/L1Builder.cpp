@@ -118,8 +118,9 @@ void L1Builder::processL1(Event *event) {
 }
 
 void L1Builder::sendL1RequestToCREAMS(Event* event) {
+	// Request non zero suppressed LKr data if either the requestZSuppressedLkrData_ is set or
 	cream::L1DistributionHandler::Async_RequestLKRDataMulticast(event,
-			requestZSuppressedLkrData_);
+			event->isRrequestZeroSuppressedCreamData() || requestZSuppressedLkrData_);
 }
 
 }
