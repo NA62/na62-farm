@@ -71,7 +71,7 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
 }
 
 void L1Builder::processL1(Event *event) {
-	uint8_t l0TriggerTypeWord = 1;
+	uint_fast8_t l0TriggerTypeWord = 1;
 	if (SourceIDManager::L0TP_ACTIVE) {
 		l0::MEPFragment* L0TPEvent = event->getL0TPSubevent()->getFragment(0);
 		L0TpHeader* L0TPData = (L0TpHeader*) L0TPEvent->getPayload();
@@ -90,8 +90,8 @@ void L1Builder::processL1(Event *event) {
 	/*
 	 * Process Level 1 trigger
 	 */
-	uint8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event);
-	uint16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
+	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event);
+	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
 
 	L1Triggers_[l1TriggerTypeWord].fetch_add(1, std::memory_order_relaxed); // The second 8 bits are the L1 trigger type word
 	event->setL1Processed(L0L1Trigger);

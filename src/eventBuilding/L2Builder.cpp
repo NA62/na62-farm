@@ -56,7 +56,7 @@ void L2Builder::processL2(Event *event) {
 		/*
 		 * L1 already passed but non zero suppressed LKr data not yet requested -> Process Level 2 trigger
 		 */
-		uint8_t L2Trigger = L2TriggerProcessor::compute(event);
+		uint_fast8_t L2Trigger = L2TriggerProcessor::compute(event);
 
 		event->setL2Processed(L2Trigger);
 
@@ -77,7 +77,7 @@ void L2Builder::processL2(Event *event) {
 			EventPool::freeEvent(event);
 		}
 	} else {
-		uint8_t L2Trigger = L2TriggerProcessor::onNonZSuppressedLKrDataReceived(
+		uint_fast8_t L2Trigger = L2TriggerProcessor::onNonZSuppressedLKrDataReceived(
 				event);
 
 		event->setL2Processed(L2Trigger);

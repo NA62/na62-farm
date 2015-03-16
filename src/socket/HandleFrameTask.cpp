@@ -41,9 +41,9 @@
 
 namespace na62 {
 
-uint16_t HandleFrameTask::L0_Port;
-uint16_t HandleFrameTask::CREAM_Port;
-uint16_t HandleFrameTask::STRAW_PORT;
+uint_fast16_t HandleFrameTask::L0_Port;
+uint_fast16_t HandleFrameTask::CREAM_Port;
+uint_fast16_t HandleFrameTask::STRAW_PORT;
 uint32_t HandleFrameTask::MyIP;
 
 std::atomic<uint> HandleFrameTask::queuedTasksNum_;
@@ -110,9 +110,9 @@ tbb::task* HandleFrameTask::execute() {
 void HandleFrameTask::processFrame(DataContainer&& container) {
 	try {
 		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
-		const uint16_t etherType = /*ntohs*/(hdr->eth.ether_type);
-		const uint8_t ipProto = hdr->ip.protocol;
-		uint16_t destPort = ntohs(hdr->udp.dest);
+		const uint_fast16_t etherType = /*ntohs*/(hdr->eth.ether_type);
+		const uint_fast8_t ipProto = hdr->ip.protocol;
+		uint_fast16_t destPort = ntohs(hdr->udp.dest);
 		const uint32_t dstIP = hdr->ip.daddr;
 
 		/*
@@ -156,7 +156,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		}
 
 		const char * UDPPayload = container.data + sizeof(struct UDP_HDR);
-		const uint16_t & UdpDataLength = ntohs(hdr->udp.len)
+		const uint_fast16_t & UdpDataLength = ntohs(hdr->udp.len)
 				- sizeof(struct udphdr);
 
 		/*
@@ -210,7 +210,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 	}
 }
 
-bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint16_t length) {
+bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint_fast16_t length) {
 	/*
 	 * Check IP-Header
 	 */

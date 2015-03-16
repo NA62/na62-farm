@@ -112,7 +112,7 @@ void MonitorConnector::handleUpdate() {
 	std::stringstream statistics;
 	for (int soruceIDNum = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES - 1;
 			soruceIDNum >= 0; soruceIDNum--) {
-		uint8_t sourceID = SourceIDManager::sourceNumToID(soruceIDNum);
+		uint_fast8_t sourceID = SourceIDManager::sourceNumToID(soruceIDNum);
 		statistics << "0x" << std::hex << (int) sourceID << ";";
 
 		if (SourceIDManager::getExpectedPacksBySourceID(sourceID) > 0) {
@@ -198,13 +198,13 @@ void MonitorConnector::handleUpdate() {
 
 		if (L1Trigs > 0) {
 			L1Stats << "0b";
-			Utils::bin((uint8_t&) wordNum, L1Stats);
+			Utils::bin((uint_fast8_t&) wordNum, L1Stats);
 			L1Stats << ";" << L1Trigs << ";";
 		}
 
 		if (L2Trigs > 0) {
 			L2Stats << "0b";
-			Utils::bin((uint8_t&) wordNum, L2Stats);
+			Utils::bin((uint_fast8_t&) wordNum, L2Stats);
 			L2Stats << ";" << L2Trigs << ";";
 		}
 	}
@@ -284,7 +284,7 @@ uint64_t MonitorConnector::getDifferentialValue(std::string key) {
 }
 
 void MonitorConnector::setDetectorDifferentialData(std::string key,
-		uint64_t value, uint8_t detectorID) {
+		uint64_t value, uint_fast8_t detectorID) {
 	uint64_t lastValue;
 	if (detectorDifferentialInts_.find(detectorID)
 			== detectorDifferentialInts_.end()) {

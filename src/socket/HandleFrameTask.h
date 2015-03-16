@@ -26,13 +26,13 @@ private:
 	/**
 	 * @return <true> If no checksum errors have been found
 	 */
-	bool checkFrame(struct UDP_HDR* hdr, uint16_t length);
+	bool checkFrame(struct UDP_HDR* hdr, uint_fast16_t length);
 
 
 
-	static uint16_t L0_Port;
-	static uint16_t CREAM_Port;
-	static uint16_t STRAW_PORT;
+	static uint_fast16_t L0_Port;
+	static uint_fast16_t CREAM_Port;
+	static uint_fast16_t STRAW_PORT;
 	static uint32_t MyIP;
 
 	static std::atomic<uint> queuedTasksNum_;
@@ -55,11 +55,11 @@ public:
 		return queuedTasksNum_;
 	}
 
-	static inline uint64_t GetMEPsReceivedBySourceNum(uint8_t sourceNum) {
+	static inline uint64_t GetMEPsReceivedBySourceNum(uint_fast8_t sourceNum) {
 		return MEPsReceivedBySourceNum_[sourceNum];
 	}
 
-	static inline uint64_t GetBytesReceivedBySourceNum(uint8_t sourceNum) {
+	static inline uint64_t GetBytesReceivedBySourceNum(uint_fast8_t sourceNum) {
 		return BytesReceivedBySourceNum_[sourceNum];
 	}
 };

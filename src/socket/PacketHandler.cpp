@@ -112,7 +112,7 @@ void PacketHandler::thread() {
 
 				char* data = new char[hdr.len];
 				memcpy(data, buff, hdr.len);
-				frames.push_back( { data, (uint16_t) hdr.len, true });
+				frames.push_back( { data, (uint_fast16_t) hdr.len, true });
 				goToSleep = false;
 				spinsInARow = 0;
 			} else {
