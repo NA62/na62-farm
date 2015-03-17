@@ -33,7 +33,7 @@ private:
 	static uint_fast16_t L0_Port;
 	static uint_fast16_t CREAM_Port;
 	static uint_fast16_t STRAW_PORT;
-	static uint32_t MyIP;
+	static uint_fast32_t MyIP;
 
 	static std::atomic<uint> queuedTasksNum_;
 

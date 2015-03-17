@@ -45,7 +45,7 @@ public:
 	 *
 	 * @ return true if the event is complete and therefore L1 has been processed, false otherwise
 	 */
-	static bool buildEvent(l0::MEPFragment* fragment, uint32_t burstID);
+	static bool buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID);
 
 	static inline std::atomic<uint64_t>* GetL1TriggerStats() {
 		return L1Triggers_;

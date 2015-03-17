@@ -221,8 +221,8 @@ void MonitorConnector::handleUpdate() {
 
 	IPCHandler::sendStatistics("L1TriggerData", L1Stats.str());
 	IPCHandler::sendStatistics("L2TriggerData", L2Stats.str());
-	uint32_t bytesToStorage = L2Builder::GetBytesSentToStorage();
-	uint32_t eventsToStorage = L2Builder::GetEventsSentToStorage();
+	uint_fast32_t bytesToStorage = L2Builder::GetBytesSentToStorage();
+	uint_fast32_t eventsToStorage = L2Builder::GetEventsSentToStorage();
 
 	setDifferentialData("BytesToMerger", bytesToStorage);
 	setDifferentialData("EventsToMerger", eventsToStorage);

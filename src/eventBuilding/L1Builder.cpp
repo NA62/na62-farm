@@ -41,7 +41,7 @@ bool L1Builder::requestZSuppressedLkrData_;
 
 uint L1Builder::downscaleFactor_ = 0;
 
-bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint32_t burstID) {
+bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 	Event *event = EventPool::getEvent(fragment->getEventNumber());
 
 	/*
@@ -120,7 +120,7 @@ void L1Builder::processL1(Event *event) {
 void L1Builder::sendL1RequestToCREAMS(Event* event) {
 	// Request non zero suppressed LKr data if either the requestZSuppressedLkrData_ is set or
 	cream::L1DistributionHandler::Async_RequestLKRDataMulticast(event,
-			event->isRrequestZeroSuppressedCreamData() || requestZSuppressedLkrData_);
+			event->isRrequestZeroSuppressedCreamData() && requestZSuppressedLkrData_);
 }
 
 }

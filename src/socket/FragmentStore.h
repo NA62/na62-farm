@@ -103,7 +103,7 @@ private:
 	static std::atomic<uint> numberOfFragmentsReceived_;
 	static std::atomic<uint> numberOfReassembledFrames_;
 
-	static inline uint64_t generateFragmentID(const uint32_t srcIP,
+	static inline uint64_t generateFragmentID(const uint_fast32_t srcIP,
 			const uint_fast16_t fragID) {
 		return (uint64_t) fragID | ((uint64_t) srcIP << 16);
 	}

@@ -55,13 +55,13 @@ void CommandConnector::thread() {
 			std::string command = strings[0];
 			if (command == "eob_timestamp") {
 				if(MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
-					uint32_t burst = BurstIdHandler::getCurrentBurstId()+1;
+					uint_fast32_t burst = BurstIdHandler::getCurrentBurstId()+1;
 					BurstIdHandler::setNextBurstID(burst);
 					LOG_INFO << "Got EOB time: Incrementing burstID to" << burst << ENDL;
 				}
 			} else if (command == "updatenextburstid") {
 				if(!MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
-					uint32_t burst = atoi(strings[1].c_str());
+					uint_fast32_t burst = atoi(strings[1].c_str());
 					LOG_INFO << "Received new burstID: " << burst << ENDL;
 					BurstIdHandler::setNextBurstID(burst);
 				}

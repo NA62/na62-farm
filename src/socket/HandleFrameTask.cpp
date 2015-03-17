@@ -44,7 +44,7 @@ namespace na62 {
 uint_fast16_t HandleFrameTask::L0_Port;
 uint_fast16_t HandleFrameTask::CREAM_Port;
 uint_fast16_t HandleFrameTask::STRAW_PORT;
-uint32_t HandleFrameTask::MyIP;
+uint_fast32_t HandleFrameTask::MyIP;
 
 std::atomic<uint> HandleFrameTask::queuedTasksNum_;
 uint HandleFrameTask::highestSourceNum_;
@@ -113,7 +113,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		const uint_fast16_t etherType = /*ntohs*/(hdr->eth.ether_type);
 		const uint_fast8_t ipProto = hdr->ip.protocol;
 		uint_fast16_t destPort = ntohs(hdr->udp.dest);
-		const uint32_t dstIP = hdr->ip.daddr;
+		const uint_fast32_t dstIP = hdr->ip.daddr;
 
 		/*
 		 * Check if we received an ARP request
