@@ -82,12 +82,12 @@ void HandleFrameTask::initialize() {
 	}
 }
 
-void HandleFrameTask::processARPRequest(struct ARP_HDR* arp) {
+void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
 	/*
 	 * Look for ARP requests asking for my IP
 	 */
 	if (arp->targetIPAddr == NetworkHandler::GetMyIP()) { // This is asking for me
-		struct DataContainer responseArp = EthernetUtils::GenerateARPv4(
+		DataContainer responseArp = EthernetUtils::GenerateARPv4(
 				NetworkHandler::GetMyMac().data(), arp->sourceHardwAddr,
 				NetworkHandler::GetMyIP(), arp->sourceIPAddr,
 				ARPOP_REPLY);
@@ -109,7 +109,7 @@ tbb::task* HandleFrameTask::execute() {
 
 void HandleFrameTask::processFrame(DataContainer&& container) {
 	try {
-		struct UDP_HDR* hdr = (struct UDP_HDR*) container.data;
+		UDP_HDR* hdr = (UDP_HDR*) container.data;
 		const uint_fast16_t etherType = /*ntohs*/(hdr->eth.ether_type);
 		const uint_fast8_t ipProto = hdr->ip.protocol;
 		uint_fast16_t destPort = ntohs(hdr->udp.dest);
@@ -121,7 +121,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		if (etherType != 0x0008/*ETHERTYPE_IP*/|| ipProto != IPPROTO_UDP) {
 			if (etherType == 0x0608/*ETHERTYPE_ARP*/) {
 				// this will delete the data
-				processARPRequest((struct ARP_HDR*) container.data);
+				processARPRequest(reinterpret_cast<ARP_HDR*>(container.data));
 				return;
 			} else {
 				// Just ignore this frame as it's neither IP nor ARP
@@ -151,13 +151,13 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			if (container.data == nullptr) {
 				return;
 			}
-			hdr = (struct UDP_HDR*) container.data;
+			hdr = reinterpret_cast<UDP_HDR*>(container.data);
 			destPort = ntohs(hdr->udp.dest);
 		}
 
-		const char * UDPPayload = container.data + sizeof(struct UDP_HDR);
+		const char * UDPPayload = container.data + sizeof(UDP_HDR);
 		const uint_fast16_t & UdpDataLength = ntohs(hdr->udp.len)
-				- sizeof(struct udphdr);
+				- sizeof(udphdr);
 
 		/*
 		 *  Now let's see what's insight the packet
@@ -165,7 +165,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		if (destPort == L0_Port) { ////////////////////////////////////////////////// L0 Data //////////////////////////////////////////////////
 			/*
 			 * L0 Data
-			 * Length is hdr->ip.tot_len-sizeof(struct udphdr) and not container.length because of ethernet padding bytes!
+			 * Length is hdr->ip.tot_len-sizeof(udphdr) and not container.length because of ethernet padding bytes!
 			 */
 			l0::MEP* mep = new l0::MEP(UDPPayload, UdpDataLength,
 					container.data);
@@ -210,7 +210,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 	}
 }
 
-bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint_fast16_t length) {
+bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 	/*
 	 * Check IP-Header
 	 */
@@ -246,7 +246,7 @@ bool HandleFrameTask::checkFrame(struct UDP_HDR* hdr, uint_fast16_t length) {
 	//				/*
 	//				 * Check UDP checksum
 	//				 */
-	//				if (!EthernetUtils::CheckUDP(hdr, (const char *) (&hdr->udp) + sizeof(struct udphdr), ntohs(hdr->udp.len) - sizeof(struct udphdr))) {
+	//				if (!EthernetUtils::CheckUDP(hdr, (const char *) (&hdr->udp) + sizeof(udphdr), ntohs(hdr->udp.len) - sizeof(udphdr))) {
 	//					LOG_ERROR << "Packet with broken UDP-checksum received" ) << ENDL;
 	//					container.free();
 	//					continue;

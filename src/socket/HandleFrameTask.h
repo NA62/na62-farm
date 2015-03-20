@@ -21,12 +21,12 @@ private:
 	std::vector<DataContainer> containers_;
 	uint burstID_;
 
-	void processARPRequest(struct ARP_HDR* arp);
+	void processARPRequest(ARP_HDR* arp);
 
 	/**
 	 * @return <true> If no checksum errors have been found
 	 */
-	bool checkFrame(struct UDP_HDR* hdr, uint_fast16_t length);
+	bool checkFrame(UDP_HDR* hdr, uint_fast16_t length);
 
 
 

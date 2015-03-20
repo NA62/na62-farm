@@ -46,8 +46,8 @@ std::vector<std::string> StorageHandler::GetMergerAddresses(
 	boost::split(mergers, mergerList, boost::is_any_of(";,"));
 
 	if (mergers.empty()) {
-		LOG_ERROR << "List of running mergers is empty => Stopping now!"
-				<< ENDL;
+		LOG_ERROR<< "List of running mergers is empty => Stopping now!"
+		<< ENDL;
 		;
 		exit(1);
 	}
@@ -122,7 +122,7 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 	uint eventBufferSize = InitialEventBufferSize_;
 	char* eventBuffer = new char[InitialEventBufferSize_];
 
-	struct EVENT_HDR* header = (struct EVENT_HDR*) eventBuffer;
+	EVENT_HDR* header = (EVENT_HDR*) eventBuffer;
 
 	header->eventNum = event->getEventNumber();
 	header->format = 0x62; // TODO: update current format
@@ -138,8 +138,8 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 	header->SOBtimestamp = 0; // Will be set by the merger
 
 	uint sizeOfPointerTable = 4 * TotalNumberOfDetectors_;
-	uint pointerTableOffset = sizeof(struct EVENT_HDR);
-	uint eventOffset = sizeof(struct EVENT_HDR) + sizeOfPointerTable;
+	uint pointerTableOffset = sizeof(EVENT_HDR);
+	uint eventOffset = sizeof(EVENT_HDR) + sizeOfPointerTable;
 
 	for (int sourceNum = 0;
 			sourceNum != SourceIDManager::NUMBER_OF_L0_DATA_SOURCES;
@@ -167,22 +167,20 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 		int payloadLength;
 		for (uint i = 0; i != subevent->getNumberOfFragments(); i++) {
 			l0::MEPFragment* e = subevent->getFragment(i);
-			payloadLength = e->getPayloadLength() + sizeof(struct L0_BLOCK_HDR);
+			payloadLength = e->getPayloadLength() + sizeof(L0_BLOCK_HDR);
 			if (eventOffset + payloadLength > eventBufferSize) {
 				eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
 						eventBufferSize + payloadLength);
 				eventBufferSize += payloadLength;
 			}
 
-			struct L0_BLOCK_HDR* blockHdr = (struct L0_BLOCK_HDR*) (eventBuffer
-					+ eventOffset);
+			L0_BLOCK_HDR* blockHdr = (L0_BLOCK_HDR*) (eventBuffer + eventOffset);
 			blockHdr->dataBlockSize = payloadLength;
 			blockHdr->sourceSubID = e->getSourceSubID();
 			blockHdr->reserved = 0;
 
-			memcpy(eventBuffer + eventOffset + sizeof(struct L0_BLOCK_HDR),
-					e->getPayload(),
-					payloadLength - sizeof(struct L0_BLOCK_HDR));
+			memcpy(eventBuffer + eventOffset + sizeof(L0_BLOCK_HDR),
+					e->getPayload(), payloadLength - sizeof(L0_BLOCK_HDR));
 			eventOffset += payloadLength;
 
 			/*
@@ -232,7 +230,7 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 	/*
 	 * header may have been overwritten -> redefine it
 	 */
-	header = (struct EVENT_HDR*) eventBuffer;
+	header = (EVENT_HDR*) eventBuffer;
 
 	header->length = eventLength / 4;
 
@@ -305,7 +303,7 @@ int StorageHandler::SendEvent(const Event* event) {
 			break;
 		} catch (const zmq::error_t& ex) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-				LOG_ERROR << ex.what() << ENDL;
+				LOG_ERROR<< ex.what() << ENDL;
 
 				onShutDown();
 				return 0;
