@@ -18,6 +18,7 @@
 #include <l0/Subevent.h>
 #include <LKr/LkrFragment.h>
 #include <structs/Event.h>
+#include <structs/Versions.h>
 #include <zmq.h>
 #include <zmq.hpp>
 #include <cstdbool>
@@ -125,7 +126,7 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 	EVENT_HDR* header = (EVENT_HDR*) eventBuffer;
 
 	header->eventNum = event->getEventNumber();
-	header->format = 0x62; // TODO: update current format
+	header->formatVersion = EVENT_HDR_FORMAT_VERSION;
 	// header->length will be written later on
 	header->burstID = event->getBurstID();
 	header->timestamp = event->getTimestamp();
