@@ -44,7 +44,8 @@ std::vector<std::string> StrawReceiver::getZmqAddresses() {
 
 void StrawReceiver::initialize() {
 	for (std::string address : getZmqAddresses()) {
-		zmq::socket_t* socket = ZMQHandler::GenerateSocket(ZMQ_PUSH);
+		zmq::socket_t* socket = ZMQHandler::GenerateSocket("Straw-" + address,
+				ZMQ_PUSH);
 		socket->connect(address.c_str());
 		pushSockets_.push_back(socket);
 	}
@@ -54,10 +55,12 @@ void StrawReceiver::onShutDown() {
 	for (auto socket : pushSockets_) {
 		ZMQHandler::DestroySocket(socket);
 	}
+	pushSockets_.clear();
 }
 
 void StrawReceiver::processFrame(DataContainer&& data, uint burstID) {
-	char* payload = data.data + sizeof(struct UDP_HDR);
+	UDP_HDR* udpIpHdr = reinterpret_cast<UDP_HDR*>(data.data);
+	char* payload = data.data + sizeof(UDP_HDR);
 
 	uint sendDataLength = data.length - sizeof(UDP_HDR)
 			+ 8/*header indicating length and PC IP*/;
@@ -66,9 +69,8 @@ void StrawReceiver::processFrame(DataContainer&& data, uint burstID) {
 	/*
 	 * Write header
 	 */
-	const uint32_t myIP = NetworkHandler::GetMyIP();
 	memcpy(sendData, &sendDataLength, 4);
-	memcpy(sendData + 4, &myIP, 4);
+	memcpy(sendData + 4, &(udpIpHdr->ip.saddr), 4);
 
 	/*
 	 * Write data

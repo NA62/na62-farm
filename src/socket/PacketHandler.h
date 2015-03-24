@@ -13,8 +13,11 @@
 #include <atomic>
 #include <cstdint>
 #include <vector>
+#include <iostream>
 #include <utils/AExecutable.h>
 #include <boost/timer/timer.hpp>
+#include <eventBuilding/EventPool.h>
+#include <eventBuilding/Event.h>
 
 namespace na62 {
 struct DataContainer;
@@ -27,8 +30,6 @@ public:
 	void stopRunning() {
 		running_ = false;
 	}
-
-	static void initialize();
 
 	static std::atomic<uint> spins_;
 	static std::atomic<uint> sleeps_;

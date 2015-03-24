@@ -7,12 +7,8 @@
 
 #include "CommandConnector.h"
 
-#include <boost/lexical_cast.hpp>
 #include <monitoring/IPCHandler.h>
 
-#ifdef USE_GLOG
-#include <glog/logging.h>
-#endif
 #include <algorithm>
 #include <cctype>
 #include <cstdbool>
@@ -22,9 +18,11 @@
 #include <string>
 #include <vector>
 #include <boost/algorithm/string.hpp>
+#include <monitoring/BurstIdHandler.h>
 
+#include "../eventBuilding/StorageHandler.h"
 #include "../options/MyOptions.h"
-#include "../socket/HandleFrameTask.h"
+#include "../socket/PacketHandler.h"
 
 namespace na62 {
 
@@ -41,37 +39,35 @@ void CommandConnector::thread() {
 		 * Synchronious receive:
 		 */
 		message = IPCHandler::getNextCommand();
+		if (message == "") {
+			continue;
+		}
 
-#ifdef USE_GLOG
-		LOG(INFO)<< "Received command: " << message;
-#endif
+		LOG_INFO<< "Received command: " << message << ENDL;
 		std::transform(message.begin(), message.end(), message.begin(),
 				::tolower);
 
 		std::vector<std::string> strings;
 		boost::split(strings, message, boost::is_any_of(":"));
 		if (strings.size() != 2) {
-#ifdef USE_GLOG
-			LOG(INFO)<<"Unknown command: " << message;
-#endif
+			LOG_INFO<<"Unknown command: " << message << ENDL;
 		} else {
 			std::string command = strings[0];
 			if (command == "eob_timestamp") {
 				if(MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
-					uint32_t burst = HandleFrameTask::getCurrentBurstId()+1;
-					HandleFrameTask::setNextBurstId(burst);
-#ifdef USE_GLOG
-					LOG(INFO) << "Got EOB time: Incrementing burstID to" << burst;
-#endif
+					uint_fast32_t burst = BurstIdHandler::getCurrentBurstId()+1;
+					BurstIdHandler::setNextBurstID(burst);
+					LOG_INFO << "Got EOB time: Incrementing burstID to" << burst << ENDL;
 				}
 			} else if (command == "updatenextburstid") {
 				if(!MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
-					uint32_t burst = boost::lexical_cast<int>(strings[1]);
-#ifdef USE_GLOG
-					LOG(INFO) << "Received new burstID: " << burst;
-					HandleFrameTask::setNextBurstId(burst);
-#endif
+					uint_fast32_t burst = atoi(strings[1].c_str());
+					LOG_INFO << "Received new burstID: " << burst << ENDL;
+					BurstIdHandler::setNextBurstID(burst);
 				}
+			} else if (command == "runningmergers") {
+				std::string mergerList=strings[1];
+				StorageHandler::setMergers(mergerList);
 			}
 		}
 	}

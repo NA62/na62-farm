@@ -7,19 +7,18 @@
 
 #include "StorageHandler.h"
 
+#include <boost/algorithm/string.hpp>
 #include <asm-generic/errno-base.h>
 #include <eventBuilding/Event.h>
 #include <eventBuilding/SourceIDManager.h>
 #include <tbb/spin_mutex.h>
 #include <sstream>
 
-#ifdef USE_GLOG
-#include <glog/logging.h>
-#endif
 #include <l0/MEPFragment.h>
 #include <l0/Subevent.h>
 #include <LKr/LkrFragment.h>
 #include <structs/Event.h>
+#include <structs/Versions.h>
 #include <zmq.h>
 #include <zmq.hpp>
 #include <cstdbool>
@@ -42,9 +41,20 @@ int StorageHandler::TotalNumberOfDetectors_;
 
 tbb::spin_mutex StorageHandler::sendMutex_;
 
-std::vector<std::string> StorageHandler::GetMergerAddresses() {
+std::vector<std::string> StorageHandler::GetMergerAddresses(
+		std::string mergerList) {
+	std::vector<std::string> mergers;
+	boost::split(mergers, mergerList, boost::is_any_of(";,"));
+
+	if (mergers.empty()) {
+		LOG_ERROR<< "List of running mergers is empty => Stopping now!"
+		<< ENDL;
+		;
+		exit(1);
+	}
+
 	std::vector<std::string> addresses;
-	for (std::string host : Options::GetStringList(OPTION_MERGER_HOST_NAMES)) {
+	for (std::string host : mergers) {
 		std::stringstream address;
 		address << "tcp://" << host << ":"
 				<< Options::GetInt(OPTION_MERGER_PORT);
@@ -53,13 +63,24 @@ std::vector<std::string> StorageHandler::GetMergerAddresses() {
 	return addresses;
 }
 
-void StorageHandler::initialize() {
-	for (std::string address : GetMergerAddresses()) {
-		LOG(INFO)<< "Connecting to merger: " << address;
-		zmq::socket_t* socket = ZMQHandler::GenerateSocket(ZMQ_PUSH);
+void StorageHandler::setMergers(std::string mergerList) {
+	tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
+	for (auto socket : mergerSockets_) {
+		ZMQHandler::DestroySocket(socket);
+	}
+	mergerSockets_.clear();
+
+	for (std::string address : GetMergerAddresses(mergerList)) {
+		LOG_INFO<< "Connecting to merger: " << address;
+		zmq::socket_t* socket = ZMQHandler::GenerateSocket("StorageHandler", ZMQ_PUSH);
 		socket->connect(address.c_str());
 		mergerSockets_.push_back(socket);
 	}
+
+}
+
+void StorageHandler::initialize() {
+	setMergers(Options::GetString(OPTION_MERGER_HOST_NAMES));
 
 	/*
 	 * L0 sources + LKr
@@ -68,14 +89,14 @@ void StorageHandler::initialize() {
 		TotalNumberOfDetectors_ = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES;
 	} else {
 		TotalNumberOfDetectors_ = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES
-		+ 1;
+				+ 1;
 	}
 
-	if(SourceIDManager::MUV1_NUMBER_OF_FRAGMENTS!=0) {
+	if (SourceIDManager::MUV1_NUMBER_OF_FRAGMENTS != 0) {
 		TotalNumberOfDetectors_++;
 	}
 
-	if(SourceIDManager::MUV2_NUMBER_OF_FRAGMENTS!=0) {
+	if (SourceIDManager::MUV2_NUMBER_OF_FRAGMENTS != 0) {
 		TotalNumberOfDetectors_++;
 	}
 
@@ -86,6 +107,7 @@ void StorageHandler::onShutDown() {
 	for (auto socket : mergerSockets_) {
 		ZMQHandler::DestroySocket(socket);
 	}
+	mergerSockets_.clear();
 }
 
 char* StorageHandler::ResizeBuffer(char* buffer, const int oldLength,
@@ -101,10 +123,10 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 	uint eventBufferSize = InitialEventBufferSize_;
 	char* eventBuffer = new char[InitialEventBufferSize_];
 
-	struct EVENT_HDR* header = (struct EVENT_HDR*) eventBuffer;
+	EVENT_HDR* header = (EVENT_HDR*) eventBuffer;
 
 	header->eventNum = event->getEventNumber();
-	header->format = 0x62; // TODO: update current format
+	header->formatVersion = EVENT_HDR_FORMAT_VERSION;
 	// header->length will be written later on
 	header->burstID = event->getBurstID();
 	header->timestamp = event->getTimestamp();
@@ -117,8 +139,8 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 	header->SOBtimestamp = 0; // Will be set by the merger
 
 	uint sizeOfPointerTable = 4 * TotalNumberOfDetectors_;
-	uint pointerTableOffset = sizeof(struct EVENT_HDR);
-	uint eventOffset = sizeof(struct EVENT_HDR) + sizeOfPointerTable;
+	uint pointerTableOffset = sizeof(EVENT_HDR);
+	uint eventOffset = sizeof(EVENT_HDR) + sizeOfPointerTable;
 
 	for (int sourceNum = 0;
 			sourceNum != SourceIDManager::NUMBER_OF_L0_DATA_SOURCES;
@@ -137,7 +159,7 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 		uint eventOffset32 = eventOffset / 4;
 		std::memcpy(eventBuffer + pointerTableOffset, &eventOffset32, 3);
 		std::memset(eventBuffer + pointerTableOffset + 3,
-				SourceIDManager::SourceNumToID(sourceNum), 1);
+				SourceIDManager::sourceNumToID(sourceNum), 1);
 		pointerTableOffset += 4;
 
 		/*
@@ -146,22 +168,20 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 		int payloadLength;
 		for (uint i = 0; i != subevent->getNumberOfFragments(); i++) {
 			l0::MEPFragment* e = subevent->getFragment(i);
-			payloadLength = e->getPayloadLength() + sizeof(struct L0_BLOCK_HDR);
+			payloadLength = e->getPayloadLength() + sizeof(L0_BLOCK_HDR);
 			if (eventOffset + payloadLength > eventBufferSize) {
 				eventBuffer = ResizeBuffer(eventBuffer, eventBufferSize,
 						eventBufferSize + payloadLength);
 				eventBufferSize += payloadLength;
 			}
 
-			struct L0_BLOCK_HDR* blockHdr = (struct L0_BLOCK_HDR*) (eventBuffer
-					+ eventOffset);
+			L0_BLOCK_HDR* blockHdr = (L0_BLOCK_HDR*) (eventBuffer + eventOffset);
 			blockHdr->dataBlockSize = payloadLength;
 			blockHdr->sourceSubID = e->getSourceSubID();
 			blockHdr->reserved = 0;
 
-			memcpy(eventBuffer + eventOffset + sizeof(struct L0_BLOCK_HDR),
-					e->getPayload(),
-					payloadLength - sizeof(struct L0_BLOCK_HDR));
+			memcpy(eventBuffer + eventOffset + sizeof(L0_BLOCK_HDR),
+					e->getPayload(), payloadLength - sizeof(L0_BLOCK_HDR));
 			eventOffset += payloadLength;
 
 			/*
@@ -211,7 +231,7 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 	/*
 	 * header may have been overwritten -> redefine it
 	 */
-	header = (struct EVENT_HDR*) eventBuffer;
+	header = (EVENT_HDR*) eventBuffer;
 
 	header->length = eventLength / 4;
 
@@ -274,7 +294,7 @@ int StorageHandler::SendEvent(const Event* event) {
 	 * Send the event to the merger with a zero copy message
 	 */
 	zmq::message_t zmqMessage((void*) data, data->length * 4,
-			(zmq::free_fn*)  ZMQHandler::freeZmqMessage);
+			(zmq::free_fn*) ZMQHandler::freeZmqMessage);
 
 	while (ZMQHandler::IsRunning()) {
 		tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
@@ -284,7 +304,7 @@ int StorageHandler::SendEvent(const Event* event) {
 			break;
 		} catch (const zmq::error_t& ex) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-				LOG(ERROR)<< ex.what();
+				LOG_ERROR<< ex.what() << ENDL;
 
 				onShutDown();
 				return 0;

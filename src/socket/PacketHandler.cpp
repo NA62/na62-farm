@@ -10,9 +10,6 @@
 #include <tbb/task.h>
 #include <tbb/tick_count.h>
 #include <tbb/tbb_thread.h>
-#ifdef USE_GLOG
-#include <glog/logging.h>
-#endif
 #include <linux/pf_ring.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
@@ -41,6 +38,8 @@
 #include <socket/NetworkHandler.h>
 #include <eventBuilding/SourceIDManager.h>
 #include <boost/timer/timer.hpp>
+#include <options/Logging.h>
+#include <monitoring/BurstIdHandler.h>
 
 #include "HandleFrameTask.h"
 
@@ -62,16 +61,13 @@ PacketHandler::PacketHandler(int threadNum) :
 PacketHandler::~PacketHandler() {
 }
 
-void PacketHandler::initialize() {
-}
-
 void PacketHandler::thread() {
-	struct pfring_pkthdr hdr;
+	pfring_pkthdr hdr;
 	memset(&hdr, 0, sizeof(hdr));
 	int receivedFrame = 0;
 
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
-	const uint pollDelay = Options::GetFloat(OPTION_POLLING_DELAY);
+	const uint pollDelay = Options::GetDouble(OPTION_POLLING_DELAY);
 
 	const uint maxAggregationMicros = Options::GetInt(
 	OPTION_MAX_AGGREGATION_TIME);
@@ -113,15 +109,17 @@ void PacketHandler::thread() {
 					threadNum_);
 
 			if (receivedFrame > 0) {
+
 				char* data = new char[hdr.len];
 				memcpy(data, buff, hdr.len);
-				frames.push_back( { data, (uint16_t) hdr.len, true });
+				frames.push_back( { data, (uint_fast16_t) hdr.len, true });
 				goToSleep = false;
 				spinsInARow = 0;
 			} else {
 				if (threadNum_ == 0
 						&& sendTimer.elapsed().wall / 1000
 								> minUsecBetweenL1Requests) {
+
 					/*
 					 * We didn't receive anything for a while -> send enqueued frames
 					 */
@@ -139,11 +137,14 @@ void PacketHandler::thread() {
 					 * two times during current frame aggregation
 					 */
 				} else {
-					if (threadNum_ == 0
-							&& NetworkHandler::getNumberOfEnqueuedSendFrames()
-									!= 0) {
-						continue;
+					if (!running_) {
+						goto finish;
 					}
+//					if (threadNum_ == 0
+//							&& NetworkHandler::getNumberOfEnqueuedSendFrames()
+//									!= 0) {
+//						continue;
+//					}
 
 					/*
 					 * If we didn't receive anything at the first try or in average for a while go to sleep
@@ -171,12 +172,18 @@ void PacketHandler::thread() {
 
 		if (!frames.empty()) {
 			/*
+			 * Check if the burstID is already updated and the update is long enough ago. Otherwise
+			 * we would increment the burstID while we are still processing events from the last burst.
+			 */
+			BurstIdHandler::checkBurstIdChange();
+
+			/*
 			 * Start a new task which will check the frame
 			 *
 			 */
 			HandleFrameTask* task =
 					new (tbb::task::allocate_root()) HandleFrameTask(
-							std::move(frames));
+							std::move(frames), BurstIdHandler::getCurrentBurstId());
 			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 
 			goToSleep = false;
@@ -196,7 +203,8 @@ void PacketHandler::thread() {
 			}
 		}
 	}
-	std::cout << "Stopping PacketHandler thread " << threadNum_ << std::endl;
+	finish: LOG_INFO<<"Stopping PacketHandler thread " << threadNum_
+	<< ENDL;
 }
 }
 /* namespace na62 */

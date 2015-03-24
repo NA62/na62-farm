@@ -43,8 +43,6 @@
 
 #define OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG (char*)"sendMRPsWithZSuppressionFlag"
 
-#define OPTION_PRINT_MISSING_SOURCES (char*)"printMissingSources"
-
 #define OPTION_INCREMENT_BURST_AT_EOB (char*)"incrementBurstAtEOB"
 /*
  * Triggering
@@ -82,6 +80,12 @@
 #define OPTION_STRAW_PORT (char*)"strawReceivePort"
 #define OPTION_STRAW_ZMQ_PORT (char*)"strawZmqPort"
 #define OPTION_STRAW_ZMQ_DST_HOSTS (char*)"strawZmqDstHosts"
+
+/*
+ * Debugging
+ */
+#define OPTION_PRINT_MISSING_SOURCES (char*)"printMissingSources"
+#define OPTION_WRITE_BROKEN_CREAM_INFO (char*)"printBrokenCreamInfo"
 
 namespace na62 {
 class MyOptions: public Options {
@@ -122,7 +126,7 @@ public:
 				"Defines a list of CREAMs that must appear in the normal creamCrate list but should not be activated")
 
 		(OPTION_TS_SOURCEID, po::value<std::string>()->required(),
-				"Source ID of the detector which timestamp should be written into the final event and sent to the LKr for L1-triggers.")
+				"Source ID of the detector whose timestamp should be written into the final event and sent to the LKr for L1-triggers.")
 
 		(OPTION_FIRST_BURST_ID, po::value<int>()->required(),
 				"The current or first burst ID. This must be set if a PC starts during a run.")
@@ -137,8 +141,9 @@ public:
 				po::value<int>()->default_value(1000),
 				"Minimum time between two MRPs sent to the CREAMs")
 
-		(OPTION_CREAM_MULTICAST_GROUP, po::value<std::string>()->required(),
-				"The multicast group IP for L1 requests to the CREAMs (MRP)")
+		(OPTION_CREAM_MULTICAST_GROUP,
+				po::value<std::string>()->default_value("239.1.1.1"),
+				"Comma separated list of multicast group IPs for L1 requests to the CREAMs (MRP)")
 
 		(OPTION_CREAM_MULTICAST_PORT, po::value<int>()->default_value(58914),
 				"The port all L1 multicast MRPs to the CREAMs should be sent to")
@@ -174,7 +179,7 @@ public:
 		(OPTION_ACTIVE_POLLING, po::value<int>()->default_value(1),
 				"Use active polling (high CPU usage, might be faster depending on the number of pf_ring queues)")
 
-		(OPTION_POLLING_DELAY, po::value<float>()->default_value(1E5),
+		(OPTION_POLLING_DELAY, po::value<double>()->default_value(1E5),
 				"Number of ticks to wait between two polls")
 
 		(OPTION_POLLING_SLEEP_MICROS, po::value<int>()->default_value(1E4),
@@ -186,10 +191,8 @@ public:
 		(OPTION_MAX_AGGREGATION_TIME, po::value<int>()->default_value(100000),
 				"Maximum time for one frame aggregation period before spawning a new TBB task in microseconds")
 
-		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
-				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
 
-		(OPTION_INCREMENT_BURST_AT_EOB, po::value<bool>()->default_value(true),
+		(OPTION_INCREMENT_BURST_AT_EOB, po::value<bool>()->default_value(false),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
 
 		(OPTION_STRAW_PORT, po::value<int>()->default_value(58916),
@@ -204,6 +207,13 @@ public:
 
 		(OPTION_STRAW_ZMQ_DST_HOSTS, po::value<std::string>()->required(),
 				"Comma separated list of all hosts that have a ZMQ PULL socket listening to the strawZmqPort to receive STRAW data")
+
+		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
+				"If set to 1, information about unfinished events is written to /tmp/farm-logs/unfinishedEvents")
+
+		(OPTION_WRITE_BROKEN_CREAM_INFO,
+				po::value<bool>()->default_value(false),
+				"If set to 1, information about non requested cream data (already received/not requested) is written to /tmp/farm-logs/nonRequestedCreamData)")
 
 				;
 

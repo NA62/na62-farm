@@ -1,8 +1,10 @@
 /*
  * FragmentStore.h
  *
+ * This class handles IP fragmentation
+ *
  *  Created on: Sep 29, 2014
- *      Author: root
+ *      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
 #ifndef FRAGMENTSTORE_H_
@@ -18,6 +20,8 @@
 
 #include <algorithm>
 #include <iterator>
+
+#include <options/Logging.h>
 
 namespace na62 {
 
@@ -99,8 +103,8 @@ private:
 	static std::atomic<uint> numberOfFragmentsReceived_;
 	static std::atomic<uint> numberOfReassembledFrames_;
 
-	static inline uint64_t generateFragmentID(const uint32_t srcIP,
-			const uint16_t fragID) {
+	static inline uint64_t generateFragmentID(const uint_fast32_t srcIP,
+			const uint_fast16_t fragID) {
 		return (uint64_t) fragID | ((uint64_t) srcIP << 16);
 	}
 
@@ -120,22 +124,22 @@ private:
 		/*
 		 * We'll copy the ethernet and IP header of the first frame plus all IP-Payload of all frames
 		 */
-		uint16_t totalBytes = sizeof(ether_header)
+		uint_fast16_t totalBytes = sizeof(ether_header)
 				+ lastFragment->getFragmentOffsetInBytes()
 				+ ntohs(lastFragment->ip.tot_len);
 
 		char* newFrameBuff = new char[totalBytes];
 
-		uint16_t currentOffset = sizeof(ether_header) + sizeof(iphdr);
+		uint_fast16_t currentOffset = sizeof(ether_header) + sizeof(iphdr);
 		for (DataContainer& fragment : fragments) {
 			UDP_HDR* currentData = (UDP_HDR*) fragment.data;
 
 			if (currentData->getFragmentOffsetInBytes() + sizeof(ether_header)
 					+ sizeof(iphdr) != currentOffset) {
-				std::cerr
+				LOG_ERROR
 						<< "Error while reassembling IP fragments: sum of fragment lengths is "
 						<< currentOffset << " but offset of current frame is "
-						<< currentData->getFragmentOffsetInBytes() << std::endl;
+						<< currentData->getFragmentOffsetInBytes() << ENDL;
 
 				for (DataContainer& fragment : fragments) {
 					if (fragment.data != nullptr) {

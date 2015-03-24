@@ -2,7 +2,7 @@
  * HandleFrameTask.h
  *
  *  Created on: Jun 27, 2014
- *      Author: root
+ *      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
 
 #ifndef HANDLEFRAMETASK_H_
@@ -13,35 +13,27 @@
 #include <atomic>
 
 #include <socket/EthernetUtils.h>
-#include <boost/timer/timer.hpp>
 
 namespace na62 {
 
 class HandleFrameTask: public tbb::task {
 private:
-	std::vector<DataContainer> containers;
+	std::vector<DataContainer> containers_;
+	uint burstID_;
 
-	void processARPRequest(struct ARP_HDR* arp);
+	void processARPRequest(ARP_HDR* arp);
 
 	/**
 	 * @return <true> If no checksum errors have been found
 	 */
-	bool checkFrame(struct UDP_HDR* hdr, uint16_t length);
+	bool checkFrame(UDP_HDR* hdr, uint_fast16_t length);
 
-	static uint16_t L0_Port;
-	static uint16_t CREAM_Port;
-	static uint16_t STRAW_PORT;
-	static uint32_t MyIP;
 
-	/*
-	 * Store the current Burst ID and the next one separately. As soon as an EOB event is
-	 * received the nextBurstID_ will be set. Then the currentBurstID will be updated later
-	 * to make sure currently enqueued frames in other threads are not processed with
-	 * the new burstID
-	 */
-	static uint32_t currentBurstID_;
-	static uint32_t nextBurstID_;
-	static boost::timer::cpu_timer eobFrameReceivedTime_;
+
+	static uint_fast16_t L0_Port;
+	static uint_fast16_t CREAM_Port;
+	static uint_fast16_t STRAW_PORT;
+	static uint_fast32_t MyIP;
 
 	static std::atomic<uint> queuedTasksNum_;
 
@@ -50,36 +42,24 @@ private:
 	static std::atomic<uint64_t>* BytesReceivedBySourceNum_;
 
 	void processFrame(DataContainer&& container);
+
 public:
-	HandleFrameTask(std::vector<DataContainer>&& _containers);
+	HandleFrameTask(std::vector<DataContainer>&& _containers, uint burstID);
 	virtual ~HandleFrameTask();
 
 	tbb::task* execute();
 
 	static void initialize();
 
-	static uint32_t getCurrentBurstId() {
-		return currentBurstID_;
-	}
-
-	static uint32_t getNextBurstId() {
-		return nextBurstID_;
-	}
-
-	static void setNextBurstId(uint32_t burstID) {
-		nextBurstID_ = burstID;
-		eobFrameReceivedTime_.start();
-	}
-
 	static inline uint getNumberOfQeuedTasks() {
 		return queuedTasksNum_;
 	}
 
-	static inline uint64_t GetMEPsReceivedBySourceNum(uint8_t sourceNum) {
+	static inline uint64_t GetMEPsReceivedBySourceNum(uint_fast8_t sourceNum) {
 		return MEPsReceivedBySourceNum_[sourceNum];
 	}
 
-	static inline uint64_t GetBytesReceivedBySourceNum(uint8_t sourceNum) {
+	static inline uint64_t GetBytesReceivedBySourceNum(uint_fast8_t sourceNum) {
 		return BytesReceivedBySourceNum_[sourceNum];
 	}
 };
