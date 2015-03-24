@@ -185,8 +185,6 @@ public:
 		(OPTION_MAX_AGGREGATION_TIME, po::value<int>()->default_value(100000),
 				"Maximum time for one frame aggregation period before spawning a new TBB task in microseconds")
 
-		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
-				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
 
 		(OPTION_INCREMENT_BURST_AT_EOB, po::value<bool>()->default_value(false),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
@@ -204,9 +202,12 @@ public:
 		(OPTION_STRAW_ZMQ_DST_HOSTS, po::value<std::string>()->required(),
 				"Comma separated list of all hosts that have a ZMQ PULL socket listening to the strawZmqPort to receive STRAW data")
 
+		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
+				"If set to 1, information about unfinished events is written to /tmp/farm-logs/unfinishedEvents")
+
 		(OPTION_WRITE_BROKEN_CREAM_INFO,
 				po::value<bool>()->default_value(false),
-				"If set to 1, information about broken cream data (already received/not requested) is written to /tmp/farm-logs)")
+				"If set to 1, information about non requested cream data (already received/not requested) is written to /tmp/farm-logs/nonRequestedCreamData)")
 
 				;
 
