@@ -152,9 +152,8 @@ public:
 				"Maximum number of Triggers per L1 MRP")
 
 		(OPTION_L1_DISPATCHER_ADDRESS,
-				po::value<std::string>()->default_value(
-						"tcp://localhost:131816"),
-				"Address of L1Dispatcher the MRPs should be sent to")
+				po::value<std::string>()->required(),
+				"Address of L1Dispatcher the MRPs should be sent to in the ZMQ format similar to tcp://host:131816")
 
 		(OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG,
 				po::value<int>()->default_value(0),

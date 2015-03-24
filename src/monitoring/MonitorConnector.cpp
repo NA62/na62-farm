@@ -7,12 +7,9 @@
 
 #include "MonitorConnector.h"
 
-#include <boost/asio/basic_deadline_timer.hpp>
-#include <boost/interprocess/interprocess_fwd.hpp>
-#include <boost/asio/io_service.hpp>
+#include <monitoring/BurstIdHandler.h>
+#include <boost/asio.hpp>
 #include <boost/bind.hpp>
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
-#include <boost/date_time/time_duration.hpp>
 #include <sstream>
 
 #include "../socket/HandleFrameTask.h"
@@ -27,15 +24,12 @@
 #include <eventBuilding/Event.h>
 #include <eventBuilding/UnfinishedEventsCollector.h>
 #include <options/Logging.h>
-#include <monitoring/BurstIdHandler.h>
 
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
 #include "../socket/HandleFrameTask.h"
 #include "../socket/FragmentStore.h"
 #include "../socket/PacketHandler.h"
-
-using namespace boost::interprocess;
 
 namespace na62 {
 namespace monitoring {
