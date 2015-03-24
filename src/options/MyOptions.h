@@ -42,8 +42,6 @@
 
 #define OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG (char*)"sendMRPsWithZSuppressionFlag"
 
-#define OPTION_PRINT_MISSING_SOURCES (char*)"printMissingSources"
-
 #define OPTION_INCREMENT_BURST_AT_EOB (char*)"incrementBurstAtEOB"
 /*
  * Triggering
@@ -85,7 +83,7 @@
 /*
  * Debugging
  */
-
+#define OPTION_PRINT_MISSING_SOURCES (char*)"printMissingSources"
 #define OPTION_WRITE_BROKEN_CREAM_INFO (char*)"printBrokenCreamInfo"
 
 namespace na62 {

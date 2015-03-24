@@ -45,8 +45,6 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 	LOG_INFO<< "#############################################" << ENDL;
 	LOG_INFO<< "#############################################" << ENDL;
 	LOG_INFO<< "#############################################" << ENDL;
-	LOG_INFO<< "#############################################" << ENDL;
-	LOG_INFO<< "#############################################" << ENDL;
 	LOG_INFO<< "Received signal " << signal_number << " - Shutting down"
 	<< ENDL;
 
@@ -88,6 +86,9 @@ int main(int argc, char* argv[]) {
 	signals.async_wait(handle_stop);
 	boost::thread signalThread(
 			boost::bind(&boost::asio::io_service::run, &signalService));
+
+
+	L1TriggerProcessor::registerDownscalingAlgorithms();
 
 	/*
 	 * Static Class initializations
