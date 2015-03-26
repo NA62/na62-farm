@@ -76,7 +76,6 @@ void StorageHandler::setMergers(std::string mergerList) {
 		socket->connect(address.c_str());
 		mergerSockets_.push_back(socket);
 	}
-
 }
 
 void StorageHandler::initialize() {

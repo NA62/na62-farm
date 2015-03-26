@@ -76,7 +76,7 @@ void L2Builder::processL2(Event *event) {
 			L2Triggers_[L2Trigger].fetch_add(1, std::memory_order_relaxed);
 			EventPool::freeEvent(event);
 		}
-	} else {
+	} else { // Process non zero-suppressed data (not used at the moment!
 		uint_fast8_t L2Trigger = L2TriggerProcessor::onNonZSuppressedLKrDataReceived(
 				event);
 

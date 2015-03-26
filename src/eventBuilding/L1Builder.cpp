@@ -52,6 +52,7 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 		return false;
 	}
 
+	// Downscaling
 	if (fragment->getEventNumber() % downscaleFactor_ != 0) {
 		delete fragment;
 		return false;
@@ -96,31 +97,30 @@ void L1Builder::processL1(Event *event) {
 	L1Triggers_[l1TriggerTypeWord].fetch_add(1, std::memory_order_relaxed); // The second 8 bits are the L1 trigger type word
 	event->setL1Processed(L0L1Trigger);
 
-	if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT != 0) {
-		if (l1TriggerTypeWord != 0) {
+	if (l1TriggerTypeWord != 0) {
+		if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT != 0) {
 			/*
 			 * Only request accepted events from LKr
 			 */
 			sendL1RequestToCREAMS(event);
-		}
-	} else {
-		if (l1TriggerTypeWord != 0) {
+		} else {
 			L2Builder::processL2(event);
 		}
-	}
-
-	/*
-	 * If the Event has been rejected by L1 we can destroy it now
-	 */
-	if (l1TriggerTypeWord == 0) {
+	} else {
+		/*
+		 * If the Event has been rejected by L1 we can destroy it now
+		 */
 		EventPool::freeEvent(event);
 	}
+
 }
 
 void L1Builder::sendL1RequestToCREAMS(Event* event) {
 	// Request non zero suppressed LKr data if either the requestZSuppressedLkrData_ is set or
+	// See https://github.com/NA62/na62-trigger-algorithms/wiki/CREAM-data
 	cream::L1DistributionHandler::Async_RequestLKRDataMulticast(event,
-			event->isRrequestZeroSuppressedCreamData() && requestZSuppressedLkrData_);
+			event->isRrequestZeroSuppressedCreamData()
+					&& requestZSuppressedLkrData_);
 }
 
 }
