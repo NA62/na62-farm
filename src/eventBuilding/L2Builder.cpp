@@ -36,7 +36,14 @@ bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
 		return false;
 	}
 
-	const UDP_HDR* etherFrame = reinterpret_cast<const UDP_HDR*>(fragment->getEtherFrame());
+	const UDP_HDR* etherFrame =
+			reinterpret_cast<const UDP_HDR*>(fragment->getEtherFrame());
+
+	// Downscaling
+	if (fragment->getEventNumber() % downscaleFactor_ != 0) {
+		delete fragment;
+		return false;
+	}
 
 	/*
 	 * Add new packet to EventCollector
@@ -77,8 +84,8 @@ void L2Builder::processL2(Event *event) {
 			EventPool::freeEvent(event);
 		}
 	} else { // Process non zero-suppressed data (not used at the moment!
-		uint_fast8_t L2Trigger = L2TriggerProcessor::onNonZSuppressedLKrDataReceived(
-				event);
+		uint_fast8_t L2Trigger =
+				L2TriggerProcessor::onNonZSuppressedLKrDataReceived(event);
 
 		event->setL2Processed(L2Trigger);
 		if (event->isL2Accepted()) {
