@@ -41,6 +41,8 @@ bool L1Builder::requestZSuppressedLkrData_;
 
 uint L1Builder::downscaleFactor_ = 0;
 
+bool L1Builder::L1_flag_mode_ = false;
+
 bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 	Event *event = EventPool::getEvent(fragment->getEventNumber());
 
@@ -97,6 +99,7 @@ void L1Builder::processL1(Event *event) {
 	L1Triggers_[l1TriggerTypeWord].fetch_add(1, std::memory_order_relaxed); // The second 8 bits are the L1 trigger type word
 	event->setL1Processed(L0L1Trigger);
 
+	//if ((l1TriggerTypeWord != 0) || L1_flag_mode_) {
 	if (l1TriggerTypeWord != 0) {
 		if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT != 0) {
 			/*

@@ -33,6 +33,8 @@ private:
 
 	static uint downscaleFactor_;
 
+	static bool L1_flag_mode_;
+
 	/*
 	 * @return <true> if any packet has been sent (time has passed)
 	 */
@@ -59,6 +61,8 @@ public:
 		requestZSuppressedLkrData_ = MyOptions::GetBool(OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG);
 
 		downscaleFactor_ = Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR);
+
+		L1_flag_mode_ = MyOptions::GetBool(OPTION_L1_FLAG_MODE);
 	}
 };
 
