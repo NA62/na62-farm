@@ -177,7 +177,8 @@ EVENT_HDR* StorageHandler::GenerateEventBuffer(const Event* event) {
 			L0_BLOCK_HDR* blockHdr = (L0_BLOCK_HDR*) (eventBuffer + eventOffset);
 			blockHdr->dataBlockSize = payloadLength;
 			blockHdr->sourceSubID = e->getSourceSubID();
-			blockHdr->reserved = 0;
+			blockHdr->reserved = 0x01;
+			blockHdr->timestamp = e->getTimestamp();
 
 			memcpy(eventBuffer + eventOffset + sizeof(L0_BLOCK_HDR),
 					e->getPayload(), payloadLength - sizeof(L0_BLOCK_HDR));
