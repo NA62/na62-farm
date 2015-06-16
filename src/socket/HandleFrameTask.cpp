@@ -12,6 +12,7 @@
 #include <l0/MEPFragment.h>
 #include <LKr/LkrFragment.h>
 #include <l1/L1Fragment.h>
+#include <l2/L2Fragment.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
@@ -191,7 +192,8 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					uint32_t L1EventLength = sizeof(L1_BLOCK) + 8; //event length in bytes
 					uint32_t L1BlockLength = mep_factor * L1EventLength + 8; //L1 block length in bytes
 					char * L1Data = new char[L1BlockLength + sizeof(UDP_HDR)]; //include UDP header
-					l0::MEP_HDR * L1Hdr = (l0::MEP_HDR *) (L1Data + sizeof(UDP_HDR));
+					l0::MEP_HDR * L1Hdr = (l0::MEP_HDR *) (L1Data
+							+ sizeof(UDP_HDR));
 
 					L1Hdr->firstEventNum = mep->getFirstEventNum();
 					L1Hdr->sourceID = SOURCE_ID_L1;
@@ -211,19 +213,62 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 
 					const uint_fast16_t & L1DataLength = L1BlockLength;
 
-					l0::MEP* mep_L1 = new l0::MEP(L1Data + sizeof(UDP_HDR), L1DataLength,
-							L1Data);
+					l0::MEP* mep_L1 = new l0::MEP(L1Data + sizeof(UDP_HDR),
+							L1DataLength, L1Data);
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_L1->getSourceID());
 
 					MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
 							std::memory_order_relaxed);
 					BytesReceivedBySourceNum_[sourceNum].fetch_add(
-							L1BlockLength + sizeof(UDP_HDR), std::memory_order_relaxed);
+							L1BlockLength + sizeof(UDP_HDR),
+							std::memory_order_relaxed);
 
 					for (uint i = 0; i != mep_L1->getNumberOfFragments(); i++) {
 						// Add every fragment
 						L1Builder::buildEvent(mep_L1->getFragment(i), burstID_);
+					}
+				}
+				if (SourceIDManager::isL2Active()) {
+					uint16_t mep_factor = mep->getNumberOfFragments();
+					uint32_t L2EventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
+					uint32_t L2BlockLength = mep_factor * L2EventLength + 8; //L2 block length in bytes
+					char * L2Data = new char[L2BlockLength + sizeof(UDP_HDR)]; //include UDP header
+					l0::MEP_HDR * L2Hdr = (l0::MEP_HDR *) (L2Data
+							+ sizeof(UDP_HDR));
+
+					L2Hdr->firstEventNum = mep->getFirstEventNum();
+					L2Hdr->sourceID = SOURCE_ID_L2;
+					L2Hdr->mepLength = L2BlockLength;
+					L2Hdr->eventCount = mep_factor;
+					L2Hdr->sourceSubID = SOURCE_ID_L2;
+
+					char * L2Event = L2Data + sizeof(UDP_HDR) + 8;
+					l0::MEPFragment * L2Fragment;
+					for (uint i = 0; i != mep_factor; i++) {
+						L2Fragment = mep->getFragment(i);
+						memcpy(L2Event, L2Fragment->getDataWithMepHeader(), 8);
+						*L2Event = *L2Event & 0xffff0000;
+						*L2Event |= L2EventLength;
+						L2Event += L2EventLength;
+					}
+
+					const uint_fast16_t & L2DataLength = L2BlockLength;
+
+					l0::MEP* mep_L2 = new l0::MEP(L2Data + sizeof(UDP_HDR),
+							L2DataLength, L2Data);
+					uint sourceNum = SourceIDManager::sourceIDToNum(
+							mep_L2->getSourceID());
+
+					MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
+							std::memory_order_relaxed);
+					BytesReceivedBySourceNum_[sourceNum].fetch_add(
+							L2BlockLength + sizeof(UDP_HDR),
+							std::memory_order_relaxed);
+
+					for (uint i = 0; i != mep_L2->getNumberOfFragments(); i++) {
+						// Add every fragment
+						L1Builder::buildEvent(mep_L2->getFragment(i), burstID_);
 					}
 				}
 			}
