@@ -11,6 +11,7 @@
 #include <l0/MEP.h>
 #include <l0/MEPFragment.h>
 #include <LKr/LkrFragment.h>
+#include <l1/L1Fragment.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
@@ -180,6 +181,51 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			for (uint i = 0; i != mep->getNumberOfFragments(); i++) {
 				// Add every fragment
 				L1Builder::buildEvent(mep->getFragment(i), burstID_);
+			}
+			/*
+			 * Setup L1 block if L1 is active copying informations from L0TP MEps
+			 */
+			if (mep->getSourceID() == SOURCE_ID_L0TP) {
+				if (SourceIDManager::isL1Active()) {
+					uint16_t mep_factor = mep->getNumberOfFragments();
+					uint32_t L1EventLength = sizeof(L1_BLOCK) + 8; //event length in bytes
+					uint32_t L1BlockLength = mep_factor * L1EventLength + 8; //L1 block length in bytes
+					char * L1Data = new char[L1BlockLength + sizeof(UDP_HDR)]; //include UDP header
+					l0::MEP_HDR * L1Hdr = (l0::MEP_HDR *) (L1Data + sizeof(UDP_HDR));
+
+					L1Hdr->firstEventNum = mep->getFirstEventNum();
+					L1Hdr->sourceID = SOURCE_ID_L1;
+					L1Hdr->mepLength = L1BlockLength;
+					L1Hdr->eventCount = mep_factor;
+					L1Hdr->sourceSubID = SOURCE_ID_L1;
+
+					char * L1Event = L1Data + sizeof(UDP_HDR) + 8;
+					l0::MEPFragment * L1Fragment;
+					for (uint i = 0; i != mep_factor; i++) {
+						L1Fragment = mep->getFragment(i);
+						memcpy(L1Event, L1Fragment->getDataWithMepHeader(), 8);
+						*L1Event = *L1Event & 0xffff0000;
+						*L1Event |= L1EventLength;
+						L1Event += L1EventLength;
+					}
+
+					const uint_fast16_t & L1DataLength = L1BlockLength;
+
+					l0::MEP* mep_L1 = new l0::MEP(L1Data + sizeof(UDP_HDR), L1DataLength,
+							L1Data);
+					uint sourceNum = SourceIDManager::sourceIDToNum(
+							mep_L1->getSourceID());
+
+					MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
+							std::memory_order_relaxed);
+					BytesReceivedBySourceNum_[sourceNum].fetch_add(
+							L1BlockLength + sizeof(UDP_HDR), std::memory_order_relaxed);
+
+					for (uint i = 0; i != mep_L1->getNumberOfFragments(); i++) {
+						// Add every fragment
+						L1Builder::buildEvent(mep_L1->getFragment(i), burstID_);
+					}
+				}
 			}
 		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// CREAM Data //////////////////////////////////////////////////
 			cream::LkrFragment* fragment = new cream::LkrFragment(UDPPayload,
