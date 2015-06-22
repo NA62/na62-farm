@@ -206,8 +206,10 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					for (uint i = 0; i != mep_factor; i++) {
 						L1Fragment = mep->getFragment(i);
 						memcpy(L1Event, L1Fragment->getDataWithMepHeader(), 8);
-						*L1Event = *L1Event & 0xffff0000;
-						*L1Event |= L1EventLength;
+						uint temp;
+						temp = *(uint *) (L1Event) & 0xffff0000;
+						temp |= L1EventLength;
+						*(uint *) (L1Event) = temp;
 						L1Event += L1EventLength;
 					}
 
@@ -223,7 +225,6 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					BytesReceivedBySourceNum_[sourceNum].fetch_add(
 							L1BlockLength + sizeof(UDP_HDR),
 							std::memory_order_relaxed);
-
 					for (uint i = 0; i != mep_L1->getNumberOfFragments(); i++) {
 						// Add every fragment
 						L1Builder::buildEvent(mep_L1->getFragment(i), burstID_);
@@ -248,8 +249,10 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					for (uint i = 0; i != mep_factor; i++) {
 						L2Fragment = mep->getFragment(i);
 						memcpy(L2Event, L2Fragment->getDataWithMepHeader(), 8);
-						*L2Event = *L2Event & 0xffff0000;
-						*L2Event |= L2EventLength;
+						uint temp;
+						temp = *(uint *) (L2Event) & 0xffff0000;
+						temp |= L2EventLength;
+						*(uint *) (L2Event) = temp;
 						L2Event += L2EventLength;
 					}
 
@@ -271,6 +274,55 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 						L1Builder::buildEvent(mep_L2->getFragment(i), burstID_);
 					}
 				}
+				if (SourceIDManager::isNSTDActive()) {
+					uint16_t mep_factor = mep->getNumberOfFragments();
+					uint32_t NSTDEventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
+					uint32_t NSTDBlockLength = mep_factor * NSTDEventLength + 8; //L2 block length in bytes
+					char * NSTDData =
+							new char[NSTDBlockLength + sizeof(UDP_HDR)]; //include UDP header
+					l0::MEP_HDR * NSTDHdr = (l0::MEP_HDR *) (NSTDData
+							+ sizeof(UDP_HDR));
+
+					NSTDHdr->firstEventNum = mep->getFirstEventNum();
+					NSTDHdr->sourceID = SOURCE_ID_NSTD;
+					NSTDHdr->mepLength = NSTDBlockLength;
+					NSTDHdr->eventCount = mep_factor;
+					NSTDHdr->sourceSubID = SOURCE_ID_NSTD;
+
+					char * NSTDEvent = NSTDData + sizeof(UDP_HDR) + 8;
+					l0::MEPFragment * NSTDFragment;
+					for (uint i = 0; i != mep_factor; i++) {
+						NSTDFragment = mep->getFragment(i);
+						memcpy(NSTDEvent, NSTDFragment->getDataWithMepHeader(),
+								8);
+						uint temp;
+						temp = *(uint *) (NSTDEvent) & 0xffff0000;
+						temp |= NSTDEventLength;
+						*(uint *) (NSTDEvent) = temp;
+						NSTDEvent += NSTDEventLength;
+					}
+
+					const uint_fast16_t & NSTDDataLength = NSTDBlockLength;
+
+					l0::MEP* mep_NSTD = new l0::MEP(NSTDData + sizeof(UDP_HDR),
+							NSTDDataLength, NSTDData);
+					uint sourceNum = SourceIDManager::sourceIDToNum(
+							mep_NSTD->getSourceID());
+
+					MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
+							std::memory_order_relaxed);
+					BytesReceivedBySourceNum_[sourceNum].fetch_add(
+							NSTDBlockLength + sizeof(UDP_HDR),
+							std::memory_order_relaxed);
+
+					for (uint i = 0; i != mep_NSTD->getNumberOfFragments();
+							i++) {
+						// Add every fragment
+						L1Builder::buildEvent(mep_NSTD->getFragment(i),
+								burstID_);
+					}
+				}
+
 			}
 		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// CREAM Data //////////////////////////////////////////////////
 			cream::LkrFragment* fragment = new cream::LkrFragment(UDPPayload,
