@@ -29,6 +29,8 @@ private:
 
 	static std::atomic<uint64_t> L1InputEvents_;
 
+	static std::atomic<uint64_t> L1AcceptedEvents_;
+
 	static std::atomic<uint64_t> L1RequestToCreams_;
 
 	static void processL1(Event *event);
@@ -36,6 +38,8 @@ private:
 	static bool requestZSuppressedLkrData_;
 
 	static uint reductionFactor_;
+
+	static uint downscaleFactor_;
 
 	static bool L1_flag_mode_;
 
@@ -74,6 +78,8 @@ public:
 		OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG);
 
 		reductionFactor_ = Options::GetInt(OPTION_L1_REDUCTION_FACTOR);
+
+		downscaleFactor_ = Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR);
 
 		L1_flag_mode_ = MyOptions::GetBool(OPTION_L1_FLAG_MODE);
 	}

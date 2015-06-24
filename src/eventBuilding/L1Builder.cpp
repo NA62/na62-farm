@@ -39,11 +39,15 @@ std::atomic<uint64_t>* L1Builder::L1Triggers_ = new std::atomic<uint64_t>[0xFF
 
 std::atomic<uint64_t> L1Builder::L1InputEvents_(0);
 
+std::atomic<uint64_t> L1Builder::L1AcceptedEvents_(0);
+
 std::atomic<uint64_t> L1Builder::L1RequestToCreams_(0);
 
 bool L1Builder::requestZSuppressedLkrData_;
 
 uint L1Builder::reductionFactor_ = 0;
+
+uint L1Builder::downscaleFactor_ = 0;
 
 bool L1Builder::L1_flag_mode_ = false;
 
@@ -72,6 +76,14 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 		 * This event is complete -> process it
 		 */
 		processL1(event);
+		/*
+		 * Global L1 downscaling
+		 */
+		if ((uint) L1AcceptedEvents_ % downscaleFactor_ != 0) {
+			delete fragment;
+			return false;
+		}
+
 		return true;
 	}
 	return false;
@@ -106,6 +118,7 @@ void L1Builder::processL1(Event *event) {
 
 	//if ((l1TriggerTypeWord != 0) || L1_flag_mode_) {
 	if (l1TriggerTypeWord != 0) {
+		L1AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
 		if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT != 0) {
 			/*
 			 * Only request accepted events from LKr

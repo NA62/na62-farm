@@ -27,12 +27,15 @@ private:
 
 	static std::atomic<uint64_t> L2InputEvents_;
 
+	static std::atomic<uint64_t> L2AcceptedEvents_;
+
 	static std::atomic<uint64_t> BytesSentToStorage_;
 
 	static std::atomic<uint64_t> EventsSentToStorage_;
 
 	static uint reductionFactor_;
 
+	static uint downscaleFactor_;
 public:
 	/**
 	 * Adds the fragment to the corresponding event and processes the L2 trigger
@@ -66,6 +69,8 @@ public:
 		}
 
 		reductionFactor_ = Options::GetInt(OPTION_L2_REDUCTION_FACTOR);
+
+		downscaleFactor_ = Options::GetInt(OPTION_L2_DOWNSCALE_FACTOR);
 	}
 };
 

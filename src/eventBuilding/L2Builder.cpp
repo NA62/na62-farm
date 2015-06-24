@@ -21,11 +21,15 @@ std::atomic<uint64_t>* L2Builder::L2Triggers_ = new std::atomic<uint64_t>[0xFF
 		+ 1];
 std::atomic<uint64_t> L2Builder::L2InputEvents_(0);
 
+std::atomic<uint64_t> L2Builder::L2AcceptedEvents_(0);
+
 std::atomic<uint64_t> L2Builder::BytesSentToStorage_(0);
 
 std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
 
 uint L2Builder::reductionFactor_ = 0;
+
+uint L2Builder::downscaleFactor_ = 0;
 
 bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
 	Event *event = EventPool::getEvent(fragment->getEventNumber());
@@ -55,6 +59,13 @@ bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
 		 * This event is complete -> process it
 		 */
 		processL2(event);
+		/*
+		 * Global L2 downscaling
+		 */
+		if ((uint) L2AcceptedEvents_ % downscaleFactor_ != 0) {
+			delete fragment;
+			return false;
+		}
 		return true;
 	}
 	return false;
@@ -76,6 +87,7 @@ void L2Builder::processL2(Event *event) {
 		 */
 		if (!event->isWaitingForNonZSuppressedLKrData()) {
 			if (event->isL2Accepted()) {
+				L2AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
 				/*
 				 * Send Event to merger
 				 */
@@ -92,6 +104,7 @@ void L2Builder::processL2(Event *event) {
 
 		event->setL2Processed(L2Trigger);
 		if (event->isL2Accepted()) {
+			L2AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
 			BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
 					std::memory_order_relaxed);
 			EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);

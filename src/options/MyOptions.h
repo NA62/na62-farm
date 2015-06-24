@@ -51,6 +51,9 @@
 #define OPTION_L1_REDUCTION_FACTOR  (char*)"L1ReductionFactor"
 #define OPTION_L2_REDUCTION_FACTOR  (char*)"L2ReductionFactor"
 
+#define OPTION_L1_DOWNSCALE_FACTOR  (char*)"L1DownscaleFactor"
+#define OPTION_L2_DOWNSCALE_FACTOR  (char*)"L2DownscaleFactor"
+
 #define OPTION_MIN_USEC_BETWEEN_L1_REQUESTS (char*)"minUsecsBetweenL1Requests"
 
 /*
@@ -133,12 +136,17 @@ public:
 				"The current or first burst ID. This must be set if a PC starts during a run.")
 
 		(OPTION_L1_REDUCTION_FACTOR, po::value<int>()->required(),
-				"With this integer you can downscale the event rate going to L2 to a factor of 1/L1ReductionFactor. The L1 Trigger will accept every even if  i++%reductionFactor==0")
+				"With this integer you can reduce the event rate going to L2 to a factor of 1/L1ReductionFactor. L1 Trigger will be processed every i event if  i++%reductionFactor==0")
 
 		(OPTION_L2_REDUCTION_FACTOR, po::value<int>()->required(),
-				"With this integer you can downscale the event rate accepted by L2 to a factor of 1/L1ReductionFactor. The L2 Trigger will accept every even if  i++%reductionFactor==0")
+				"With this integer you can reduce the event rate accepted by L2 to a factor of 1/L1ReductionFactor. L2 Trigger will be processed every i event if  i++%reductionFactor==0")
 
-		(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS,
+		(OPTION_L1_DOWNSCALE_FACTOR, po::value<int>()->required(),
+				"With this integer you can downscale the event rate accepted by L1 to a factor of 1/L1DownscaleFactor. L1 Trigger will accept every succeeded i event if  i++%downscaleFactor==0")
+
+		(OPTION_L2_DOWNSCALE_FACTOR, po::value<int>()->required(),
+				"With this integer you can downscale the event rate accepted by L2 to a factor of 1/L2DownscaleFactor. L2 Trigger will accept every succeeded i event if  i++%downscaleFactor==0")(
+		OPTION_MIN_USEC_BETWEEN_L1_REQUESTS,
 				po::value<int>()->default_value(1000),
 				"Minimum time between two MRPs sent to the CREAMs")
 
