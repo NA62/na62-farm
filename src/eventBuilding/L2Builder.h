@@ -25,10 +25,13 @@ class L2Builder {
 private:
 	static std::atomic<uint64_t>* L2Triggers_;
 
+	static std::atomic<uint64_t> L2InputEvents_;
+
 	static std::atomic<uint64_t> BytesSentToStorage_;
+
 	static std::atomic<uint64_t> EventsSentToStorage_;
 
-	static uint downscaleFactor_;
+	static uint reductionFactor_;
 
 public:
 	/**
@@ -45,6 +48,10 @@ public:
 		return L2Triggers_;
 	}
 
+	static inline uint64_t GetL2InputStats() {
+		return L2InputEvents_;
+	}
+
 	static inline uint64_t GetBytesSentToStorage() {
 		return BytesSentToStorage_;
 	}
@@ -58,7 +65,7 @@ public:
 			L2Triggers_[i] = 0;
 		}
 
-		downscaleFactor_ = Options::GetInt(OPTION_L2_DOWNSCALE_FACTOR);
+		reductionFactor_ = Options::GetInt(OPTION_L2_REDUCTION_FACTOR);
 	}
 };
 

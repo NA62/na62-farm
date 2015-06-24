@@ -37,9 +37,13 @@ namespace na62 {
 std::atomic<uint64_t>* L1Builder::L1Triggers_ = new std::atomic<uint64_t>[0xFF
 		+ 1];
 
+std::atomic<uint64_t> L1Builder::L1InputEvents_(0);
+
+std::atomic<uint64_t> L1Builder::L1RequestToCreams_(0);
+
 bool L1Builder::requestZSuppressedLkrData_;
 
-uint L1Builder::downscaleFactor_ = 0;
+uint L1Builder::reductionFactor_ = 0;
 
 bool L1Builder::L1_flag_mode_ = false;
 
@@ -54,8 +58,8 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 		return false;
 	}
 
-	// Downscaling
-	if (fragment->getEventNumber() % downscaleFactor_ != 0) {
+	// L1 Input reduction
+	if (fragment->getEventNumber() % reductionFactor_ != 0) {
 		delete fragment;
 		return false;
 	}
@@ -93,6 +97,7 @@ void L1Builder::processL1(Event *event) {
 	/*
 	 * Process Level 1 trigger
 	 */
+	L1InputEvents_.fetch_add(1, std::memory_order_relaxed);
 	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event);
 	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
 
@@ -124,6 +129,7 @@ void L1Builder::sendL1RequestToCREAMS(Event* event) {
 	cream::L1DistributionHandler::Async_RequestLKRDataMulticast(event,
 			event->isRrequestZeroSuppressedCreamData()
 					&& requestZSuppressedLkrData_);
+	L1RequestToCreams_.fetch_add(1, std::memory_order_relaxed);
 }
 
 }

@@ -19,11 +19,13 @@ namespace na62 {
 
 std::atomic<uint64_t>* L2Builder::L2Triggers_ = new std::atomic<uint64_t>[0xFF
 		+ 1];
+std::atomic<uint64_t> L2Builder::L2InputEvents_(0);
 
 std::atomic<uint64_t> L2Builder::BytesSentToStorage_(0);
+
 std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
 
-uint L2Builder::downscaleFactor_ = 0;
+uint L2Builder::reductionFactor_ = 0;
 
 bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
 	Event *event = EventPool::getEvent(fragment->getEventNumber());
@@ -39,8 +41,8 @@ bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
 	const UDP_HDR* etherFrame =
 			reinterpret_cast<const UDP_HDR*>(fragment->getEtherFrame());
 
-	// Downscaling
-	if (fragment->getEventNumber() % downscaleFactor_ != 0) {
+	// L2 Input reduction
+	if (fragment->getEventNumber() % reductionFactor_ != 0) {
 		delete fragment;
 		return false;
 	}
@@ -63,6 +65,7 @@ void L2Builder::processL2(Event *event) {
 		/*
 		 * L1 already passed but non zero suppressed LKr data not yet requested -> Process Level 2 trigger
 		 */
+		L2InputEvents_.fetch_add(1, std::memory_order_relaxed);
 		uint_fast8_t L2Trigger = L2TriggerProcessor::compute(event);
 
 		event->setL2Processed(L2Trigger);

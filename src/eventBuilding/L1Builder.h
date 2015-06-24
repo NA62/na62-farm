@@ -27,11 +27,15 @@ class L1Builder {
 private:
 	static std::atomic<uint64_t>* L1Triggers_;
 
+	static std::atomic<uint64_t> L1InputEvents_;
+
+	static std::atomic<uint64_t> L1RequestToCreams_;
+
 	static void processL1(Event *event);
 
 	static bool requestZSuppressedLkrData_;
 
-	static uint downscaleFactor_;
+	static uint reductionFactor_;
 
 	static bool L1_flag_mode_;
 
@@ -53,14 +57,23 @@ public:
 		return L1Triggers_;
 	}
 
+	static inline uint64_t GetL1InputStats() {
+		return L1InputEvents_;
+	}
+
+	static inline uint64_t GetL1RequestToCreams() {
+		return L1RequestToCreams_;
+	}
+
 	static void initialize() {
 		for (int i = 0; i != 0xFF + 1; i++) {
 			L1Triggers_[i] = 0;
 		}
 
-		requestZSuppressedLkrData_ = MyOptions::GetBool(OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG);
+		requestZSuppressedLkrData_ = MyOptions::GetBool(
+		OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG);
 
-		downscaleFactor_ = Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR);
+		reductionFactor_ = Options::GetInt(OPTION_L1_REDUCTION_FACTOR);
 
 		L1_flag_mode_ = MyOptions::GetBool(OPTION_L1_FLAG_MODE);
 	}
