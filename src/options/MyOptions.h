@@ -54,9 +54,6 @@
 #define OPTION_L1_DOWNSCALE_FACTOR  (char*)"L1DownscaleFactor"
 #define OPTION_L2_DOWNSCALE_FACTOR  (char*)"L2DownscaleFactor"
 
-//#define OPTION_L1_FLAG_MODE  (char*)"L1FlagMode"
-
-
 #define OPTION_MIN_USEC_BETWEEN_L1_REQUESTS (char*)"minUsecsBetweenL1Requests"
 
 /*
