@@ -54,6 +54,9 @@
 #define OPTION_L1_DOWNSCALE_FACTOR  (char*)"L1DownscaleFactor"
 #define OPTION_L2_DOWNSCALE_FACTOR  (char*)"L2DownscaleFactor"
 
+//#define OPTION_L1_FLAG_MODE  (char*)"L1FlagMode"
+
+
 #define OPTION_MIN_USEC_BETWEEN_L1_REQUESTS (char*)"minUsecsBetweenL1Requests"
 
 /*
@@ -198,7 +201,7 @@ public:
 		(OPTION_INCREMENT_BURST_AT_EOB, po::value<bool>()->default_value(false),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
 
-		(OPTION_L1_FLAG_MODE, po::value<bool>()->default_value(false),
+		(OPTION_L1_FLAG_MODE, po::value<bool>()->required(),
 				"Enable flagging mode (No CUT) for L1 trigger.")
 
 		(OPTION_STRAW_PORT, po::value<int>()->default_value(58916),

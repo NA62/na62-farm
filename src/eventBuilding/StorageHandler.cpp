@@ -71,7 +71,6 @@ void StorageHandler::setMergers(std::string mergerList) {
 	mergerSockets_.clear();
 
 	for (std::string address : GetMergerAddresses(mergerList)) {
-		LOG_INFO<< "Connecting to merger: " << address;
 		zmq::socket_t* socket = ZMQHandler::GenerateSocket("StorageHandler", ZMQ_PUSH);
 		socket->connect(address.c_str());
 		mergerSockets_.push_back(socket);

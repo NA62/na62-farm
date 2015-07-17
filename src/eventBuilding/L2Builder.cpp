@@ -46,27 +46,29 @@ bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
 			reinterpret_cast<const UDP_HDR*>(fragment->getEtherFrame());
 
 	// L2 Input reduction
-	if (fragment->getEventNumber() % reductionFactor_ != 0) {
-		delete fragment;
-		return false;
-	}
+//	if (fragment->getEventNumber() % reductionFactor_ != 0) {
+//		delete fragment;
+//		return false;
+//	}
 
 	/*
 	 * Add new packet to EventCollector
 	 */
 	if (event->addLkrFragment(fragment, etherFrame->ip.saddr)) {
+		L2InputEvents_.fetch_add(1, std::memory_order_relaxed);
 		/*
 		 * This event is complete -> process it
 		 */
-		processL2(event);
-		/*
-		 * Global L2 downscaling
-		 */
-		if ((uint) L2AcceptedEvents_ % downscaleFactor_ != 0) {
-			delete fragment;
-			return false;
+
+		if (L2InputEvents_ % reductionFactor_ != 0
+				&& (!event->isSpecialTriggerEvent() && !event->isL2Bypassed())) {
+			EventPool::freeEvent(event);
+			//return false;
+		} else {
+			processL2(event);
+
+			return true;
 		}
-		return true;
 	}
 	return false;
 }
@@ -76,7 +78,6 @@ void L2Builder::processL2(Event *event) {
 		/*
 		 * L1 already passed but non zero suppressed LKr data not yet requested -> Process Level 2 trigger
 		 */
-		L2InputEvents_.fetch_add(1, std::memory_order_relaxed);
 		uint_fast8_t L2Trigger = L2TriggerProcessor::compute(event);
 
 		event->setL2Processed(L2Trigger);
@@ -87,24 +88,41 @@ void L2Builder::processL2(Event *event) {
 		 */
 		if (!event->isWaitingForNonZSuppressedLKrData()) {
 			if (event->isL2Accepted()) {
-				L2AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
+				if (!event->isSpecialTriggerEvent()) {
+					L2AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
+				}
 				/*
-				 * Send Event to merger
+				 * Global L2 downscaling
 				 */
-				BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
-						std::memory_order_relaxed);
-				EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
+				if ((uint) L2AcceptedEvents_ % downscaleFactor_ != 0
+						&& (!event->isSpecialTriggerEvent()
+								&& !event->isL2Bypassed())) {
+				} else {
+
+					/*
+					 * Send Event to merger
+					 */
+					BytesSentToStorage_.fetch_add(
+							StorageHandler::SendEvent(event),
+							std::memory_order_relaxed);
+					EventsSentToStorage_.fetch_add(1,
+							std::memory_order_relaxed);
+					L2Triggers_[L2Trigger].fetch_add(1,
+							std::memory_order_relaxed);
+				}
+				EventPool::freeEvent(event);
 			}
-			L2Triggers_[L2Trigger].fetch_add(1, std::memory_order_relaxed);
-			EventPool::freeEvent(event);
 		}
 	} else { // Process non zero-suppressed data (not used at the moment!
+		// When the implementation will be completed, we need to propagate the L2 downscaling
 		uint_fast8_t L2Trigger =
 				L2TriggerProcessor::onNonZSuppressedLKrDataReceived(event);
 
 		event->setL2Processed(L2Trigger);
 		if (event->isL2Accepted()) {
-			L2AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
+			if (!event->isSpecialTriggerEvent()) {
+				L2AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
+			}
 			BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
 					std::memory_order_relaxed);
 			EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);

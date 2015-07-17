@@ -62,7 +62,12 @@ public:
 	static inline uint64_t GetEventsSentToStorage() {
 		return EventsSentToStorage_;
 	}
-
+	static inline uint64_t GetL2DownscaleFactor() {
+		return downscaleFactor_;
+	}
+	static inline uint64_t GetL2ReductionFactor() {
+		return reductionFactor_;
+	}
 	static void initialize() {
 		for (int i = 0; i != 0xFF + 1; i++) {
 			L2Triggers_[i] = 0;

@@ -15,6 +15,7 @@
 #include <l0/MEPFragment.h>
 #include <l0/Subevent.h>
 #include <l1/L1TriggerProcessor.h>
+#include <l1/L1Fragment.h>
 #include <LKr/L1DistributionHandler.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
@@ -41,6 +42,8 @@ std::atomic<uint64_t> L1Builder::L1InputEvents_(0);
 
 std::atomic<uint64_t> L1Builder::L1AcceptedEvents_(0);
 
+std::atomic<uint64_t> L1Builder::L1BypassedEvents_(0);
+
 std::atomic<uint64_t> L1Builder::L1RequestToCreams_(0);
 
 bool L1Builder::requestZSuppressedLkrData_;
@@ -48,8 +51,6 @@ bool L1Builder::requestZSuppressedLkrData_;
 uint L1Builder::reductionFactor_ = 0;
 
 uint L1Builder::downscaleFactor_ = 0;
-
-bool L1Builder::L1_flag_mode_ = false;
 
 bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 	Event *event = EventPool::getEvent(fragment->getEventNumber());
@@ -63,28 +64,30 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 	}
 
 	// L1 Input reduction
-	if (fragment->getEventNumber() % reductionFactor_ != 0) {
-		delete fragment;
-		return false;
-	}
+//	if (fragment->getEventNumber() % reductionFactor_ != 0
+//			&& (!event->isSpecialTriggerEvent() && !event->isL1Bypassed())) {
+//		delete fragment;
+//		return false;
+//	}
 
 	/*
 	 * Add new packet to Event
 	 */
 	if (event->addL0Event(fragment, burstID)) {
+		L1InputEvents_.fetch_add(1, std::memory_order_relaxed);
 		/*
 		 * This event is complete -> process it
 		 */
-		processL1(event);
-		/*
-		 * Global L1 downscaling
-		 */
-		if ((uint) L1AcceptedEvents_ % downscaleFactor_ != 0) {
-			delete fragment;
-			return false;
-		}
 
-		return true;
+		//L1 Input Reduction
+		if (L1InputEvents_ % reductionFactor_ != 0
+				&& (!event->isSpecialTriggerEvent() && !event->isL1Bypassed())) {
+			EventPool::freeEvent(event);
+		} else {
+			processL1(event);
+
+			return true;
+		}
 	}
 	return false;
 }
@@ -109,25 +112,38 @@ void L1Builder::processL1(Event *event) {
 	/*
 	 * Process Level 1 trigger
 	 */
-	L1InputEvents_.fetch_add(1, std::memory_order_relaxed);
 	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event);
 	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
 
 	L1Triggers_[l1TriggerTypeWord].fetch_add(1, std::memory_order_relaxed); // The second 8 bits are the L1 trigger type word
 	event->setL1Processed(L0L1Trigger);
 
-	//if ((l1TriggerTypeWord != 0) || L1_flag_mode_) {
 	if (l1TriggerTypeWord != 0) {
-		L1AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
-		if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT != 0) {
-			/*
-			 * Only request accepted events from LKr
-			 */
-			sendL1RequestToCREAMS(event);
-		} else {
-			L2Builder::processL2(event);
+
+		if (!event->isSpecialTriggerEvent()) {
+			L1AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
+
+			if (event->isL1Bypassed()) {
+				L1BypassedEvents_.fetch_add(1, std::memory_order_relaxed);
+			}
 		}
-	} else {
+		//Global L1 downscaling
+		if (((uint) L1AcceptedEvents_ % downscaleFactor_ != 0
+				&& (!event->isSpecialTriggerEvent() && !event->isL1Bypassed()))) {
+			EventPool::freeEvent(event);
+		} else {  // Downscaled event
+
+			if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT
+					!= 0) {
+				/*
+				 * Only request accepted events from LKr
+				 */
+				sendL1RequestToCREAMS(event);
+			} else {
+				L2Builder::processL2(event);
+			}
+		}
+	} else { // Event not accepted
 		/*
 		 * If the Event has been rejected by L1 we can destroy it now
 		 */

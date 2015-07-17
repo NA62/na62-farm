@@ -31,6 +31,8 @@ private:
 
 	static std::atomic<uint64_t> L1AcceptedEvents_;
 
+	static std::atomic<uint64_t> L1BypassedEvents_;
+
 	static std::atomic<uint64_t> L1RequestToCreams_;
 
 	static void processL1(Event *event);
@@ -40,8 +42,6 @@ private:
 	static uint reductionFactor_;
 
 	static uint downscaleFactor_;
-
-	static bool L1_flag_mode_;
 
 	/*
 	 * @return <true> if any packet has been sent (time has passed)
@@ -69,6 +69,16 @@ public:
 		return L1RequestToCreams_;
 	}
 
+	static inline uint64_t GetL1BypassedEvents() {
+		return L1BypassedEvents_;
+	}
+	static inline uint GetL1DownscaleFactor() {
+		return downscaleFactor_;
+	}
+	static inline uint GetL1ReductionFactor() {
+		return reductionFactor_;
+	}
+
 	static void initialize() {
 		for (int i = 0; i != 0xFF + 1; i++) {
 			L1Triggers_[i] = 0;
@@ -80,8 +90,6 @@ public:
 		reductionFactor_ = Options::GetInt(OPTION_L1_REDUCTION_FACTOR);
 
 		downscaleFactor_ = Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR);
-
-		L1_flag_mode_ = MyOptions::GetBool(OPTION_L1_FLAG_MODE);
 	}
 };
 

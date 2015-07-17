@@ -90,6 +90,7 @@ int main(int argc, char* argv[]) {
 
 	L1TriggerProcessor::registerDownscalingAlgorithms();
 
+	L1TriggerProcessor::registerReductionAlgorithms();
 	/*
 	 * Static Class initializations
 	 */

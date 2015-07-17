@@ -191,7 +191,13 @@ void MonitorConnector::handleUpdate() {
 
 	uint_fast32_t L1RequestToCreams = L1Builder::GetL1RequestToCreams();
 	setDifferentialData("L1RequestToCreams ", L1RequestToCreams);
-	IPCHandler::sendStatistics("L1RequestToCreams", std::to_string(L1RequestToCreams));
+	IPCHandler::sendStatistics("L1RequestToCreams",
+			std::to_string(L1RequestToCreams));
+
+	uint_fast32_t L1BypassedEvents = L1Builder::GetL1BypassedEvents();
+	setDifferentialData("L1BypassedEvents ", L1BypassedEvents);
+	IPCHandler::sendStatistics("L1BypassedEvents",
+			std::to_string(L1BypassedEvents));
 
 	/*
 	 * Trigger word statistics
