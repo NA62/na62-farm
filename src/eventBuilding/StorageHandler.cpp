@@ -298,8 +298,7 @@ int StorageHandler::SendEvent(const Event* event) {
 	while (ZMQHandler::IsRunning()) {
 		tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
 		try {
-			mergerSockets_[event->getBurstID() % mergerSockets_.size()]->send(
-					zmqMessage);
+			mergerSockets_[event->getBurstID() % mergerSockets_.size()]->send(zmqMessage);
 			break;
 		} catch (const zmq::error_t& ex) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
