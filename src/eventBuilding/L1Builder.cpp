@@ -74,14 +74,15 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 	 * Add new packet to Event
 	 */
 	if (event->addL0Event(fragment, burstID)) {
+
+		event->readTriggerTypeWordAndFineTime();
 		L1InputEvents_.fetch_add(1, std::memory_order_relaxed);
 		/*
 		 * This event is complete -> process it
 		 */
 
 		//L1 Input Reduction
-		if (L1InputEvents_ % reductionFactor_ != 0
-				&& (!event->isSpecialTriggerEvent() && !event->isL1Bypassed())) {
+		if ((L1InputEvents_ % reductionFactor_ != 0) && (!event->isSpecialTriggerEvent()) && (!L1TriggerProcessor::bypassEvent())) {
 			EventPool::freeEvent(event);
 		} else {
 			processL1(event);

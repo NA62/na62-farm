@@ -60,8 +60,7 @@ bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
 		 * This event is complete -> process it
 		 */
 
-		if (L2InputEvents_ % reductionFactor_ != 0
-				&& (!event->isSpecialTriggerEvent() && !event->isL2Bypassed())) {
+		if ((L2InputEvents_ % reductionFactor_ != 0) && !event->isSpecialTriggerEvent() && (!L2TriggerProcessor::bypassEvent())) {
 			EventPool::freeEvent(event);
 			//return false;
 		} else {
@@ -107,11 +106,12 @@ void L2Builder::processL2(Event *event) {
 							std::memory_order_relaxed);
 					EventsSentToStorage_.fetch_add(1,
 							std::memory_order_relaxed);
-					L2Triggers_[L2Trigger].fetch_add(1,
-							std::memory_order_relaxed);
+//					L2Triggers_[L2Trigger].fetch_add(1,
+//							std::memory_order_relaxed);
 				}
 				EventPool::freeEvent(event);
 			}
+			L2Triggers_[L2Trigger].fetch_add(1,std::memory_order_relaxed);
 		}
 	} else { // Process non zero-suppressed data (not used at the moment!
 		// When the implementation will be completed, we need to propagate the L2 downscaling
