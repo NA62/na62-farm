@@ -199,7 +199,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					L1Hdr->sourceID = SOURCE_ID_L1;
 					L1Hdr->mepLength = L1BlockLength;
 					L1Hdr->eventCount = mep_factor;
-					L1Hdr->sourceSubID = SOURCE_ID_L1;
+					L1Hdr->sourceSubID = 0;
 
 					char * L1Event = L1Data + sizeof(UDP_HDR) + 8;
 					l0::MEPFragment * L1Fragment;
@@ -242,7 +242,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					L2Hdr->sourceID = SOURCE_ID_L2;
 					L2Hdr->mepLength = L2BlockLength;
 					L2Hdr->eventCount = mep_factor;
-					L2Hdr->sourceSubID = SOURCE_ID_L2;
+					L2Hdr->sourceSubID = 0;
 
 					char * L2Event = L2Data + sizeof(UDP_HDR) + 8;
 					l0::MEPFragment * L2Fragment;
@@ -287,7 +287,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					NSTDHdr->sourceID = SOURCE_ID_NSTD;
 					NSTDHdr->mepLength = NSTDBlockLength;
 					NSTDHdr->eventCount = mep_factor;
-					NSTDHdr->sourceSubID = SOURCE_ID_NSTD;
+					NSTDHdr->sourceSubID = 0;
 
 					char * NSTDEvent = NSTDData + sizeof(UDP_HDR) + 8;
 					l0::MEPFragment * NSTDFragment;

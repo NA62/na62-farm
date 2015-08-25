@@ -110,10 +110,12 @@ void MonitorConnector::handleUpdate() {
 	 * Number of Events and data rate from all detectors
 	 */
 	std::stringstream statistics;
+//	std::stringstream monitoring;
 	for (int soruceIDNum = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES - 1;
 			soruceIDNum >= 0; soruceIDNum--) {
 		uint_fast8_t sourceID = SourceIDManager::sourceNumToID(soruceIDNum);
 		statistics << "0x" << std::hex << (int) sourceID << ";";
+//		monitoring << "0x" << std::hex << (int) sourceID << std::dec;
 
 		if (SourceIDManager::getExpectedPacksBySourceID(sourceID) > 0) {
 			setDetectorDifferentialData("MEPsReceived",
@@ -138,6 +140,18 @@ void MonitorConnector::handleUpdate() {
 		statistics << std::dec
 				<< HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum)
 				<< ";";
+//		for (uint f = 0;
+//				f != SourceIDManager::getExpectedPacksBySourceNum(soruceIDNum);
+//				f++) {
+//			uint_fast8_t subID = (uint_fast8_t) f;
+//			monitoring << ":" << f << ","
+//					<< Event::getReceivedEventsBySourceNumBySubId(soruceIDNum,f);
+//			if (f== SourceIDManager::getExpectedPacksBySourceNum(soruceIDNum)- 1)
+//				monitoring << ";" << ENDL;
+//			setDetectorSubIdDifferentialData("EventsReceivedBySubId-",
+//					Event::getReceivedEventsBySourceNumBySubId(soruceIDNum, f),
+//					subID, sourceID);
+//		}
 	}
 
 	if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT != 0) {
@@ -180,6 +194,8 @@ void MonitorConnector::handleUpdate() {
 	}
 
 	IPCHandler::sendStatistics("DetectorData", statistics.str());
+//	IPCHandler::sendStatistics("MonitoringData", monitoring.str());
+//	LOG_INFO<< monitoring.str() << ENDL;
 
 	uint_fast32_t L1InputEvents = L1Builder::GetL1InputStats();
 	setDifferentialData("L1InputEvents ", L1InputEvents);
@@ -319,6 +335,29 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 			detectorDifferentialInts_[detectorID][key];
 	detectorDifferentialInts_[detectorID][key] = value;
 }
+
+//void MonitorConnector::setDetectorSubIdDifferentialData(std::string key,
+//		uint64_t value, uint_fast8_t subID, uint_fast8_t detectorID) {
+//	uint64_t lastValue;
+//	if (detectorSubIdDifferentialInts_.find(detectorID)
+//			== detectorSubIdDifferentialInts_.end()) {
+//		detectorSubIdDifferentialInts_[detectorID] = std::map<uint_fast8_t,
+//				std::map<std::string, uint64_t>>();
+//		if (detectorSubIdDifferentialInts_[detectorID].find(subID)
+//				== detectorSubIdDifferentialInts_[detectorID].end()) {
+//			detectorSubIdDifferentialInts_[detectorID][subID][key
+//					+ LAST_VALUE_SUFFIX] = 0;
+//			detectorSubIdDifferentialInts_[detectorID][subID][key] = 0;
+//		}
+//	}
+//	lastValue = detectorSubIdDifferentialInts_[detectorID][subID][key];
+//
+//	LOG_INFO<<key << SourceIDManager::sourceIdToDetectorName(detectorID) << ", subID "<< (uint)subID << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")";
+//
+//	detectorSubIdDifferentialInts_[detectorID][subID][key + LAST_VALUE_SUFFIX] =
+//			detectorSubIdDifferentialInts_[detectorID][subID][key];
+//	detectorSubIdDifferentialInts_[detectorID][subID][key] = value;
+//}
 
 void MonitorConnector::setContinuousData(std::string key, uint64_t value) {
 	LOG_INFO<<key << ":\t" << std::to_string(value);
