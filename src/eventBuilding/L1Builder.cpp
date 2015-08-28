@@ -82,7 +82,9 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 		 */
 
 		//L1 Input Reduction
-		if ((L1InputEvents_ % reductionFactor_ != 0) && (!event->isSpecialTriggerEvent()) && (!L1TriggerProcessor::bypassEvent())) {
+		if ((L1InputEvents_ % reductionFactor_ != 0)
+				&& (!event->isSpecialTriggerEvent())
+				&& (!L1TriggerProcessor::bypassEvent())) {
 			EventPool::freeEvent(event);
 		} else {
 			processL1(event);
@@ -94,14 +96,17 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 }
 
 void L1Builder::processL1(Event *event) {
-	uint_fast8_t l0TriggerTypeWord = 1;
-	if (SourceIDManager::L0TP_ACTIVE) {
-		l0::MEPFragment* L0TPEvent = event->getL0TPSubevent()->getFragment(0);
-		L0TpHeader* L0TPData = (L0TpHeader*) L0TPEvent->getPayload();
-		event->setFinetime(L0TPData->refFineTime);
 
-		l0TriggerTypeWord = L0TPData->l0TriggerType;
-	}
+	uint_fast8_t l0TriggerTypeWord = event->getL0TriggerTypeWord();
+//	if (SourceIDManager::L0TP_ACTIVE) {
+//		l0::MEPFragment* L0TPEvent = event->getL0TPSubevent()->getFragment(0);
+//		L0TpHeader* L0TPData = (L0TpHeader*) L0TPEvent->getPayload();
+//		event->setFinetime(L0TPData->refFineTime);
+//
+//		l0TriggerTypeWord = L0TPData->l0TriggerType;
+//	}
+//	LOG_INFO<< "L0 Trigger word " << (uint)l0TriggerTypeWord << ENDL;
+//	LOG_INFO<< "Ref Detector finetime " << (uint)event->getFinetime() << ENDL;
 
 	/*
 	 * Store the global event timestamp taken from the reverence detector
