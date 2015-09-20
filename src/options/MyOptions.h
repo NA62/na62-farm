@@ -44,7 +44,10 @@
 
 #define OPTION_INCREMENT_BURST_AT_EOB (char*)"incrementBurstAtEOB"
 
-#define OPTION_L1_FLAG_MODE (char*) "L1FlagMode"
+//#define OPTION_L1_FLAG_MODE (char*) "L1FlagMode"
+#define OPTION_L1_FLAG_MASK (char*) "L1FlagMode"
+
+#define OPTION_L1_AUTOFLAG_FACTOR (char*) "L1AutoFlagFactor"
 /*
  * Triggering
  */
@@ -198,8 +201,11 @@ public:
 		(OPTION_INCREMENT_BURST_AT_EOB, po::value<bool>()->default_value(false),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
 
-		(OPTION_L1_FLAG_MODE, po::value<bool>()->required(),
-				"Enable flagging mode (No CUT) for L1 trigger.")
+//		(OPTION_L1_FLAG_MODE, po::value<bool>()->required(), "Enable flagging mode (No CUT) for L1 trigger.")
+		(OPTION_L1_FLAG_MASK, po::value<int>()->required(), "Enable flagging mask for L1 trigger.")
+
+		(OPTION_L1_AUTOFLAG_FACTOR, po::value<int>()->required(),
+				"With this integer you can select events being flagged at L1 even if L1 is running in cutting mode. L1 Trigger Algorithms will be processed every events.")
 
 		(OPTION_STRAW_PORT, po::value<int>()->default_value(58916),
 

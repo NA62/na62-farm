@@ -93,6 +93,15 @@ void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
 				NetworkHandler::GetMyMac().data(), arp->sourceHardwAddr,
 				NetworkHandler::GetMyIP(), arp->sourceIPAddr,
 				ARPOP_REPLY);
+		u_int16_t pktLen = responseArp.length;
+		char buff[64];
+		char* pbuff = buff;
+		memcpy(pbuff, responseArp.data, pktLen);
+		std::stringstream AAARP;
+		AAARP << "ARP Response FarmToRouter"  << pktLen << " ";
+		for(int i = 0; i < pktLen; i++)
+			AAARP << std::hex << ((char)(* (pbuff+i)) & 0xFF) << " ";
+//		LOG_INFO << AAARP.str() << ENDL;
 		NetworkHandler::AsyncSendFrame(std::move(responseArp));
 	}
 }
@@ -122,6 +131,16 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 */
 		if (etherType != 0x0008/*ETHERTYPE_IP*/|| ipProto != IPPROTO_UDP) {
 			if (etherType == 0x0608/*ETHERTYPE_ARP*/) {
+				u_int16_t pktLen = container.length;
+				char buff[64];
+				char* pbuff = buff;
+				memcpy(pbuff, container.data, pktLen);
+				std::stringstream AAARP;
+				AAARP << "ARP Request FromRouter"  << pktLen << " ";
+				for(int i = 0; i < pktLen; i++)
+					AAARP << std::hex << ((char)(* (pbuff+i)) & 0xFF) << " ";
+//				LOG_INFO << AAARP.str() << ENDL;
+
 				// this will delete the data
 				processARPRequest(reinterpret_cast<ARP_HDR*>(container.data));
 				return;
@@ -181,6 +200,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 
 			for (uint i = 0; i != mep->getNumberOfFragments(); i++) {
 				// Add every fragment
+				EventPool::getL0PacketCounter()[mep->getFragment(i)->getEventNumber()].fetch_add(1,std::memory_order_relaxed);
 				L1Builder::buildEvent(mep->getFragment(i), burstID_);
 			}
 			/*
@@ -328,12 +348,14 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			cream::LkrFragment* fragment = new cream::LkrFragment(UDPPayload,
 					UdpDataLength, container.data);
 
+			//fragment
+
 			MEPsReceivedBySourceNum_[highestSourceNum_].fetch_add(1,
 					std::memory_order_relaxed);
 
 			BytesReceivedBySourceNum_[highestSourceNum_].fetch_add(
 					container.length, std::memory_order_relaxed);
-
+			EventPool::getCREAMPacketCounter()[fragment->getEventNumber()].fetch_add(1,std::memory_order_relaxed);
 			L2Builder::buildEvent(fragment);
 		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
 			StrawReceiver::processFrame(std::move(container), burstID_);
