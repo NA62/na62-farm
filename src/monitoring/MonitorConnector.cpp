@@ -34,6 +34,7 @@
 #include "../socket/HandleFrameTask.h"
 #include "../socket/FragmentStore.h"
 #include "../socket/PacketHandler.h"
+#include <socket/NetworkHandler.h>
 
 using namespace boost::interprocess;
 
@@ -41,6 +42,7 @@ namespace na62 {
 namespace monitoring {
 
 STATE MonitorConnector::currentState_;
+
 MonitorConnector::MonitorConnector() :
 		timer_(monitoringService) {
 
@@ -281,6 +283,132 @@ void MonitorConnector::handleUpdate() {
 
 	LOG_INFO<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
 	LOG_INFO<<"=======================================";
+
+	/*
+	 * Building Time L0-L1 statistics
+	 *
+	 */
+	uint64_t L0BuildTimeMean = 0;
+	uint64_t L1BuildTimeMean = 0;
+
+	if (L1Builder::GetL0BuildingTimeCumulative()) {
+//		LOG_INFO<< "***********L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative() << ENDL;
+//		LOG_INFO<< "***********L1InputEventsPerBurst " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
+		L0BuildTimeMean = L1Builder::GetL0BuildingTimeCumulative()/L1Builder::GetL1InputEventsPerBurst();
+	}
+	if (L2Builder::GetL1BuildingTimeCumulative()) {
+//		LOG_INFO<< "***********L1BuildingTimeCumulative " << L2Builder::GetL1BuildingTimeCumulative() << ENDL;
+//		LOG_INFO<< "***********L2InputEventsPerBurst " << L2Builder::GetL2InputEventsPerBurst() << ENDL;
+		L1BuildTimeMean = L2Builder::GetL1BuildingTimeCumulative()/L2Builder::GetL2InputEventsPerBurst();
+	}
+//	LOG_INFO<< "***********L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax() << ENDL;
+	uint64_t L0BuildTimeMax = L1Builder::GetL0BuildingTimeMax();
+
+//	LOG_INFO<< "***********L1BuildingTimeMax " << L2Builder::GetL1BuildingTimeMax() << ENDL;
+	uint64_t L1BuildTimeMax = L2Builder::GetL1BuildingTimeMax();
+
+	LOG_INFO<< "***********L0BuildTimeMean (x Run Control) " << L0BuildTimeMean << ENDL;
+	LOG_INFO<< "***********L1BuildTimeMean (x Run Control) " << L1BuildTimeMean << ENDL;
+	LOG_INFO<< "***********L0BuildTimeMax  (x Run Control) " << L0BuildTimeMax << ENDL;
+	LOG_INFO<< "***********L1BuildTimeMax  (x Run Control) " << L1BuildTimeMax << ENDL;
+
+	IPCHandler::sendStatistics("L0BuildingTimeMean",
+			std::to_string(L0BuildTimeMean));
+	IPCHandler::sendStatistics("L1BuildingTimeMean",
+			std::to_string(L1BuildTimeMean));
+	IPCHandler::sendStatistics("L0BuildingTimeMax",
+			std::to_string(L0BuildTimeMax));
+	IPCHandler::sendStatistics("L1BuildingTimeMax",
+			std::to_string(L1BuildTimeMax));
+	/*
+	 * Timing L1-L2 statistics
+	 *
+	 */
+	uint64_t L1ProcTimeMean = 0;
+	uint64_t L2ProcTimeMean = 0;
+
+	if (L1Builder::GetL1ProcessingTimeCumulative()) {
+//		LOG_INFO<< "***********L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
+//		LOG_INFO<< "***********L1InputEventsPerBurst " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
+		L1ProcTimeMean = L1Builder::GetL1ProcessingTimeCumulative()/L1Builder::GetL1InputEventsPerBurst();
+	}
+	if (L2Builder::GetL2ProcessingTimeCumulative()) {
+//		LOG_INFO<< "***********L2ProcessingTimeCumulative " << L2Builder::GetL2ProcessingTimeCumulative() << ENDL;
+//		LOG_INFO<< "***********L2InputEventsPerBurst " << L2Builder::GetL2InputEventsPerBurst() << ENDL;
+		if(L2Builder::GetL2InputEventsPerBurst())
+			L2ProcTimeMean = L2Builder::GetL2ProcessingTimeCumulative()/L2Builder::GetL2InputEventsPerBurst();
+		else
+			L2ProcTimeMean = -1;
+	}
+
+//	LOG_INFO<< "***********L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax() << ENDL;
+	uint64_t L1ProcTimeMax = L1Builder::GetL1ProcessingTimeMax();
+
+//	LOG_INFO<< "***********L2ProcessingTimeMax " << L2Builder::GetL2ProcessingTimeMax() << ENDL;
+	uint64_t L2ProcTimeMax = L2Builder::GetL2ProcessingTimeMax();
+
+	LOG_INFO<< "***********L1ProcTimeMean (x Run Control)  " << L1ProcTimeMean << ENDL;
+	LOG_INFO<< "***********L2ProcTimeMean (x Run Control)  " << L2ProcTimeMean << ENDL;
+	LOG_INFO<< "***********L1ProcTimeMax  (x Run Control)  " << L1ProcTimeMax << ENDL;
+	LOG_INFO<< "***********L2ProcTimeMax  (x Run Control)  " << L2ProcTimeMax << ENDL;
+
+	IPCHandler::sendStatistics("L1ProcessingTimeMean",
+			std::to_string(L1ProcTimeMean));
+	IPCHandler::sendStatistics("L2ProcessingTimeMean",
+			std::to_string(L2ProcTimeMean));
+	IPCHandler::sendStatistics("L1ProcessingTimeMax",
+			std::to_string(L1ProcTimeMax));
+	IPCHandler::sendStatistics("L2ProcessingTimeMax",
+			std::to_string(L2ProcTimeMax));
+
+	/*
+	 * Timing statistics for histograms
+	 */
+	std::stringstream L0BuildTimeVsEvtNumStats;
+	std::stringstream L1BuildTimeVsEvtNumStats;
+	std::stringstream L1ProcTimeVsEvtNumStats;
+	std::stringstream L2ProcTimeVsEvtNumStats;
+
+	for (int timeId = 0x00; timeId < 0x64 + 1; timeId++) {
+		for (int tsId = 0x00; tsId < 0x32 + 1; tsId++) {
+
+			uint64_t L0BuildTimeVsEvtNum =
+					L1Builder::GetL0BuidingTimeVsEvtNumber()[timeId][tsId];
+			uint64_t L1BuildTimeVsEvtNum =
+					L2Builder::GetL1BuidingTimeVsEvtNumber()[timeId][tsId];
+			uint64_t L1ProcTimeVsEvtNum =
+					L1Builder::GetL1ProcessingTimeVsEvtNumber()[timeId][tsId];
+			uint64_t L2ProcTimeVsEvtNum =
+					L2Builder::GetL2ProcessingTimeVsEvtNumber()[timeId][tsId];
+//					NetworkHandler::GetPacketTimeDiffVsTime()[timeId][tsId];
+
+			if (L0BuildTimeVsEvtNum > 0) {
+				L0BuildTimeVsEvtNumStats << timeId << "," << tsId << ","
+						<< L0BuildTimeVsEvtNum << ";";
+			}
+			if (L1BuildTimeVsEvtNum > 0) {
+				L1BuildTimeVsEvtNumStats << timeId << "," << tsId << ","
+						<< L1BuildTimeVsEvtNum << ";";
+			}
+			if (L1ProcTimeVsEvtNum > 0) {
+				L1ProcTimeVsEvtNumStats << timeId << "," << tsId << ","
+						<< L1ProcTimeVsEvtNum << ";";
+			}
+			if (L2ProcTimeVsEvtNum > 0) {
+				L2ProcTimeVsEvtNumStats << timeId << "," << tsId << ","
+						<< L2ProcTimeVsEvtNum << ";";
+			}
+		}
+	}
+//	LOG_INFO<<"########################" << L0BuildTimeVsEvtNumStats.str() << ENDL;
+//	LOG_INFO<<"########################" << L1BuildTimeVsEvtNumStats.str() << ENDL;
+//	LOG_INFO<<"########################" << L1ProcTimeVsEvtNumStats.str() << ENDL;
+//	LOG_INFO<<"########################" << L2ProcTimeVsEvtNumStats.str() << ENDL;
+
+	IPCHandler::sendStatistics("L0BuildingTimeVsEvtNumber",L0BuildTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber",L1BuildTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber",L1ProcTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber",L2ProcTimeVsEvtNumStats.str());
 
 	IPCHandler::sendStatistics("UnfinishedEventsData",
 			UnfinishedEventsCollector::toJson());

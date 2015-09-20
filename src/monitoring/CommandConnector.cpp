@@ -23,6 +23,9 @@
 #include "../eventBuilding/StorageHandler.h"
 #include "../options/MyOptions.h"
 #include "../socket/PacketHandler.h"
+#include "../eventBuilding/L1Builder.h"
+#include "../eventBuilding/L2Builder.h"
+#include <socket/NetworkHandler.h>
 
 namespace na62 {
 
@@ -57,6 +60,28 @@ void CommandConnector::thread() {
 				if(MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
 					uint_fast32_t burst = BurstIdHandler::getCurrentBurstId()+1;
 					BurstIdHandler::setNextBurstID(burst);
+					if (BurstIdHandler::getResetCounters()) {
+						L1Builder::ResetL0BuildingTimeCumulative();
+						L1Builder::ResetL0BuildingTimeMax();
+						L1Builder::ResetL1ProcessingTimeCumulative();
+						L1Builder::ResetL1ProcessingTimeMax();
+						L1Builder::ResetL1InputEventsPerBurst();
+						L2Builder::ResetL1BuildingTimeCumulative();
+						L2Builder::ResetL1BuildingTimeMax();
+						L2Builder::ResetL2ProcessingTimeCumulative();
+						L2Builder::ResetL2ProcessingTimeMax();
+						L2Builder::ResetL2InputEventsPerBurst();
+						L1Builder::ResetL0BuidingTimeVsEvtNumber();
+						L2Builder::ResetL1BuidingTimeVsEvtNumber();
+						L1Builder::ResetL1ProcessingTimeVsEvtNumber();
+						L2Builder::ResetL2ProcessingTimeVsEvtNumber();
+						NetworkHandler::ResetPacketTimeDiffVsTime();
+//						LOG_INFO<< "Resetting L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative() << ENDL;
+//						LOG_INFO<< "Resetting L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax() << ENDL;
+//						LOG_INFO<< "Resetting L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
+//						LOG_INFO<< "Resetting L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax() << ENDL;
+//						LOG_INFO<< "Resetting L1InputEvents " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
+					}
 					LOG_INFO << "Got EOB time: Incrementing burstID to" << burst << ENDL;
 				}
 			} else if (command == "updatenextburstid") {
@@ -64,6 +89,28 @@ void CommandConnector::thread() {
 					uint_fast32_t burst = atoi(strings[1].c_str());
 					LOG_INFO << "Received new burstID: " << burst << ENDL;
 					BurstIdHandler::setNextBurstID(burst);
+					if (BurstIdHandler::getResetCounters()) {
+						L1Builder::ResetL0BuildingTimeCumulative();
+						L1Builder::ResetL0BuildingTimeMax();
+						L1Builder::ResetL1ProcessingTimeCumulative();
+						L1Builder::ResetL1ProcessingTimeMax();
+						L1Builder::ResetL1InputEventsPerBurst();
+						L2Builder::ResetL1BuildingTimeCumulative();
+						L2Builder::ResetL1BuildingTimeMax();
+						L2Builder::ResetL2ProcessingTimeCumulative();
+						L2Builder::ResetL2ProcessingTimeMax();
+						L2Builder::ResetL2InputEventsPerBurst();
+						L1Builder::ResetL0BuidingTimeVsEvtNumber();
+						L2Builder::ResetL1BuidingTimeVsEvtNumber();
+						L1Builder::ResetL1ProcessingTimeVsEvtNumber();
+						L2Builder::ResetL2ProcessingTimeVsEvtNumber();
+						NetworkHandler::ResetPacketTimeDiffVsTime();
+//						LOG_INFO<< "Resetting L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative() << ENDL;
+//						LOG_INFO<< "Resetting L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax() << ENDL;
+//						LOG_INFO<< "Resetting L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
+//						LOG_INFO<<"Resetting L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax() << ENDL;
+//						LOG_INFO<< "Resetting L1InputEvents " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
+					}
 				}
 			} else if (command == "runningmergers") {
 				std::string mergerList=strings[1];
