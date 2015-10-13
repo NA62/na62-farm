@@ -35,6 +35,10 @@
 #include "monitoring/CommandConnector.h"
 #include "straws/StrawReceiver.h"
 
+#ifdef USE_PCAPDUMPER
+#include "socket/PcapDumper.h"
+#endif
+
 using namespace std;
 using namespace na62;
 
@@ -153,6 +157,18 @@ int main(int argc, char* argv[]) {
 	 */
 	cream::L1DistributionHandler l1Handler;
 	l1Handler.startThread("L1DistributionHandler");
+
+
+	/*
+	 * Packet Handler
+	 */
+#ifdef USE_PCAPDUMPER
+	//TODO Pick with a option
+	PcapDumper::startDump("File");
+#endif
+
+
+
 
 	/*
 	 * Packet Handler

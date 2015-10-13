@@ -43,6 +43,11 @@
 
 #include "HandleFrameTask.h"
 
+#ifdef USE_PCAPDUMPER
+#include "socket/PcapDumper.h"
+#endif
+
+
 namespace na62 {
 
 std::atomic<uint> PacketHandler::spins_;
@@ -113,6 +118,11 @@ void PacketHandler::thread() {
 				char* data = new char[hdr.len];
 				memcpy(data, buff, hdr.len);
 				frames.push_back( { data, (uint_fast16_t) hdr.len, true });
+
+#ifdef USE_PCAPDUMPER
+				//Dump of the packet
+				PcapDumper::dumpPacket(threadNum_, data, hdr.len);
+#endif
 				goToSleep = false;
 				spinsInARow = 0;
 			} else {
