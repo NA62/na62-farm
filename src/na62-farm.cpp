@@ -129,8 +129,10 @@ int main(int argc, char* argv[]) {
 	Event::initialize(MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES),
 			Options::GetBool(OPTION_WRITE_BROKEN_CREAM_INFO));
 
-	EventPool::initialize(Options::GetInt(
-	OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST));
+	EventPool::initialize(
+			Options::GetInt(OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST),
+			Options::GetIntList(OPTION_FIT_EVENT_POOL)[0],
+			Options::GetIntList(OPTION_FIT_EVENT_POOL)[1]);
 
 	cream::L1DistributionHandler::Initialize(
 			Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP),

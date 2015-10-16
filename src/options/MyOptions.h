@@ -39,6 +39,7 @@
 #define OPTION_MAX_TRIGGERS_PER_L1MRP (char*)"maxTriggerPerL1MRP"
 
 #define OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST (char*)"maxNumberOfEventsPerBurst"
+#define OPTION_FIT_EVENT_POOL (char*)"fitEventPool"
 
 #define OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG (char*)"sendMRPsWithZSuppressionFlag"
 
@@ -170,6 +171,9 @@ public:
 		(OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST,
 				po::value<int>()->default_value(2000000),
 				"The number of events this pc should be able to receive. The system will ignore events with event numbers larger than this value")
+
+		(OPTION_FIT_EVENT_POOL,	po::value<std::string>()->default_value("0,1"),
+				"Fit EventPool to events expected in the current round robin: offset,period")
 
 		(OPTION_MERGER_HOST_NAMES, po::value<std::string>()->required(),
 				"Comma separated list of IPs or hostnames of the merger PCs.")
