@@ -59,7 +59,7 @@ void StrawReceiver::onShutDown() {
 }
 
 void StrawReceiver::processFrame(DataContainer&& data, uint burstID) {
-	char* payload = data.data + sizeof(struct UDP_HDR);
+	char* payload = data.data + sizeof(UDP_HDR);
 
 	uint sendDataLength = data.length - sizeof(UDP_HDR)
 			+ 8/*header indicating length and PC IP*/;

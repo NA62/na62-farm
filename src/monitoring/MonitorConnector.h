@@ -54,6 +54,7 @@ private:
 
 	void setDetectorDifferentialData(std::string key, uint64_t value,
 			uint_fast8_t detectorID);
+//	void setDetectorSubIdDifferentialData(std::string key, uint64_t value, uint_fast8_t subID, uint_fast8_t detectorID);
 	void setContinuousData(std::string key, uint64_t value);
 
 	boost::asio::io_service monitoringService;
@@ -64,6 +65,7 @@ private:
 
 	std::map<std::string, uint64_t> differentialInts_;
 	std::map<uint_fast8_t, std::map<std::string, uint64_t> > detectorDifferentialInts_;
+//	std::map<uint_fast8_t, std::map<uint_fast8_t, std::map<std::string,uint64_t>> > detectorSubIdDifferentialInts_;
 
 	static STATE currentState_;
 };

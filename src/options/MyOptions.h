@@ -42,12 +42,18 @@
 
 #define OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG (char*)"sendMRPsWithZSuppressionFlag"
 
-#define OPTION_PRINT_MISSING_SOURCES (char*)"printMissingSources"
-
 #define OPTION_INCREMENT_BURST_AT_EOB (char*)"incrementBurstAtEOB"
+
+//#define OPTION_L1_FLAG_MODE (char*) "L1FlagMode"
+#define OPTION_L1_FLAG_MASK (char*) "L1FlagMode"
+
+#define OPTION_L1_AUTOFLAG_FACTOR (char*) "L1AutoFlagFactor"
 /*
  * Triggering
  */
+#define OPTION_L1_REDUCTION_FACTOR  (char*)"L1ReductionFactor"
+#define OPTION_L2_REDUCTION_FACTOR  (char*)"L2ReductionFactor"
+
 #define OPTION_L1_DOWNSCALE_FACTOR  (char*)"L1DownscaleFactor"
 #define OPTION_L2_DOWNSCALE_FACTOR  (char*)"L2DownscaleFactor"
 
@@ -85,7 +91,7 @@
 /*
  * Debugging
  */
-
+#define OPTION_PRINT_MISSING_SOURCES (char*)"printMissingSources"
 #define OPTION_WRITE_BROKEN_CREAM_INFO (char*)"printBrokenCreamInfo"
 
 namespace na62 {
@@ -132,13 +138,18 @@ public:
 		(OPTION_FIRST_BURST_ID, po::value<int>()->required(),
 				"The current or first burst ID. This must be set if a PC starts during a run.")
 
+		(OPTION_L1_REDUCTION_FACTOR, po::value<int>()->required(),
+				"With this integer you can reduce the event rate going to L2 to a factor of 1/L1ReductionFactor. L1 Trigger will be processed every i event if  i++%reductionFactor==0")
+
+		(OPTION_L2_REDUCTION_FACTOR, po::value<int>()->required(),
+				"With this integer you can reduce the event rate accepted by L2 to a factor of 1/L1ReductionFactor. L2 Trigger will be processed every i event if  i++%reductionFactor==0")
+
 		(OPTION_L1_DOWNSCALE_FACTOR, po::value<int>()->required(),
-				"With this integer you can downscale the event rate going to L2 to a factor of 1/L1DownscaleFactor. The L1 Trigger will accept every even if  i++%downscaleFactor==0")
+				"With this integer you can downscale the event rate accepted by L1 to a factor of 1/L1DownscaleFactor. L1 Trigger will accept every succeeded i event if  i++%downscaleFactor==0")
 
 		(OPTION_L2_DOWNSCALE_FACTOR, po::value<int>()->required(),
-				"With this integer you can downscale the event rate accepted by L2 to a factor of 1/L1DownscaleFactor. The L2 Trigger will accept every even if  i++%downscaleFactor==0")
-
-		(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS,
+				"With this integer you can downscale the event rate accepted by L2 to a factor of 1/L2DownscaleFactor. L2 Trigger will accept every succeeded i event if  i++%downscaleFactor==0")(
+		OPTION_MIN_USEC_BETWEEN_L1_REQUESTS,
 				po::value<int>()->default_value(1000),
 				"Minimum time between two MRPs sent to the CREAMs")
 
@@ -187,11 +198,14 @@ public:
 		(OPTION_MAX_AGGREGATION_TIME, po::value<int>()->default_value(100000),
 				"Maximum time for one frame aggregation period before spawning a new TBB task in microseconds")
 
-		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
-				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
-
 		(OPTION_INCREMENT_BURST_AT_EOB, po::value<bool>()->default_value(false),
 				"Print out the source IDs and CREAM/crate IDs that have not been received during the last burst")
+
+//		(OPTION_L1_FLAG_MODE, po::value<bool>()->required(), "Enable flagging mode (No CUT) for L1 trigger.")
+		(OPTION_L1_FLAG_MASK, po::value<int>()->required(), "Enable flagging mask for L1 trigger.")
+
+		(OPTION_L1_AUTOFLAG_FACTOR, po::value<int>()->required(),
+				"With this integer you can select events being flagged at L1 even if L1 is running in cutting mode. L1 Trigger Algorithms will be processed every events.")
 
 		(OPTION_STRAW_PORT, po::value<int>()->default_value(58916),
 
@@ -206,9 +220,12 @@ public:
 		(OPTION_STRAW_ZMQ_DST_HOSTS, po::value<std::string>()->required(),
 				"Comma separated list of all hosts that have a ZMQ PULL socket listening to the strawZmqPort to receive STRAW data")
 
+		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
+				"If set to 1, information about unfinished events is written to /tmp/farm-logs/unfinishedEvents")
+
 		(OPTION_WRITE_BROKEN_CREAM_INFO,
 				po::value<bool>()->default_value(false),
-				"If set to 1, information about broken cream data (already received/not requested) is written to /tmp/farm-logs)")
+				"If set to 1, information about non requested cream data (already received/not requested) is written to /tmp/farm-logs/nonRequestedCreamData)")
 
 				;
 

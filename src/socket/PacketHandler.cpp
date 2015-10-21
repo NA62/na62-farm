@@ -62,7 +62,7 @@ PacketHandler::~PacketHandler() {
 }
 
 void PacketHandler::thread() {
-	struct pfring_pkthdr hdr;
+	pfring_pkthdr hdr;
 	memset(&hdr, 0, sizeof(hdr));
 	int receivedFrame = 0;
 
