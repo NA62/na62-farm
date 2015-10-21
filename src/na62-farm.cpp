@@ -23,7 +23,7 @@
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/Event.h>
 #include <options/TriggerOptions.h>
-#include <eventBuilding/EventSerializer.h>
+#include <storage/EventSerializer.h>
 
 #include "eventBuilding/L1Builder.h"
 #include "eventBuilding/L2Builder.h"
@@ -122,7 +122,6 @@ int main(int argc, char* argv[]) {
 
 	HandleFrameTask::initialize();
 
-	EventSerializer::initialize();
 	StorageHandler::initialize();
 	StrawReceiver::initialize();
 
