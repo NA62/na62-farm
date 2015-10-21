@@ -122,6 +122,7 @@ int main(int argc, char* argv[]) {
 
 	HandleFrameTask::initialize();
 
+	EventSerializer::initialize();
 	StorageHandler::initialize();
 	StrawReceiver::initialize();
 
