@@ -35,9 +35,8 @@
 #include "monitoring/CommandConnector.h"
 #include "straws/StrawReceiver.h"
 
-#ifdef USE_PCAPDUMPER
 #include "socket/PcapDumper.h"
-#endif
+
 
 using namespace std;
 using namespace na62;
@@ -160,14 +159,11 @@ int main(int argc, char* argv[]) {
 
 
 	/*
-	 * Packet Handler
+	 * Packet Dump
 	 */
-#ifdef USE_PCAPDUMPER
-	//TODO Pick with a option
-	PcapDumper::startDump("File");
-#endif
-
-
+	if(Options::GetBool(OPTION_DUMP_PACKETS)){
+		PcapDumper::startDump(Options::GetString(OPTION_DUMP_PACKETS_PATH));
+	}
 
 
 	/*
@@ -178,6 +174,7 @@ int main(int argc, char* argv[]) {
 	<< " PacketHandler threads" << ENDL;
 
 	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
+
 		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
 				i);
 		packetHandlers.push_back(handler);

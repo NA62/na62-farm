@@ -43,9 +43,7 @@
 
 #include "HandleFrameTask.h"
 
-#ifdef USE_PCAPDUMPER
 #include "socket/PcapDumper.h"
-#endif
 
 
 namespace na62 {
@@ -119,10 +117,12 @@ void PacketHandler::thread() {
 				memcpy(data, buff, hdr.len);
 				frames.push_back( { data, (uint_fast16_t) hdr.len, true });
 
-#ifdef USE_PCAPDUMPER
-				//Dump of the packet
-				PcapDumper::dumpPacket(threadNum_, data, hdr.len);
-#endif
+				//LOG_ERROR<< "###########Packets" << ENDL;
+				if(Options::GetBool(OPTION_DUMP_PACKETS)){
+					//Dump of the packets
+					PcapDumper::dumpPacket(threadNum_, data, hdr.len);
+				}
+
 				goToSleep = false;
 				spinsInARow = 0;
 			} else {
@@ -193,7 +193,8 @@ void PacketHandler::thread() {
 			 */
 			HandleFrameTask* task =
 					new (tbb::task::allocate_root()) HandleFrameTask(
-							std::move(frames), BurstIdHandler::getCurrentBurstId());
+							std::move(frames),
+							BurstIdHandler::getCurrentBurstId());
 			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 
 			goToSleep = false;
@@ -213,8 +214,7 @@ void PacketHandler::thread() {
 			}
 		}
 	}
-	finish: LOG_INFO<<"Stopping PacketHandler thread " << threadNum_
-	<< ENDL;
+	finish: LOG_INFO << "Stopping PacketHandler thread " << threadNum_ << ENDL;
 }
 }
 /* namespace na62 */
