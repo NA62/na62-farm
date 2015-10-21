@@ -205,7 +205,6 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 //					EventPool::getL0PacketCounter()[mep->getFragment(i)->getEventNumber()].fetch_add(
 //							1, std::memory_order_relaxed);
 //				}
-
 				L1Builder::buildEvent(mep->getFragment(i), burstID_);
 			}
 			/*
@@ -365,7 +364,6 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 //				EventPool::getCREAMPacketCounter()[fragment->getEventNumber()].fetch_add(
 //						1, std::memory_order_relaxed);
 //			}
-
 			L2Builder::buildEvent(fragment);
 		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
 			StrawReceiver::processFrame(std::move(container), burstID_);
