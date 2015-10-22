@@ -62,10 +62,6 @@ PacketHandler::~PacketHandler() {
 }
 
 void PacketHandler::thread() {
-	pfring_pkthdr hdr;
-	memset(&hdr, 0, sizeof(hdr));
-	int receivedFrame = 0;
-
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
 	const uint pollDelay = Options::GetDouble(OPTION_POLLING_DELAY);
 
@@ -82,7 +78,6 @@ void PacketHandler::thread() {
 
 	//boost::timer::cpu_timer sendTimer;
 
-	char* buff; // = new char[MTU];
 	while (running_) {
 		/*
 		 * We want to aggregate several frames if we already have more HandleFrameTasks running than there are CPU cores available
@@ -90,8 +85,6 @@ void PacketHandler::thread() {
 		std::vector<DataContainer> frames;
 		frames.reserve(framesToBeGathered);
 
-		receivedFrame = 0;
-		buff = nullptr;
 		bool goToSleep = false;
 
 		uint spinsInARow = 0;
@@ -105,14 +98,11 @@ void PacketHandler::thread() {
 			 * The actual  polling!
 			 * Do not wait for incoming packets as this will block the ring and make sending impossible
 			 */
-			receivedFrame = NetworkHandler::GetNextFrame(&hdr, &buff, 0, false,
-					threadNum_);
+			u_char* data;
+			uint_fast16_t bytesReceived = NetworkHandler::GetNextFrame(threadNum_, false /*active polling*/, data);
 
-			if (receivedFrame > 0) {
-
-				char* data = new char[hdr.len];
-				memcpy(data, buff, hdr.len);
-				frames.push_back( { data, (uint_fast16_t) hdr.len, true });
+			if (bytesReceived > 0) {
+				frames.push_back( { reinterpret_cast<char*>(data), bytesReceived, true });
 				goToSleep = false;
 				spinsInARow = 0;
 			} else {

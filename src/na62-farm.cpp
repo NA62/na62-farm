@@ -107,8 +107,9 @@ int main(int argc, char* argv[]) {
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread
 	 */
-	NetworkHandler NetworkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME));
-	NetworkHandler.startThread("ArpSender");
+	const uint numberOfPhThreads = std::thread::hardware_concurrency()-1;
+	NetworkHandler networkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME), numberOfPhThreads);
+	networkHandler.startThread("ArpSender");
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
@@ -157,11 +158,10 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Packet Handler
 	 */
-	unsigned int numberOfPacketHandler = NetworkHandler::GetNumberOfQueues();
-	LOG_INFO<< "Starting " << numberOfPacketHandler
+	LOG_INFO<< "Starting " << numberOfPhThreads
 	<< " PacketHandler threads" << ENDL;
 
-	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
+	for (unsigned int i = 0; i < numberOfPhThreads; i++) {
 		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
 				i);
 		packetHandlers.push_back(handler);
