@@ -33,6 +33,7 @@
 #include <monitoring/BurstIdHandler.h>
 #include <socket/NetworkHandler.h>
 #include <structs/Network.h>
+#include <socket/EthernetUtils.h>
 
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
@@ -155,6 +156,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check checksum errors
 		 */
 		if (!checkFrame(hdr, container.length)) {
+			LOG_WARNING << "Received broken packet from " << EthernetUtils::ipToString(hdr->ip.saddr) << ENDL;
 			container.free();
 			return;
 		}
@@ -163,6 +165,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check if we are really the destination of the IP datagram
 		 */
 		if (MyIP != dstIP) {
+			LOG_WARNING << "Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP) << ENDL;
 			container.free();
 			return;
 		}
