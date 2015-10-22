@@ -59,7 +59,6 @@ void StrawReceiver::onShutDown() {
 }
 
 void StrawReceiver::processFrame(DataContainer&& data, uint burstID) {
-	UDP_HDR* udpIpHdr = reinterpret_cast<UDP_HDR*>(data.data);
 	char* payload = data.data + sizeof(UDP_HDR);
 
 	uint sendDataLength = data.length - sizeof(UDP_HDR)
@@ -70,7 +69,7 @@ void StrawReceiver::processFrame(DataContainer&& data, uint burstID) {
 	 * Write header
 	 */
 	memcpy(sendData, &sendDataLength, 4);
-	memcpy(sendData + 4, &(udpIpHdr->ip.saddr), 4);
+	memcpy(sendData + 4, &(reinterpret_cast<UDP_HDR*>(data.data)->ip.saddr), 4);
 
 	/*
 	 * Write data
