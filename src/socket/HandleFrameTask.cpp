@@ -53,6 +53,9 @@ uint HandleFrameTask::highestSourceNum_;
 std::atomic<uint64_t>* HandleFrameTask::MEPsReceivedBySourceNum_;
 std::atomic<uint64_t>* HandleFrameTask::BytesReceivedBySourceNum_;
 
+std::atomic<uint> HandleFrameTask::wrongIpNum_;
+std::atomic<uint> HandleFrameTask::wrongFrameNum_;
+
 HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers,
 		uint burstID) :
 		containers_(std::move(_containers)), burstID_(burstID) {
@@ -82,6 +85,8 @@ void HandleFrameTask::initialize() {
 		MEPsReceivedBySourceNum_[i] = 0;
 		BytesReceivedBySourceNum_[i] = 0;
 	}
+	wrongIpNum_ = 0;
+	wrongFrameNum_ = 0;
 }
 
 void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
@@ -155,7 +160,9 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check checksum errors
 		 */
 		if (!checkFrame(hdr, container.length)) {
+			++wrongFrameNum_;
 			container.free();
+
 			return;
 		}
 
@@ -163,6 +170,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check if we are really the destination of the IP datagram
 		 */
 		if (MyIP != dstIP) {
+			++wrongIpNum_;
 			container.free();
 			return;
 		}

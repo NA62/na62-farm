@@ -89,7 +89,11 @@ void MonitorConnector::handleUpdate() {
 	LOG_INFO<<"State:\t" << currentState_;
 
 	setDifferentialData("Sleeps", PacketHandler::sleeps_);
-	setDifferentialData("Spins", PacketHandler::spins_);
+	setDifferentialData("Spins", PacketHandler::spins_);//
+
+	setDifferentialData("WrongIp", HandleFrameTask::GetWrongIpNum());
+	setDifferentialData("WrongFrame", HandleFrameTask::GetWrongFrameNum());
+
 	setContinuousData("SendTimer",
 			PacketHandler::sendTimer.elapsed().wall / 1000);
 	setDifferentialData("SpawnedTasks",

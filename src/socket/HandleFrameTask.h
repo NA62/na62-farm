@@ -41,6 +41,9 @@ private:
 	static std::atomic<uint64_t>* MEPsReceivedBySourceNum_;
 	static std::atomic<uint64_t>* BytesReceivedBySourceNum_;
 
+	static std::atomic<uint> wrongIpNum_;
+	static std::atomic<uint> wrongFrameNum_;
+
 	void processFrame(DataContainer&& container);
 
 public:
@@ -62,6 +65,13 @@ public:
 	static inline uint64_t GetBytesReceivedBySourceNum(uint_fast8_t sourceNum) {
 		return BytesReceivedBySourceNum_[sourceNum];
 	}
+	static inline uint GetWrongIpNum() {
+		return wrongIpNum_;
+	}
+	static inline uint GetWrongFrameNum() {
+		return wrongFrameNum_;
+	}
+
 };
 
 } /* namespace na62 */
