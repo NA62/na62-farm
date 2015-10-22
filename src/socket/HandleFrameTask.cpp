@@ -156,7 +156,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check checksum errors
 		 */
 		if (!checkFrame(hdr, container.length)) {
-			LOG_WARNING << "Received broken packet from " << EthernetUtils::ipToString(hdr->ip.saddr) << ENDL;
+			LOG_WARNING<< "Received broken packet from " << EthernetUtils::ipToString(hdr->ip.saddr) << ENDL;
 			container.free();
 			return;
 		}
@@ -165,7 +165,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check if we are really the destination of the IP datagram
 		 */
 		if (MyIP != dstIP) {
-			LOG_WARNING << "Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP) << ENDL;
+			LOG_WARNING<< "Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP) << ENDL;
 			container.free();
 			return;
 		}
@@ -201,49 +201,43 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			BytesReceivedBySourceNum_[sourceNum].fetch_add(container.length,
 					std::memory_order_relaxed);
 
-			for (uint i = 0; i != mep->getNumberOfFragments(); i++) {
-				// Add every fragment
-//				if (EventPool::getPoolSize()
-//						> mep->getFragment(i)->getEventNumber()) {
-//					EventPool::getL0PacketCounter()[mep->getFragment(i)->getEventNumber()].fetch_add(
-//							1, std::memory_order_relaxed);
-//				}
-				L1Builder::buildEvent(mep->getFragment(i), burstID_);
-			}
 			/*
 			 * Setup L1 block if L1 is active copying informations from L0TP MEps
 			 */
 			if (mep->getSourceID() == SOURCE_ID_L0TP) {
 				if (SourceIDManager::isL1Active()) {
 					uint16_t mep_factor = mep->getNumberOfFragments();
-					uint32_t L1EventLength = sizeof(L1_BLOCK) + 8; //event length in bytes
-					uint32_t L1BlockLength = mep_factor * L1EventLength + 8; //L1 block length in bytes
+					uint16_t fragmentLength = sizeof(L1_BLOCK) + 8; //event length in bytes
+					const uint32_t L1BlockLength = mep_factor * fragmentLength
+							+ 8; //L1 block length in bytes
 					char * L1Data = new char[L1BlockLength + sizeof(UDP_HDR)]; //include UDP header
 					l0::MEP_HDR * L1Hdr = (l0::MEP_HDR *) (L1Data
 							+ sizeof(UDP_HDR));
 
+					// set MEP header
 					L1Hdr->firstEventNum = mep->getFirstEventNum();
 					L1Hdr->sourceID = SOURCE_ID_L1;
 					L1Hdr->mepLength = L1BlockLength;
 					L1Hdr->eventCount = mep_factor;
 					L1Hdr->sourceSubID = 0;
 
-					char * L1Event = L1Data + sizeof(UDP_HDR) + 8;
+					char * virtualFragment = L1Data + sizeof(UDP_HDR)
+							+ 8 /* mep header */;
 					l0::MEPFragment * L1Fragment;
 					for (uint i = 0; i != mep_factor; i++) {
 						L1Fragment = mep->getFragment(i);
-						memcpy(L1Event, L1Fragment->getDataWithMepHeader(), 8);
-						uint temp;
-						temp = *(uint *) (L1Event) & 0xffff0000;
-						temp |= L1EventLength;
-						*(uint *) (L1Event) = temp;
-						L1Event += L1EventLength;
+						// copy the fragment header
+						memcpy(virtualFragment,
+								L1Fragment->getDataWithMepHeader(), 8);
+						uint16_t temp;
+						temp = *(uint16_t *) (virtualFragment) & 0xffff0000;
+						temp |= fragmentLength;
+						*(uint16_t *) (virtualFragment) = temp;
+						virtualFragment += fragmentLength;
 					}
 
-					const uint_fast16_t & L1DataLength = L1BlockLength;
-
 					l0::MEP* mep_L1 = new l0::MEP(L1Data + sizeof(UDP_HDR),
-							L1DataLength, L1Data);
+							L1BlockLength, L1Data);
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_L1->getSourceID());
 
@@ -349,7 +343,16 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 								burstID_);
 					}
 				}
+			}
 
+			for (uint i = 0; i != mep->getNumberOfFragments(); i++) {
+				// Add every fragment
+//				if (EventPool::getPoolSize()
+//						> mep->getFragment(i)->getEventNumber()) {
+//					EventPool::getL0PacketCounter()[mep->getFragment(i)->getEventNumber()].fetch_add(
+//							1, std::memory_order_relaxed);
+//				}
+				L1Builder::buildEvent(mep->getFragment(i), burstID_);
 			}
 		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// CREAM Data //////////////////////////////////////////////////
 			cream::LkrFragment* fragment = new cream::LkrFragment(UDPPayload,
