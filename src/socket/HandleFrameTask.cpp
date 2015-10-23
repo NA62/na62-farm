@@ -108,6 +108,10 @@ void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
 }
 
 tbb::task* HandleFrameTask::execute() {
+	while (BurstIdHandler::isEobProcessingRunning()) {
+		usleep(1);
+	}
+
 	for (DataContainer& container : containers_) {
 		processFrame(std::move(container));
 	}
@@ -191,8 +195,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			 * L0 Data
 			 * Length is hdr->ip.tot_len-sizeof(udphdr) and not container.length because of ethernet padding bytes!
 			 */
-			l0::MEP* mep = new l0::MEP(UDPPayload, UdpDataLength,
-					container.data);
+			l0::MEP* mep = new l0::MEP(UDPPayload, UdpDataLength, container);
 
 			uint sourceNum = SourceIDManager::sourceIDToNum(mep->getSourceID());
 
@@ -237,7 +240,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					}
 
 					l0::MEP* mep_L1 = new l0::MEP(L1Data + sizeof(UDP_HDR),
-							L1BlockLength, L1Data);
+							L1BlockLength, { L1Data, L1BlockLength, true });
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_L1->getSourceID());
 
@@ -280,7 +283,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					const uint_fast16_t & L2DataLength = L2BlockLength;
 
 					l0::MEP* mep_L2 = new l0::MEP(L2Data + sizeof(UDP_HDR),
-							L2DataLength, L2Data);
+							L2DataLength, { L2Data, L2DataLength, true });
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_L2->getSourceID());
 
@@ -326,7 +329,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					const uint_fast16_t & NSTDDataLength = NSTDBlockLength;
 
 					l0::MEP* mep_NSTD = new l0::MEP(NSTDData + sizeof(UDP_HDR),
-							NSTDDataLength, NSTDData);
+							NSTDDataLength, { NSTDData, NSTDDataLength, true });
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_NSTD->getSourceID());
 
@@ -356,7 +359,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			}
 		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// CREAM Data //////////////////////////////////////////////////
 			cream::LkrFragment* fragment = new cream::LkrFragment(UDPPayload,
-					UdpDataLength, container.data);
+					UdpDataLength, container);
 
 			//fragment
 
