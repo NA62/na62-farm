@@ -7,30 +7,18 @@
 
 #include "L1Builder.h"
 
-#include <arpa/inet.h>
 #include <eventBuilding/Event.h>
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/SourceIDManager.h>
-#include <glog/logging.h>
+#include <l0/MEP.h>
 #include <l0/MEPFragment.h>
 #include <l0/Subevent.h>
-#include <l1/L1TriggerProcessor.h>
 #include <l1/L1Fragment.h>
+#include <l1/L1TriggerProcessor.h>
 #include <LKr/L1DistributionHandler.h>
-#include <netinet/ip.h>
-#include <netinet/udp.h>
-#include <options/Options.h>
-#include <socket/EthernetUtils.h>
-#include <socket/NetworkHandler.h>
-#include <structs/Network.h>
-#include <algorithm>
+#include <sys/types.h>
 #include <cstdbool>
-#include <iostream>
-#include <string>
-#include <structs/L0TPHeader.h>
 
-#include "../options/MyOptions.h"
-#include "../socket/HandleFrameTask.h"
 #include "L2Builder.h"
 
 namespace na62 {
