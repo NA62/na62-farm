@@ -54,7 +54,7 @@ std::atomic<uint64_t>* HandleFrameTask::MEPsReceivedBySourceNum_;
 std::atomic<uint64_t>* HandleFrameTask::BytesReceivedBySourceNum_;
 
 std::atomic<uint> HandleFrameTask::wrongIpNum_;
-std::atomic<uint> HandleFrameTask::wrongFrameNum_;
+std::atomic<uint> HandleFrameTask::corruptedFrameNum_;
 
 HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers,
 		uint burstID) :
@@ -86,7 +86,7 @@ void HandleFrameTask::initialize() {
 		BytesReceivedBySourceNum_[i] = 0;
 	}
 	wrongIpNum_ = 0;
-	wrongFrameNum_ = 0;
+	corruptedFrameNum_ = 0;
 }
 
 void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
@@ -160,7 +160,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check checksum errors
 		 */
 		if (!checkFrame(hdr, container.length)) {
-			++wrongFrameNum_;
+			++corruptedFrameNum_;
 			container.free();
 
 			return;

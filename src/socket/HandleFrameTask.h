@@ -42,7 +42,7 @@ private:
 	static std::atomic<uint64_t>* BytesReceivedBySourceNum_;
 
 	static std::atomic<uint> wrongIpNum_;
-	static std::atomic<uint> wrongFrameNum_;
+	static std::atomic<uint> corruptedFrameNum_;
 
 	void processFrame(DataContainer&& container);
 
@@ -68,8 +68,8 @@ public:
 	static inline uint GetWrongIpNum() {
 		return wrongIpNum_;
 	}
-	static inline uint GetWrongFrameNum() {
-		return wrongFrameNum_;
+	static inline uint GetCorruptedFrameNum() {
+		return corruptedFrameNum_;
 	}
 
 };
