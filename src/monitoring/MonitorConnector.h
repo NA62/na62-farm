@@ -11,6 +11,7 @@
 
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <stdint.h>
 #include <cstdbool>
 #include <map>
@@ -68,6 +69,8 @@ private:
 //	std::map<uint_fast8_t, std::map<uint_fast8_t, std::map<std::string,uint64_t>> > detectorSubIdDifferentialInts_;
 
 	static STATE currentState_;
+	static boost::posix_time::ptime startTime_;
+
 };
 
 } /* namespace monitoring */

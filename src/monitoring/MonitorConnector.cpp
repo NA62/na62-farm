@@ -11,8 +11,10 @@
 #include <boost/interprocess/interprocess_fwd.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/bind.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include <boost/date_time/time_duration.hpp>
+
 #include <sstream>
 
 #include "../socket/HandleFrameTask.h"
@@ -36,20 +38,30 @@
 #include "../socket/PacketHandler.h"
 #include <socket/NetworkHandler.h>
 
+#include <ctime>
+
 using namespace boost::interprocess;
 
 namespace na62 {
 namespace monitoring {
 
 STATE MonitorConnector::currentState_;
+boost::posix_time::ptime MonitorConnector::startTime_;
 
 MonitorConnector::MonitorConnector() :
 		timer_(monitoringService) {
 
-	LOG_INFO<<"Started monitor connector";
+	LOG_INFO << "Started monitor connector";
 }
 
 void MonitorConnector::thread() {
+
+	//timestamp
+	//IPCHandler::sendStatistics("PF_PacksDropped",
+	//		std::to_string(NetworkHandler::GetFramesDropped()));
+	startTime_ = boost::posix_time::second_clock::local_time();
+	IPCHandler::sendStatistics("StartTime",
+			boost::posix_time::to_simple_string(startTime_).c_str());
 
 	timer_.expires_from_now(boost::posix_time::milliseconds(1000));
 
@@ -62,7 +74,7 @@ MonitorConnector::~MonitorConnector() {
 }
 
 void MonitorConnector::onInterruption() {
-	LOG_ERROR<< "Stopping MonitorConnector" << ENDL;
+	LOG_ERROR << "Stopping MonitorConnector" << ENDL;
 	timer_.cancel();
 	monitoringService.stop();
 }
@@ -79,17 +91,41 @@ void MonitorConnector::handleUpdate() {
 
 	IPCHandler::updateState(currentState_);
 
-	LOG_INFO<<"Enqueued tasks:\t" << HandleFrameTask::getNumberOfQeuedTasks();
+	LOG_INFO << "Enqueued tasks:\t" << HandleFrameTask::getNumberOfQeuedTasks();
 
-	LOG_INFO<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
+	LOG_INFO << "IPFragments:\t"
+			<< FragmentStore::getNumberOfReceivedFragments() << "/"
+			<< FragmentStore::getNumberOfReassembledFrames() << "/"
+			<< FragmentStore::getNumberOfUnfinishedFrames();
 
-	LOG_INFO<<"BurstID:\t" << BurstIdHandler::getCurrentBurstId();
-	LOG_INFO<<"NextBurstID:\t" << BurstIdHandler::getNextBurstId();
+	LOG_INFO << "BurstID:\t" << BurstIdHandler::getCurrentBurstId();
+	LOG_INFO << "NextBurstID:\t" << BurstIdHandler::getNextBurstId();
 
-	LOG_INFO<<"State:\t" << currentState_;
+	LOG_INFO << "State:\t" << currentState_;
 
 	setDifferentialData("Sleeps", PacketHandler::sleeps_);
 	setDifferentialData("Spins", PacketHandler::spins_);
+
+	setDifferentialData("WrongIp", HandleFrameTask::GetWrongIpNum());
+	setDifferentialData("CorruptedFrame",
+			HandleFrameTask::GetCorruptedFrameNum());
+
+	IPCHandler::sendStatistics("WrongIp",
+			std::to_string(HandleFrameTask::GetWrongIpNum()));
+
+	IPCHandler::sendStatistics("CorruptedFrame",
+			std::to_string(HandleFrameTask::GetCorruptedFrameNum()));
+
+	//setDifferentialData("UpdateTimestamp", std::time(nullptr));
+	boost::posix_time::ptime updateTime =
+			boost::posix_time::second_clock::local_time();
+
+	IPCHandler::sendStatistics("UpdateTime",
+			boost::posix_time::to_simple_string(updateTime).c_str());
+
+	//IPCHandler::sendStatistics("UpTime",
+	//		boost::posix_time::to_simple_string(startTime_ - updateTime_).c_str());
+
 	setContinuousData("SendTimer",
 			PacketHandler::sendTimer.elapsed().wall / 1000);
 	setDifferentialData("SpawnedTasks",
@@ -102,12 +138,15 @@ void MonitorConnector::handleUpdate() {
 
 	IPCHandler::sendStatistics("PF_BytesReceived",
 			std::to_string(NetworkHandler::GetBytesReceived()));
+	IPCHandler::sendStatistics("starttime",
+			std::to_string(NetworkHandler::GetBytesReceived()));
+
 	IPCHandler::sendStatistics("PF_PacksReceived",
 			std::to_string(NetworkHandler::GetFramesReceived()));
 	IPCHandler::sendStatistics("PF_PacksDropped",
 			std::to_string(NetworkHandler::GetFramesDropped()));
 
-	LOG_INFO<<"########################";
+	LOG_INFO << "########################";
 	/*
 	 * Number of Events and data rate from all detectors
 	 */
@@ -245,7 +284,7 @@ void MonitorConnector::handleUpdate() {
 		}
 	}
 
-	LOG_INFO<<"########################";
+	LOG_INFO << "########################";
 
 	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
 	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
@@ -281,8 +320,11 @@ void MonitorConnector::handleUpdate() {
 	setContinuousData("OutFramesQueued",
 			NetworkHandler::getNumberOfEnqueuedSendFrames());
 
-	LOG_INFO<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
-	LOG_INFO<<"=======================================";
+	LOG_INFO << "IPFragments:\t"
+			<< FragmentStore::getNumberOfReceivedFragments() << "/"
+			<< FragmentStore::getNumberOfReassembledFrames() << "/"
+			<< FragmentStore::getNumberOfUnfinishedFrames();
+	LOG_INFO << "=======================================";
 
 	/*
 	 * Building Time L0-L1 statistics
@@ -294,12 +336,14 @@ void MonitorConnector::handleUpdate() {
 	if (L1Builder::GetL0BuildingTimeCumulative()) {
 //		LOG_INFO<< "***********L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative() << ENDL;
 //		LOG_INFO<< "***********L1InputEventsPerBurst " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
-		L0BuildTimeMean = L1Builder::GetL0BuildingTimeCumulative()/L1Builder::GetL1InputEventsPerBurst();
+		L0BuildTimeMean = L1Builder::GetL0BuildingTimeCumulative()
+				/ L1Builder::GetL1InputEventsPerBurst();
 	}
 	if (L2Builder::GetL1BuildingTimeCumulative()) {
 //		LOG_INFO<< "***********L1BuildingTimeCumulative " << L2Builder::GetL1BuildingTimeCumulative() << ENDL;
 //		LOG_INFO<< "***********L2InputEventsPerBurst " << L2Builder::GetL2InputEventsPerBurst() << ENDL;
-		L1BuildTimeMean = L2Builder::GetL1BuildingTimeCumulative()/L2Builder::GetL2InputEventsPerBurst();
+		L1BuildTimeMean = L2Builder::GetL1BuildingTimeCumulative()
+				/ L2Builder::GetL2InputEventsPerBurst();
 	}
 //	LOG_INFO<< "***********L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax() << ENDL;
 	uint64_t L0BuildTimeMax = L1Builder::GetL0BuildingTimeMax();
@@ -307,10 +351,14 @@ void MonitorConnector::handleUpdate() {
 //	LOG_INFO<< "***********L1BuildingTimeMax " << L2Builder::GetL1BuildingTimeMax() << ENDL;
 	uint64_t L1BuildTimeMax = L2Builder::GetL1BuildingTimeMax();
 
-	LOG_INFO<< "***********L0BuildTimeMean (x Run Control) " << L0BuildTimeMean << ENDL;
-	LOG_INFO<< "***********L1BuildTimeMean (x Run Control) " << L1BuildTimeMean << ENDL;
-	LOG_INFO<< "***********L0BuildTimeMax  (x Run Control) " << L0BuildTimeMax << ENDL;
-	LOG_INFO<< "***********L1BuildTimeMax  (x Run Control) " << L1BuildTimeMax << ENDL;
+	LOG_INFO << "***********L0BuildTimeMean (x Run Control) " << L0BuildTimeMean
+			<< ENDL;
+	LOG_INFO << "***********L1BuildTimeMean (x Run Control) " << L1BuildTimeMean
+			<< ENDL;
+	LOG_INFO << "***********L0BuildTimeMax  (x Run Control) " << L0BuildTimeMax
+			<< ENDL;
+	LOG_INFO << "***********L1BuildTimeMax  (x Run Control) " << L1BuildTimeMax
+			<< ENDL;
 
 	IPCHandler::sendStatistics("L0BuildingTimeMean",
 			std::to_string(L0BuildTimeMean));
@@ -330,13 +378,15 @@ void MonitorConnector::handleUpdate() {
 	if (L1Builder::GetL1ProcessingTimeCumulative()) {
 //		LOG_INFO<< "***********L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
 //		LOG_INFO<< "***********L1InputEventsPerBurst " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
-		L1ProcTimeMean = L1Builder::GetL1ProcessingTimeCumulative()/L1Builder::GetL1InputEventsPerBurst();
+		L1ProcTimeMean = L1Builder::GetL1ProcessingTimeCumulative()
+				/ L1Builder::GetL1InputEventsPerBurst();
 	}
 	if (L2Builder::GetL2ProcessingTimeCumulative()) {
 //		LOG_INFO<< "***********L2ProcessingTimeCumulative " << L2Builder::GetL2ProcessingTimeCumulative() << ENDL;
 //		LOG_INFO<< "***********L2InputEventsPerBurst " << L2Builder::GetL2InputEventsPerBurst() << ENDL;
-		if(L2Builder::GetL2InputEventsPerBurst())
-			L2ProcTimeMean = L2Builder::GetL2ProcessingTimeCumulative()/L2Builder::GetL2InputEventsPerBurst();
+		if (L2Builder::GetL2InputEventsPerBurst())
+			L2ProcTimeMean = L2Builder::GetL2ProcessingTimeCumulative()
+					/ L2Builder::GetL2InputEventsPerBurst();
 		else
 			L2ProcTimeMean = -1;
 	}
@@ -347,10 +397,14 @@ void MonitorConnector::handleUpdate() {
 //	LOG_INFO<< "***********L2ProcessingTimeMax " << L2Builder::GetL2ProcessingTimeMax() << ENDL;
 	uint64_t L2ProcTimeMax = L2Builder::GetL2ProcessingTimeMax();
 
-	LOG_INFO<< "***********L1ProcTimeMean (x Run Control)  " << L1ProcTimeMean << ENDL;
-	LOG_INFO<< "***********L2ProcTimeMean (x Run Control)  " << L2ProcTimeMean << ENDL;
-	LOG_INFO<< "***********L1ProcTimeMax  (x Run Control)  " << L1ProcTimeMax << ENDL;
-	LOG_INFO<< "***********L2ProcTimeMax  (x Run Control)  " << L2ProcTimeMax << ENDL;
+	LOG_INFO << "***********L1ProcTimeMean (x Run Control)  " << L1ProcTimeMean
+			<< ENDL;
+	LOG_INFO << "***********L2ProcTimeMean (x Run Control)  " << L2ProcTimeMean
+			<< ENDL;
+	LOG_INFO << "***********L1ProcTimeMax  (x Run Control)  " << L1ProcTimeMax
+			<< ENDL;
+	LOG_INFO << "***********L2ProcTimeMax  (x Run Control)  " << L2ProcTimeMax
+			<< ENDL;
 
 	IPCHandler::sendStatistics("L1ProcessingTimeMean",
 			std::to_string(L1ProcTimeMean));
@@ -405,10 +459,14 @@ void MonitorConnector::handleUpdate() {
 //	LOG_INFO<<"########################" << L1ProcTimeVsEvtNumStats.str() << ENDL;
 //	LOG_INFO<<"########################" << L2ProcTimeVsEvtNumStats.str() << ENDL;
 
-	IPCHandler::sendStatistics("L0BuildingTimeVsEvtNumber",L0BuildTimeVsEvtNumStats.str());
-	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber",L1BuildTimeVsEvtNumStats.str());
-	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber",L1ProcTimeVsEvtNumStats.str());
-	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber",L2ProcTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L0BuildingTimeVsEvtNumber",
+			L0BuildTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber",
+			L1BuildTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber",
+			L1ProcTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber",
+			L2ProcTimeVsEvtNumStats.str());
 
 	IPCHandler::sendStatistics("UnfinishedEventsData",
 			UnfinishedEventsCollector::toJson());
@@ -425,9 +483,13 @@ uint64_t MonitorConnector::setDifferentialData(std::string key,
 
 	if (value != 0) {
 		if (key == "BytesReceived") {
-			LOG_INFO<<key << ":\t" << Utils::FormatSize(value - differentialInts_[key]) << " (" << Utils::FormatSize(value) <<")";
+			LOG_INFO << key << ":\t"
+					<< Utils::FormatSize(value - differentialInts_[key]) << " ("
+					<< Utils::FormatSize(value) << ")";
 		} else {
-			LOG_INFO<<key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")";
+			LOG_INFO << key << ":\t"
+					<< std::to_string(value - differentialInts_[key]) << " ("
+					<< std::to_string(value) << ")";
 		}
 
 	}
@@ -457,7 +519,9 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 	}
 	lastValue = detectorDifferentialInts_[detectorID][key];
 
-	LOG_INFO<<key << SourceIDManager::sourceIdToDetectorName(detectorID) << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")";
+	LOG_INFO << key << SourceIDManager::sourceIdToDetectorName(detectorID)
+			<< ":\t" << std::to_string(value - lastValue) << "( "
+			<< std::to_string(value) << ")";
 
 	detectorDifferentialInts_[detectorID][key + LAST_VALUE_SUFFIX] =
 			detectorDifferentialInts_[detectorID][key];
@@ -488,7 +552,7 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 //}
 
 void MonitorConnector::setContinuousData(std::string key, uint64_t value) {
-	LOG_INFO<<key << ":\t" << std::to_string(value);
+	LOG_INFO << key << ":\t" << std::to_string(value);
 }
 
 }
