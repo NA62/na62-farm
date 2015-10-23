@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread
 	 */
-	const uint numberOfPhThreads = std::thread::hardware_concurrency()-1;
+	const uint numberOfPhThreads = 4;//std::thread::hardware_concurrency()-1;
 	NetworkHandler networkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME), numberOfPhThreads);
 	networkHandler.startThread("ArpSender");
 

@@ -146,7 +146,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				return;
 			} else {
 				// Just ignore this frame as it's neither IP nor ARP
-				container.free();
+				//container.free();
 				return;
 			}
 		}
@@ -155,7 +155,6 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check checksum errors
 		 */
 		if (!checkFrame(hdr, container.length)) {
-			container.free();
 			return;
 		}
 
@@ -163,7 +162,6 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check if we are really the destination of the IP datagram
 		 */
 		if (MyIP != dstIP) {
-			container.free();
 			return;
 		}
 
@@ -372,14 +370,10 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			 * Packet with unknown UDP port received
 			 */
 			LOG_ERROR<<"Packet with unknown UDP port received: " << destPort << ENDL;
-			container.free();
 		}
 	} catch (UnknownSourceIDFound const& e) {
-		container.free();
 	} catch (UnknownCREAMSourceIDFound const&e) {
-		container.free();
 	} catch (NA62Error const& e) {
-		container.free();
 	}
 }
 
