@@ -143,7 +143,7 @@ private:
 
 				for (DataContainer& fragment : fragments) {
 					if (fragment.data != nullptr) {
-						delete[] fragment.data;
+						fragment.free();
 					}
 				}
 
@@ -167,7 +167,7 @@ private:
 						ntohs(currentData->ip.tot_len) - sizeof(iphdr));
 				currentOffset += ntohs(currentData->ip.tot_len) - sizeof(iphdr);
 			}
-			delete[] fragment.data;
+			fragment.free();
 		}
 		return {newFrameBuff, currentOffset};
 	}

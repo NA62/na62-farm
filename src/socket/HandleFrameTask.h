@@ -55,13 +55,7 @@ public:
 		return queuedTasksNum_;
 	}
 
-	static inline uint64_t GetMEPsReceivedBySourceNum(uint_fast8_t sourceNum) {
-		return MEPsReceivedBySourceNum_[sourceNum];
-	}
 
-	static inline uint64_t GetBytesReceivedBySourceNum(uint_fast8_t sourceNum) {
-		return BytesReceivedBySourceNum_[sourceNum];
-	}
 };
 
 } /* namespace na62 */

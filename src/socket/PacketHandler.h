@@ -38,22 +38,15 @@ public:
 	static std::atomic<uint> sleeps_;
 	static boost::timer::cpu_timer sendTimer;
 
-	/*
-	 * Number of times a HandleFrameTask object has been created and enqueued
-	 */
+	static void initialize();
 
-	bool checkFrame(UDP_HDR* hdr, uint_fast16_t length);
-	void processARPRequest(ARP_HDR* arp);bool checkIfArp(
-			uint_fast16_t etherType, DataContainer container,
-			uint_fast8_t ipProto);
-	void buildL1Event(l0::MEP* mep);
-	void buildL2Event(l0::MEP* mep);
-	void buildNSTDEvent(l0::MEP* mep);
-	void processDestPortL0(const char* UDPPayload,
-			uint_fast16_t UdpDataLength, DataContainer container);
-	void processDestPortCREAM(const char* UDPPayload,
-			uint_fast16_t UdpDataLength, DataContainer container);
-	void processDestPortSTRAW(DataContainer container);
+	static inline uint64_t GetMEPsReceivedBySourceNum(uint_fast8_t sourceNum) {
+		return MEPsReceivedBySourceNum_[sourceNum];
+	}
+
+	static inline uint64_t GetBytesReceivedBySourceNum(uint_fast8_t sourceNum) {
+		return BytesReceivedBySourceNum_[sourceNum];
+	}
 
 private:
 
@@ -74,6 +67,18 @@ private:
 	 */
 	void thread();
 
+	bool checkFrame(UDP_HDR* hdr, uint_fast16_t length);
+	void processARPRequest(ARP_HDR* arp);bool checkIfArp(
+			uint_fast16_t etherType, DataContainer container,
+			uint_fast8_t ipProto);
+	void buildL1Event(l0::MEP* mep);
+	void buildL2Event(l0::MEP* mep);
+	void buildNSTDEvent(l0::MEP* mep);
+	void processDestPortL0(const char* UDPPayload, uint_fast16_t UdpDataLength,
+			DataContainer container);
+	void processDestPortCREAM(const char* UDPPayload,
+			uint_fast16_t UdpDataLength, DataContainer container);
+	void processDestPortSTRAW(DataContainer container);
 };
 
 } /* namespace na62 */

@@ -70,31 +70,38 @@ PacketHandler::PacketHandler(int threadNum) :
 PacketHandler::~PacketHandler() {
 }
 
+void PacketHandler::initialize() {
+	L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
+	CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
+	STRAW_PORT = Options::GetInt(OPTION_STRAW_PORT);
+	MyIP = NetworkHandler::GetMyIP();
+
+	/*
+	 * All L0 data sources and LKr:
+	 */
+	highestSourceNum_ = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES;
+
+	MEPsReceivedBySourceNum_ = new std::atomic<uint64_t>[highestSourceNum_ + 1];
+	BytesReceivedBySourceNum_ =
+			new std::atomic<uint64_t>[highestSourceNum_ + 1];
+
+	for (uint i = 0; i != highestSourceNum_ + 1; i++) {
+		MEPsReceivedBySourceNum_[i] = 0;
+		BytesReceivedBySourceNum_[i] = 0;
+	}
+}
+
 void PacketHandler::thread() {
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
-	const uint pollDelay = Options::GetDouble(OPTION_POLLING_DELAY);
-
-	const uint maxAggregationMicros = Options::GetInt(
-	OPTION_MAX_AGGREGATION_TIME);
-
-	const uint minUsecBetweenL1Requests = Options::GetInt(
-	OPTION_MIN_USEC_BETWEEN_L1_REQUESTS);
-
-	uint sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
-
-	const uint framesToBeGathered = Options::GetInt(
-	OPTION_MAX_FRAME_AGGREGATION);
-
-	//boost::timer::cpu_timer sendTimer;
 
 	while (running_) {
 		u_char* data;
 		uint_fast16_t bytesReceived = NetworkHandler::GetNextFrame(threadNum_,
 				activePolling, data);
 
-		DataContainer container(reinterpret_cast<char *>(data), bytesReceived);
-
 		if (bytesReceived > 0) {
+			DataContainer container(reinterpret_cast<char *>(data),
+					bytesReceived, true);
 			//Process Frame
 			try {
 				UDP_HDR* hdr = (UDP_HDR*) data;
@@ -107,27 +114,27 @@ void PacketHandler::thread() {
 				 * Check if we received an ARP request
 				 */
 				if (checkIfArp(etherType, container, ipProto)) {
-					return;
+					continue;
 				}
+
 				/*
 				 * Check checksum errors
 				 */
 				if (!checkFrame(hdr, bytesReceived)) {
-					return;
+					continue;
 				}
 
 				/*
 				 * Check if we are really the destination of the IP datagram
 				 */
-				if (MyIP != dstIP) {
-					return;
-				}
-
+//				if (MyIP != dstIP) {
+//					return;
+//				}
 				if (hdr->isFragment()) {
 					container = FragmentStore::addFragment(
 							std::move(container));
 					if (container.data == nullptr) {
-						return;
+						continue;
 					}
 					hdr = reinterpret_cast<UDP_HDR*>(container.data);
 					destPort = ntohs(hdr->udp.dest);
@@ -162,9 +169,7 @@ void PacketHandler::thread() {
 			} catch (UnknownCREAMSourceIDFound const&e) {
 			} catch (NA62Error const& e) {
 			}
-
 		}
-
 	}
 }
 
@@ -284,8 +289,6 @@ void PacketHandler::buildL1Event(l0::MEP* mep) {
 		*(uint *) (L1Event) = temp;
 		L1Event += L1EventLength;
 	}
-
-	const uint_fast16_t & L1DataLength = L1BlockLength;
 
 	l0::MEP* mep_L1 = new l0::MEP(L1Data + sizeof(UDP_HDR), L1BlockLength, {
 			L1Data, L1BlockLength });
@@ -445,7 +448,7 @@ void PacketHandler::processDestPortCREAM(const char* UDPPayload,
 	//			}
 	L2Builder::buildEvent(fragment);
 }
-void PacketHandler::processDestPortSTRAW(DataContainer container){
+void PacketHandler::processDestPortSTRAW(DataContainer container) {
 	StrawReceiver::processFrame(std::move(container),
 			BurstIdHandler::getCurrentBurstId());
 }

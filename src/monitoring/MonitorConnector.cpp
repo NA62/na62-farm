@@ -15,8 +15,6 @@
 #include <boost/date_time/time_duration.hpp>
 #include <sstream>
 
-#include "../socket/HandleFrameTask.h"
-
 #include <iostream>
 
 #include <eventBuilding/SourceIDManager.h>
@@ -111,12 +109,12 @@ void MonitorConnector::handleUpdate() {
 
 		if (SourceIDManager::getExpectedPacksBySourceID(sourceID) > 0) {
 			setDetectorDifferentialData("MEPsReceived",
-					HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum)
+					PacketHandler::GetMEPsReceivedBySourceNum(soruceIDNum)
 							/ SourceIDManager::getExpectedPacksBySourceID(
 									sourceID), sourceID);
 
 			statistics << std::dec
-					<< HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum)
+					<< PacketHandler::GetMEPsReceivedBySourceNum(soruceIDNum)
 							/ SourceIDManager::getExpectedPacksBySourceID(
 									sourceID) << ";";
 		}
@@ -130,7 +128,7 @@ void MonitorConnector::handleUpdate() {
 //				HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum),
 //				sourceID);
 		statistics << std::dec
-				<< HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum)
+				<< PacketHandler::GetBytesReceivedBySourceNum(soruceIDNum)
 				<< ";";
 //		for (uint f = 0;
 //				f != SourceIDManager::getExpectedPacksBySourceNum(soruceIDNum);
@@ -153,12 +151,12 @@ void MonitorConnector::handleUpdate() {
 		 * Store CREAM specific statistics stored at SourceIDManager::NUMBER_OF_L0_DATA_SOURCES as sourceNum
 		 */
 		setDetectorDifferentialData("MEPsReceived",
-				HandleFrameTask::GetMEPsReceivedBySourceNum(
+				PacketHandler::GetMEPsReceivedBySourceNum(
 						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES)
 						/ (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT),
 				SOURCE_ID_LKr);
 		statistics << std::dec
-				<< HandleFrameTask::GetMEPsReceivedBySourceNum(
+				<< PacketHandler::GetMEPsReceivedBySourceNum(
 						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES)
 						/ (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT)
 				<< ";";
@@ -173,11 +171,11 @@ void MonitorConnector::handleUpdate() {
 						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES) << ";";
 
 //		setDetectorDifferentialData("BytesReceived",
-//				HandleFrameTask::GetBytesReceivedBySourceNum(
+//				PacketHandler::GetBytesReceivedBySourceNum(
 //						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES),
 //				SOURCE_ID_LKr);
 		statistics << std::dec
-				<< HandleFrameTask::GetBytesReceivedBySourceNum(
+				<< PacketHandler::GetBytesReceivedBySourceNum(
 						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES) << ";";
 
 		setDetectorDifferentialData("NonRequestedCreamFrags",

@@ -8,6 +8,9 @@
 #include <eventBuilding/SourceIDManager.h>
 #include <tbb/task.h>
 #include <thread>
+#include <stdlib.h>
+#include <time.h>
+
 
 #include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
@@ -32,10 +35,8 @@
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
 #include "socket/ZMQHandler.h"
-#include "socket/HandleFrameTask.h"
 #include "monitoring/CommandConnector.h"
 #include "straws/StrawReceiver.h"
-
 
 using namespace std;
 using namespace na62;
@@ -82,7 +83,7 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 /*
  * This function is called by the dispatcher (zc_balancer in PFRingHandle) when no packets are recieved
  */
-void idleFunction(){
+void idleFunction() {
 	BurstIdHandler::checkBurstFinished();
 }
 
@@ -96,6 +97,7 @@ int main(int argc, char* argv[]) {
 	boost::thread signalThread(
 			boost::bind(&boost::asio::io_service::run, &signalService));
 
+	DataContainer::initialize();
 
 	L1TriggerProcessor::registerDownscalingAlgorithms();
 
@@ -116,8 +118,9 @@ int main(int argc, char* argv[]) {
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread
 	 */
-	const uint numberOfPhThreads = 4;//std::thread::hardware_concurrency()-1;
-	NetworkHandler networkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME), numberOfPhThreads, idleFunction);
+	const uint numberOfPhThreads = 1; //std::thread::hardware_concurrency()-1;
+	NetworkHandler networkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME),
+			numberOfPhThreads, idleFunction);
 	networkHandler.startThread("ArpSender");
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
@@ -128,7 +131,8 @@ int main(int argc, char* argv[]) {
 
 	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID));
 
-	HandleFrameTask::initialize();
+	PacketHandler::initialize();
+
 
 	EventSerializer::initialize();
 	StorageHandler::initialize();

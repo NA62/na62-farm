@@ -183,7 +183,7 @@ public:
 		(OPTION_PH_SCHEDULER, po::value<int>()->default_value(2),
 				"Process scheduling policy to be used for the PacketHandler threads. 1: FIFO, 2: RR")
 
-		(OPTION_ACTIVE_POLLING, po::value<int>()->default_value(1),
+		(OPTION_ACTIVE_POLLING, po::value<bool>()->default_value(1),
 				"Use active polling (high CPU usage, might be faster depending on the number of pf_ring queues)")
 
 		(OPTION_POLLING_DELAY, po::value<double>()->default_value(1E5),
