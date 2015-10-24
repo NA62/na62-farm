@@ -9,14 +9,17 @@
 
 #include <eventBuilding/Event.h>
 #include <eventBuilding/EventPool.h>
-#include <LKr/LkrFragment.h>
-
-//#include <l0/MEPFragment.h>
+#include <l0/MEPFragment.h>
+#include <l0/MEP.h>
 #include <l0/Subevent.h>
-
-#include <l2/L2TriggerProcessor.h>
 #include <l2/L2Fragment.h>
+#include <l2/L2TriggerProcessor.h>
+#include <LKr/LkrFragment.h>
+#include <netinet/ip.h>
 #include <structs/Network.h>
+#include <sys/types.h>
+#include <cstdbool>
+
 #include "StorageHandler.h"
 
 namespace na62 {
@@ -54,7 +57,7 @@ bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
 	}
 
 	const UDP_HDR* etherFrame =
-			reinterpret_cast<const UDP_HDR*>(fragment->getEtherFrame());
+			reinterpret_cast<const UDP_HDR*>(fragment->getRawData().data);
 
 	// L2 Input reduction
 //	if (fragment->getEventNumber() % reductionFactor_ != 0) {
