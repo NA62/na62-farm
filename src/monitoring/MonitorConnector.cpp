@@ -88,16 +88,6 @@ void MonitorConnector::handleUpdate() {
 
 	LOG_INFO<<"State:\t" << currentState_;
 
-	setDifferentialData("Sleeps", PacketHandler::sleeps_);
-	setDifferentialData("Spins", PacketHandler::spins_);
-	setContinuousData("SendTimer",
-			PacketHandler::sendTimer.elapsed().wall / 1000);
-	setDifferentialData("SpawnedTasks",
-			PacketHandler::frameHandleTasksSpawned_);
-	setContinuousData("AggregationSize",
-			NetworkHandler::GetFramesReceived()
-					/ (float) PacketHandler::frameHandleTasksSpawned_);
-
 	NetworkHandler::PrintStats();
 
 	IPCHandler::sendStatistics("PF_BytesReceived",
@@ -294,12 +284,14 @@ void MonitorConnector::handleUpdate() {
 	if (L1Builder::GetL0BuildingTimeCumulative()) {
 //		LOG_INFO<< "***********L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative() << ENDL;
 //		LOG_INFO<< "***********L1InputEventsPerBurst " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
-		L0BuildTimeMean = L1Builder::GetL0BuildingTimeCumulative()/L1Builder::GetL1InputEventsPerBurst();
+		L0BuildTimeMean = L1Builder::GetL0BuildingTimeCumulative()
+				/ L1Builder::GetL1InputEventsPerBurst();
 	}
 	if (L2Builder::GetL1BuildingTimeCumulative()) {
 //		LOG_INFO<< "***********L1BuildingTimeCumulative " << L2Builder::GetL1BuildingTimeCumulative() << ENDL;
 //		LOG_INFO<< "***********L2InputEventsPerBurst " << L2Builder::GetL2InputEventsPerBurst() << ENDL;
-		L1BuildTimeMean = L2Builder::GetL1BuildingTimeCumulative()/L2Builder::GetL2InputEventsPerBurst();
+		L1BuildTimeMean = L2Builder::GetL1BuildingTimeCumulative()
+				/ L2Builder::GetL2InputEventsPerBurst();
 	}
 //	LOG_INFO<< "***********L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax() << ENDL;
 	uint64_t L0BuildTimeMax = L1Builder::GetL0BuildingTimeMax();
@@ -330,13 +322,15 @@ void MonitorConnector::handleUpdate() {
 	if (L1Builder::GetL1ProcessingTimeCumulative()) {
 //		LOG_INFO<< "***********L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
 //		LOG_INFO<< "***********L1InputEventsPerBurst " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
-		L1ProcTimeMean = L1Builder::GetL1ProcessingTimeCumulative()/L1Builder::GetL1InputEventsPerBurst();
+		L1ProcTimeMean = L1Builder::GetL1ProcessingTimeCumulative()
+				/ L1Builder::GetL1InputEventsPerBurst();
 	}
 	if (L2Builder::GetL2ProcessingTimeCumulative()) {
 //		LOG_INFO<< "***********L2ProcessingTimeCumulative " << L2Builder::GetL2ProcessingTimeCumulative() << ENDL;
 //		LOG_INFO<< "***********L2InputEventsPerBurst " << L2Builder::GetL2InputEventsPerBurst() << ENDL;
-		if(L2Builder::GetL2InputEventsPerBurst())
-			L2ProcTimeMean = L2Builder::GetL2ProcessingTimeCumulative()/L2Builder::GetL2InputEventsPerBurst();
+		if (L2Builder::GetL2InputEventsPerBurst())
+			L2ProcTimeMean = L2Builder::GetL2ProcessingTimeCumulative()
+					/ L2Builder::GetL2InputEventsPerBurst();
 		else
 			L2ProcTimeMean = -1;
 	}
@@ -405,10 +399,14 @@ void MonitorConnector::handleUpdate() {
 //	LOG_INFO<<"########################" << L1ProcTimeVsEvtNumStats.str() << ENDL;
 //	LOG_INFO<<"########################" << L2ProcTimeVsEvtNumStats.str() << ENDL;
 
-	IPCHandler::sendStatistics("L0BuildingTimeVsEvtNumber",L0BuildTimeVsEvtNumStats.str());
-	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber",L1BuildTimeVsEvtNumStats.str());
-	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber",L1ProcTimeVsEvtNumStats.str());
-	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber",L2ProcTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L0BuildingTimeVsEvtNumber",
+			L0BuildTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber",
+			L1BuildTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber",
+			L1ProcTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber",
+			L2ProcTimeVsEvtNumStats.str());
 
 	IPCHandler::sendStatistics("UnfinishedEventsData",
 			UnfinishedEventsCollector::toJson());

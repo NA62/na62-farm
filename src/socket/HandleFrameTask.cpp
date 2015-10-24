@@ -240,7 +240,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					}
 
 					l0::MEP* mep_L1 = new l0::MEP(L1Data + sizeof(UDP_HDR),
-							L1BlockLength, { L1Data, L1BlockLength, true });
+							L1BlockLength, { L1Data, L1BlockLength });
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_L1->getSourceID());
 
@@ -283,7 +283,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					const uint_fast16_t & L2DataLength = L2BlockLength;
 
 					l0::MEP* mep_L2 = new l0::MEP(L2Data + sizeof(UDP_HDR),
-							L2DataLength, { L2Data, L2DataLength, true });
+							L2DataLength, { L2Data, L2DataLength});
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_L2->getSourceID());
 
@@ -329,7 +329,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					const uint_fast16_t & NSTDDataLength = NSTDBlockLength;
 
 					l0::MEP* mep_NSTD = new l0::MEP(NSTDData + sizeof(UDP_HDR),
-							NSTDDataLength, { NSTDData, NSTDDataLength, true });
+							NSTDDataLength, { NSTDData, NSTDDataLength});
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_NSTD->getSourceID());
 
