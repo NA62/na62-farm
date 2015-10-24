@@ -6,11 +6,9 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <eventBuilding/SourceIDManager.h>
-#include <tbb/task.h>
 #include <thread>
 #include <stdlib.h>
 #include <time.h>
-
 
 #include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
@@ -120,7 +118,8 @@ int main(int argc, char* argv[]) {
 	 */
 	const uint numberOfPhThreads = 1; //std::thread::hardware_concurrency()-1;
 	NetworkHandler networkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME),
-			numberOfPhThreads, idleFunction);
+			numberOfPhThreads, Options::GetInt(OPTION_PFRING_BUFFERS),
+			idleFunction);
 	networkHandler.startThread("ArpSender");
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
@@ -132,7 +131,6 @@ int main(int argc, char* argv[]) {
 	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID));
 
 	PacketHandler::initialize();
-
 
 	EventSerializer::initialize();
 	StorageHandler::initialize();
@@ -176,8 +174,7 @@ int main(int argc, char* argv[]) {
 	<< " PacketHandler threads" << ENDL;
 
 	for (unsigned int i = 0; i < numberOfPhThreads; i++) {
-		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
-				i);
+		PacketHandler* handler = new PacketHandler(i);
 		packetHandlers.push_back(handler);
 
 		uint coresPerSocket = std::thread::hardware_concurrency()

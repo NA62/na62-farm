@@ -59,14 +59,12 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 	 * If the event number is too large event is null and we have to drop the data
 	 */
 	if (event == nullptr) {
-		delete fragment;
 		return false;
 	}
 
 	// L1 Input reduction
 //	if (fragment->getEventNumber() % reductionFactor_ != 0
 //			&& (!event->isSpecialTriggerEvent() && !event->isL1Bypassed())) {
-//		delete fragment;
 //		return false;
 //	}
 

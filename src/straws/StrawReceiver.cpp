@@ -76,7 +76,7 @@ void StrawReceiver::processFrame(DataContainer&& data, uint burstID) {
 	 */
 	memcpy(sendData + 8, payload, sendDataLength - 8);
 
-	delete[] data.data;
+	data.free();
 
 	/*
 	 * Prepare ZMQ message

@@ -61,7 +61,6 @@ bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
 
 	// L2 Input reduction
 //	if (fragment->getEventNumber() % reductionFactor_ != 0) {
-//		delete fragment;
 //		return false;
 //	}
 
