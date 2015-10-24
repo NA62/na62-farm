@@ -167,7 +167,6 @@ private:
 						ntohs(currentData->ip.tot_len) - sizeof(iphdr));
 				currentOffset += ntohs(currentData->ip.tot_len) - sizeof(iphdr);
 			}
-			delete[] fragment.data;
 		}
 		return {newFrameBuff, currentOffset, true};
 	}
