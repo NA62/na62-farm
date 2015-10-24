@@ -79,6 +79,13 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 	}
 }
 
+/*
+ * This function is called by the dispatcher (zc_balancer in PFRingHandle) when no packets are recieved
+ */
+void idleFunction(){
+	BurstIdHandler::checkBurstFinished();
+}
+
 int main(int argc, char* argv[]) {
 	/*
 	 * Signals
@@ -110,7 +117,7 @@ int main(int argc, char* argv[]) {
 	 * initialize NIC handler and start gratuitous ARP request sending thread
 	 */
 	const uint numberOfPhThreads = 4;//std::thread::hardware_concurrency()-1;
-	NetworkHandler networkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME), numberOfPhThreads);
+	NetworkHandler networkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME), numberOfPhThreads, idleFunction());
 	networkHandler.startThread("ArpSender");
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),

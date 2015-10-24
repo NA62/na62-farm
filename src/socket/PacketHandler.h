@@ -23,6 +23,7 @@ namespace na62 {
 struct DataContainer;
 
 class PacketHandler: public AExecutable {
+
 public:
 	PacketHandler(int threadNum);
 	virtual ~PacketHandler();
@@ -38,9 +39,15 @@ public:
 	/*
 	 * Number of times a HandleFrameTask object has been created and enqueued
 	 */
-	static std::atomic<uint> frameHandleTasksSpawned_;
 
 private:
+
+	static uint_fast16_t L0_Port;
+	static uint_fast16_t CREAM_Port;
+	static uint_fast16_t STRAW_PORT;
+	static uint_fast32_t MyIP;
+
+
 	int threadNum_;
 	bool running_;
 	static uint NUMBER_OF_EBS;
@@ -49,6 +56,8 @@ private:
 	 * @return <true> In case of success, false in case of a serious error (we should stop the thread in this case)
 	 */
 	void thread();
+	bool PacketHandler::checkFrame(UDP_HDR* hdr, uint_fast16_t length);
+	void PacketHandler::processARPRequest(ARP_HDR* arp);
 };
 
 } /* namespace na62 */
