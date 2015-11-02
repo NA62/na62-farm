@@ -198,6 +198,7 @@ void PacketHandler::thread() {
 					 * Setup L1 block if L1 is active copying informations from L0TP MEps
 					 */
 					if (mep->getSourceID() == SOURCE_ID_L0TP) {
+
 						if (SourceIDManager::isL1Active()) {
 							uint16_t mep_factor = mep->getNumberOfFragments();
 							uint16_t fragmentLength = sizeof(L1_BLOCK) + 8; //event length in bytes
@@ -530,12 +531,14 @@ void PacketHandler::buildL1Event(l0::MEP* mep) {
 			L1BlockLength + sizeof(UDP_HDR), std::memory_order_relaxed);
 	for (uint i = 0; i != mep_L1->getNumberOfFragments(); i++) {
 		// Add every fragment
+
 		L1Builder::buildEvent(mep_L1->getFragment(i),
 				BurstIdHandler::getCurrentBurstId());
 	}
 }
 
 void PacketHandler::buildL2Event(l0::MEP* mep) {
+
 	uint16_t mep_factor = mep->getNumberOfFragments();
 	uint32_t L2EventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
 	uint32_t L2BlockLength = mep_factor * L2EventLength + 8; //L2 block length in bytes
@@ -647,6 +650,7 @@ void PacketHandler::processDestPortL0(const char* UDPPayload,
 	 * Setup L1 block if L1 is active copying informations from L0TP MEps
 	 */
 	if (mep->getSourceID() == SOURCE_ID_L0TP) {
+
 		if (SourceIDManager::isL1Active()) {
 			buildL1Event(mep);
 		}
