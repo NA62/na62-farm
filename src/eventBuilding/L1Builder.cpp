@@ -105,7 +105,9 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 //		LOG_INFO<< "L0BuildingTimeMax (after comparison)" << L0BuildingTimeMax_ << ENDL;
 
 		event->readTriggerTypeWordAndFineTime();
+//		LOG_INFO<< "L1Event number before adding 1 " << L1InputEvents_ << ENDL;
 		L1InputEvents_.fetch_add(1, std::memory_order_relaxed);
+//		LOG_INFO<< "L1Event number after adding 1 " << L1InputEvents_ << ENDL;
 		L1InputEventsPerBurst_.fetch_add(1, std::memory_order_relaxed);
 		/*
 		 * This event is complete -> process it
@@ -168,9 +170,7 @@ void L1Builder::processL1(Event *event) {
 //	LOG_INFO << "IsSpecialEvent? " << event->isSpecialTriggerEvent() << ENDL;
 //	if (L1_flag_mode_ || (!L1_flag_mode_ && (L1InputEvents_ % autoFlagFactor_ == 0))) {
 	if (!event->isSpecialTriggerEvent()) {
-		if ((l1FlagMask_ & l0TriggerFlags)
-				|| ((!(l1FlagMask_ & l0TriggerFlags))
-						&& (L1InputEvents_ % autoFlagFactor_ == 0))) {
+		if ((l1FlagMask_ & l0TriggerFlags) || (L1InputEvents_ % autoFlagFactor_ == 0)) {
 //			LOG_INFO<< "******FLAG!!! " << L1InputEvents_ << " % " << autoFlagFactor_ << ENDL;
 			l1FlagTrigger = 1;
 		} else {
@@ -182,7 +182,8 @@ void L1Builder::processL1(Event *event) {
 //	LOG_INFO<< "*******l1TriggerTypeWord (before flag) " << (uint)l1TriggerTypeWord << ENDL;
 	l1TriggerTypeWord = (l1FlagTrigger << 7) | l1TriggerTypeWord;
 //	LOG_INFO<< "*******l1TriggerTypeWord (after flag) " << (uint)l1TriggerTypeWord << ENDL;
-	l1Block->triggerword = l1TriggerTypeWord;
+//	l1Block->triggerword = l1TriggerTypeWord;
+
 	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
 
 	L1Triggers_[l1TriggerTypeWord].fetch_add(1, std::memory_order_relaxed); // The second 8 bits are the L1 trigger type word
@@ -208,7 +209,10 @@ void L1Builder::processL1(Event *event) {
 		L1ProcessingTimeMax_ = event->getL1ProcessingTime();
 //	LOG_INFO<< "L1ProcessingTimeMax (after comparison)" << L1ProcessingTimeMax_ << ENDL;
 
-	if (l1TriggerTypeWord != 0) {
+//	if (l1TriggerTypeWord != 0) {
+	uint_fast8_t l1KTAGtrigger_mask = 4;
+//	LOG_INFO << "l1KTAGtrigger_mask " << (uint)l1KTAGtrigger_mask << ENDL;
+	if (l1FlagTrigger || (l1TriggerTypeWord & l1KTAGtrigger_mask)) {
 
 		if (!event->isSpecialTriggerEvent()) {
 			L1AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
