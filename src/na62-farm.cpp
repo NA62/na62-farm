@@ -55,6 +55,7 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 	if (!error) {
 		ZMQHandler::Stop();
 		AExecutable::InterruptAll();
+		FarmStatistics::stopRunning();
 
 		LOG_INFO<< "Stopping packet handlers";
 		for (auto& handler : packetHandlers) {
@@ -156,6 +157,11 @@ int main(int argc, char* argv[]) {
 	 */
 	cream::L1DistributionHandler l1Handler;
 	l1Handler.startThread("L1DistributionHandler");
+
+	/*
+	 * Time Statistics
+	 */
+	FarmStatistics::init();
 
 	/*
 	 * Packet Handler

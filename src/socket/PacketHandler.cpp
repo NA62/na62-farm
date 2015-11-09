@@ -56,6 +56,7 @@ std::atomic<uint> PacketHandler::frameHandleTasksSpawned_(0);
 PacketHandler::PacketHandler(int threadNum) :
 		threadNum_(threadNum), running_(true) {
 	NUMBER_OF_EBS = Options::GetInt(OPTION_NUMBER_OF_EBS);
+	timeSource = FarmStatistics::getID(1);
 }
 
 PacketHandler::~PacketHandler() {
@@ -109,7 +110,7 @@ void PacketHandler::thread() {
 					threadNum_);
 
 			if (receivedFrame > 0) {
-
+				FarmStatistics::addTime("PH: " + timeSource + ", recieved frame ");
 				char* data = new char[hdr.len];
 				memcpy(data, buff, hdr.len);
 				frames.push_back( { data, (uint_fast16_t) hdr.len, true });
