@@ -43,7 +43,9 @@ using namespace na62;
 std::vector<PacketHandler*> packetHandlers;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
+#ifdef USE_GLOG
 	google::ShutdownGoogleLogging();
+#endif
 	LOG_INFO<< "#############################################" << ENDL;
 	LOG_INFO<< "#############################################" << ENDL;
 	LOG_INFO<< "#############################################" << ENDL;
