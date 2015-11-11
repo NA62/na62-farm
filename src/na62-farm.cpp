@@ -59,6 +59,7 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 	if (!error) {
 		ZMQHandler::Stop();
 		AExecutable::InterruptAll();
+		FarmStatistics::stopRunning();
 
 		LOG_INFO<< "Stopping packet handlers";
 		for (auto& handler : packetHandlers) {
@@ -173,6 +174,11 @@ int main(int argc, char* argv[]) {
 		PcapDumper::startDump(Options::GetString(OPTION_DUMP_PACKETS_PATH));
 	}
 
+
+	/*
+	 * Time Statistics
+	 */
+	FarmStatistics::init();
 
 	/*
 	 * Packet Handler

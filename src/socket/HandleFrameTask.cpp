@@ -251,6 +251,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 							std::memory_order_relaxed);
 					for (uint i = 0; i != mep_L1->getNumberOfFragments(); i++) {
 						// Add every fragment
+						FarmStatistics::addTime("HFT: " + timeSource + ", start build L1 event ");
 						L1Builder::buildEvent(mep_L1->getFragment(i), burstID_);
 					}
 				}
