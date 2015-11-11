@@ -36,6 +36,8 @@
 #include "monitoring/CommandConnector.h"
 #include "straws/StrawReceiver.h"
 
+#include "socket/PcapDumper.h"
+
 
 using namespace std;
 using namespace na62;
@@ -163,6 +165,15 @@ int main(int argc, char* argv[]) {
 	cream::L1DistributionHandler l1Handler;
 	l1Handler.startThread("L1DistributionHandler");
 
+
+	/*
+	 * Packet Dump
+	 */
+	if(Options::GetBool(OPTION_DUMP_PACKETS)){
+		PcapDumper::startDump(Options::GetString(OPTION_DUMP_PACKETS_PATH));
+	}
+
+
 	/*
 	 * Packet Handler
 	 */
@@ -171,6 +182,7 @@ int main(int argc, char* argv[]) {
 	<< " PacketHandler threads" << ENDL;
 
 	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
+
 		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
 				i);
 		packetHandlers.push_back(handler);
