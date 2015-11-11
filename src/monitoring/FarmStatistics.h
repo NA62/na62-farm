@@ -8,23 +8,31 @@
 #ifndef FARMSTATISTICS_H_
 #define FARMSTATISTICS_H_
 
+#include <cstdlib>
+#include <sys/types.h>
+#include <atomic>
+#include <string>
+#include <utils/AExecutable.h>
+#include <boost/timer/timer.hpp>
+
 struct statisticTimeStamp {
 	std::string comment;
 	u_int32_t time;
 };
 
-class FarmStatistics {
+namespace na62 {
+class FarmStatistics: public AExecutable {
 public:
 	FarmStatistics();
 	virtual ~FarmStatistics();
-	void init();
-	enum timeSource:int { PacketHandler, Task, L0Build, L0Process };
-	static std::string getID(timeSource);
+	static void init();
+	enum timeSource
+		:int {PacketHandler, Task, L0Build, L0Process
+	};
+	static uint getID(int i);
 	static void addTime(std::string);
 
-	void stopRunning() {
-		running_ = false;
-	}
+
 
 	static std::atomic<uint> PH;
 	static std::atomic<uint> T;
@@ -32,15 +40,24 @@ public:
 	static std::atomic<uint> LP;
 
 	static boost::timer::cpu_timer timer;
-	bool running_;
-	const char hostname;
+	static bool running_;
+	static const char* hostname;
 
-private:
 	static std::vector<statisticTimeStamp> recvTimes;
+
+	static void startRunning() {
+		running_ = true;
+	}
+	static void stopRunning() {
+		running_ = false;
+	}
+	void thread();
+private:
 	static std::vector<statisticTimeStamp> recvTimesBuff;
 	static char* getHostName();
 	static std::string getFileOutString(statisticTimeStamp sts);
 	static std::string currentDateTime();
 };
+}
 
 #endif /* FARMSTATISTICS_H_ */

@@ -29,6 +29,7 @@
 #include "eventBuilding/L2Builder.h"
 #include "eventBuilding/StorageHandler.h"
 #include "monitoring/MonitorConnector.h"
+#include "monitoring/FarmStatistics.h"
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
 #include "socket/ZMQHandler.h"
@@ -117,6 +118,12 @@ int main(int argc, char* argv[]) {
 	NetworkHandler NetworkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME));
 	NetworkHandler.startThread("ArpSender");
 
+	/*
+		 * Time Statistics
+		 */
+		FarmStatistics::init();
+
+
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
 			Options::GetIntPairList(OPTION_CREAM_CRATES),
@@ -175,10 +182,6 @@ int main(int argc, char* argv[]) {
 	}
 
 
-	/*
-	 * Time Statistics
-	 */
-	FarmStatistics::init();
 
 	/*
 	 * Packet Handler

@@ -40,6 +40,7 @@
 #include <boost/timer/timer.hpp>
 #include <options/Logging.h>
 #include <monitoring/BurstIdHandler.h>
+#include "../monitoring/FarmStatistics.h"
 
 #include "HandleFrameTask.h"
 
