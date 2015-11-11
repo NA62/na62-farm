@@ -46,7 +46,7 @@ STATE MonitorConnector::currentState_;
 MonitorConnector::MonitorConnector() :
 		timer_(monitoringService) {
 
-	LOG_INFO<<"Started monitor connector";
+	LOG_INFO<<"Started monitor connector"<<ENDL;
 }
 
 void MonitorConnector::thread() {

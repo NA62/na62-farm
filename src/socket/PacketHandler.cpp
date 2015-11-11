@@ -46,6 +46,7 @@
 namespace na62 {
 
 std::atomic<uint> PacketHandler::spins_;
+std::atomic<uint> PacketHandler::packets_;
 std::atomic<uint> PacketHandler::sleeps_;
 
 boost::timer::cpu_timer PacketHandler::sendTimer;
@@ -81,7 +82,7 @@ void PacketHandler::thread() {
 	OPTION_MAX_FRAME_AGGREGATION);
 
 	//boost::timer::cpu_timer sendTimer;
-
+	LOG_INFO << "PacketHandler is running" << ENDL;
 	char* buff; // = new char[MTU];
 	while (running_) {
 		/*
@@ -100,30 +101,36 @@ void PacketHandler::thread() {
 		/*
 		 * Try to receive [framesToBeCollected] frames
 		 */
+		LOG_INFO << "frames to be gathered " << framesToBeGathered << ENDL;
 		for (uint stepNum = 0; stepNum != framesToBeGathered; stepNum++) {
 			/*
 			 * The actual  polling!
 			 * Do not wait for incoming packets as this will block the ring and make sending impossible
 			 */
+//			LOG_INFO << "Begin of FOR" << ENDL;
 			receivedFrame = NetworkHandler::GetNextFrame(&hdr, &buff, 0, false,
 					threadNum_);
-
+//			LOG_INFO << "Frames Got" << ENDL;
 			if (receivedFrame > 0) {
-
+				PacketHandler::packets_++;
+				LOG_INFO << "recieved " << NetworkHandler::GetFramesReceived() << "th frame" << ENDL;
 				char* data = new char[hdr.len];
 				memcpy(data, buff, hdr.len);
 				frames.push_back( { data, (uint_fast16_t) hdr.len, true });
 				goToSleep = false;
 				spinsInARow = 0;
+//				LOG_INFO << "pushed recieved Frame" << ENDL;
 			} else {
+//				LOG_INFO << "recieved NO Frame" << ENDL;
 				if (threadNum_ == 0
 						&& sendTimer.elapsed().wall / 1000
 								> minUsecBetweenL1Requests) {
-
+//					LOG_INFO << "thread 0 waited enuff" << ENDL;
 					/*
 					 * We didn't receive anything for a while -> send enqueued frames
 					 */
 					sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
+
 					if (NetworkHandler::DoSendQueuedFrames(threadNum_)) {
 						sleepMicros =
 								sleepMicros > minUsecBetweenL1Requests ?
@@ -138,6 +145,7 @@ void PacketHandler::thread() {
 					 */
 				} else {
 					if (!running_) {
+						LOG_INFO << "finished" << ENDL;
 						goto finish;
 					}
 //					if (threadNum_ == 0
@@ -155,6 +163,7 @@ void PacketHandler::thread() {
 							&& (threadNum_ != 0
 									|| NetworkHandler::getNumberOfEnqueuedSendFrames()
 											== 0)) {
+//						LOG_INFO << "I'm Sleeeeeeeeeping" << ENDL;
 						goToSleep = true;
 						break;
 					}
@@ -164,13 +173,16 @@ void PacketHandler::thread() {
 					 */
 					spins_++;
 					for (volatile uint i = 0; i < pollDelay; i++) {
+//						LOG_INFO << "\nSpin!\n" << ENDL;
 						asm("");
 					}
 				}
 			}
+//			LOG_INFO << "New Frame gathered" << ENDL;
 		}
-
+//		LOG_INFO << "Out of FOR" << ENDL;
 		if (!frames.empty()) {
+			LOG_INFO << "PUSHING THE FRAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMES!!!!!" << ENDL;
 			/*
 			 * Check if the burstID is already updated and the update is long enough ago. Otherwise
 			 * we would increment the burstID while we are still processing events from the last burst.

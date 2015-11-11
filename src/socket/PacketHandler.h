@@ -32,6 +32,7 @@ public:
 	}
 
 	static std::atomic<uint> spins_;
+	static std::atomic<uint> packets_;
 	static std::atomic<uint> sleeps_;
 	static boost::timer::cpu_timer sendTimer;
 

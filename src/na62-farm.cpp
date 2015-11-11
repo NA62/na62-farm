@@ -119,17 +119,21 @@ int main(int argc, char* argv[]) {
 			Options::GetIntPairList(OPTION_CREAM_CRATES),
 			Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES),
 			Options::GetInt(OPTION_MUV_CREAM_CRATE_ID));
-
+	LOG_INFO << "Initialized SIDMan" << ENDL;
 	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID));
-
+	LOG_INFO << "Initialized BUIDHan" << ENDL;
 	HandleFrameTask::initialize();
-
+	LOG_INFO << "Initialized HanFramTask" << ENDL;
 	EventSerializer::initialize();
+	LOG_INFO << "Initialized Eventserializer" << ENDL;
 	StorageHandler::initialize();
+	LOG_INFO << "Initialized Storagehandler" << ENDL;
 	StrawReceiver::initialize();
-
+	LOG_INFO << "Initialized Strawreciever" << ENDL;
 	L1Builder::initialize();
+	LOG_INFO << "Initialized L1 Builder" << ENDL;
 	L2Builder::initialize();
+	LOG_INFO << "Initialized L2 Builder" << ENDL;
 
 	Event::initialize(MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES),
 			Options::GetBool(OPTION_WRITE_BROKEN_CREAM_INFO));
@@ -148,7 +152,7 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Monitor
 	 */
-	LOG_INFO<<"Starting Monitoring Services";
+	LOG_INFO<<"Starting Monitoring Services"<<ENDL;
 	monitoring::MonitorConnector monitor;
 	monitoring::MonitorConnector::setState(INITIALIZING);
 	monitor.startThread("MonitorConnector");
