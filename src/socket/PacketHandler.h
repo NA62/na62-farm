@@ -18,7 +18,7 @@
 #include <boost/timer/timer.hpp>
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/Event.h>
-#include "../monitoring/FarmStatistics.h"
+#include <monitoring/FarmStatistics.h>
 
 namespace na62 {
 struct DataContainer;
@@ -46,7 +46,7 @@ private:
 	int threadNum_;
 	bool running_;
 	static uint NUMBER_OF_EBS;
-	std::string timeSource;
+	uint timeSource;
 	/**
 	 * @return <true> In case of success, false in case of a serious error (we should stop the thread in this case)
 	 */

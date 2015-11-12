@@ -40,7 +40,7 @@
 #include <boost/timer/timer.hpp>
 #include <options/Logging.h>
 #include <monitoring/BurstIdHandler.h>
-#include "../monitoring/FarmStatistics.h"
+#include <monitoring/FarmStatistics.h>
 
 #include "HandleFrameTask.h"
 
@@ -106,7 +106,6 @@ void PacketHandler::thread() {
 		/*
 		 * Try to receive [framesToBeCollected] frames
 		 */
-		LOG_INFO << "frames to be gathered " << framesToBeGathered << ENDL;
 		for (uint stepNum = 0; stepNum != framesToBeGathered; stepNum++) {
 			/*
 			 * The actual  polling!
@@ -117,7 +116,8 @@ void PacketHandler::thread() {
 					threadNum_);
 //			LOG_INFO << "Frames Got" << ENDL;
 			if (receivedFrame > 0) {
-				FarmStatistics::addTime("PH: " + timeSource + ", recieved frame ");
+				LOG_INFO << "Write Time" << ENDL;
+				FarmStatistics::addTime("PH: " + std::to_string(timeSource) + ", recieved frame ");
 				char* data = new char[hdr.len];
 				memcpy(data, buff, hdr.len);
 				frames.push_back( { data, (uint_fast16_t) hdr.len, true });

@@ -237,11 +237,11 @@ public:
 				po::value<bool>()->default_value(false),
 				"If set to 1, arriving packets are dumped on a .pcap files")
 		(OPTION_DUMP_PACKETS_PATH,
-				po::value<std::string>()->default_value("/"),
+				po::value<std::string>()->default_value("/performance/networkDump/Default"),
 				"Path and basename of the dumped packets")
 				;
-
-		Options::Initialize(argc, argv, desc);
+		
+		Options::Initialize(argc, argv, desc);		
 	}
 };
 
