@@ -23,6 +23,7 @@
 #include <l2/L2TriggerProcessor.h>
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/Event.h>
+#include <monitoring/FarmStatistics.h>
 #include <options/TriggerOptions.h>
 #include <structs/DataContainer.h>
 #include <storage/EventSerializer.h>
@@ -38,13 +39,17 @@
 #include "monitoring/CommandConnector.h"
 #include "straws/StrawReceiver.h"
 
+#include "socket/PcapDumper.h"
+
 using namespace std;
 using namespace na62;
 
 std::vector<PacketHandler*> packetHandlers;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
+#ifdef USE_GLOG
 	google::ShutdownGoogleLogging();
+#endif
 	LOG_INFO<< "#############################################" << ENDL;
 	LOG_INFO<< "#############################################" << ENDL;
 	LOG_INFO<< "#############################################" << ENDL;
@@ -56,6 +61,7 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 	if (!error) {
 		ZMQHandler::Stop();
 		AExecutable::InterruptAll();
+		FarmStatistics::stopRunning();
 
 		LOG_INFO<< "Stopping packet handlers";
 		for (auto& handler : packetHandlers) {
@@ -107,39 +113,53 @@ int main(int argc, char* argv[]) {
 	 */
 	TriggerOptions::Load(argc, argv);
 	MyOptions::Load(argc, argv);
-
+	LOG_INFO<< "Initialized options" << ENDL;
 	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
-
+	LOG_INFO<< "Initialized zmqhandler" << ENDL;
 	L1TriggerProcessor::initialize(
 			TriggerOptions::GetDouble(OPTION_L1_BYPASS_PROBABILITY));
 	L2TriggerProcessor::initialize(
 			TriggerOptions::GetDouble(OPTION_L2_BYPASS_PROBABILITY));
+	LOG_INFO<< "Initialized TriggerProcessors" << ENDL;
 
+	/*
+	 * Time Statistics
+	 */
+	FarmStatistics fs = FarmStatistics();
+	fs.init();
+	fs.startThread("TimeReciever");
+	LOG_INFO<< "initialized FarmStatistics" << ENDL;
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread
 	 */
 	const uint numberOfPhThreads = 1; //std::thread::hardware_concurrency()-1;
-	NetworkHandler networkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME),
+	NetworkHandler NetworkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME),
 			numberOfPhThreads, Options::GetInt(OPTION_PFRING_BUFFERS),
 			idleFunction);
-	networkHandler.startThread("ArpSender");
+	LOG_INFO<< "Initialized Networkhandler" << ENDL;
+	NetworkHandler.startThread("ArpSender");
+	LOG_INFO<< "started Arpsender" << ENDL;
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
 			Options::GetIntPairList(OPTION_CREAM_CRATES),
 			Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES),
 			Options::GetInt(OPTION_MUV_CREAM_CRATE_ID));
-
+	LOG_INFO<< "Initialized SIDMan" << ENDL;
 	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID));
 
 	PacketHandler::initialize();
 
 	EventSerializer::initialize();
+	LOG_INFO<< "Initialized Eventserializer" << ENDL;
 	StorageHandler::initialize();
+	LOG_INFO<< "Initialized Storagehandler" << ENDL;
 	StrawReceiver::initialize();
-
+	LOG_INFO<< "Initialized Strawreciever" << ENDL;
 	L1Builder::initialize();
+	LOG_INFO<< "Initialized L1 Builder" << ENDL;
 	L2Builder::initialize();
+	LOG_INFO<< "Initialized L2 Builder" << ENDL;
 
 	Event::initialize(MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES),
 			Options::GetBool(OPTION_WRITE_BROKEN_CREAM_INFO));
@@ -158,7 +178,7 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Monitor
 	 */
-	LOG_INFO<<"Starting Monitoring Services";
+	LOG_INFO<<"Starting Monitoring Services"<<ENDL;
 	monitoring::MonitorConnector monitor;
 	monitoring::MonitorConnector::setState(INITIALIZING);
 	monitor.startThread("MonitorConnector");
@@ -168,6 +188,13 @@ int main(int argc, char* argv[]) {
 	 */
 	cream::L1DistributionHandler l1Handler;
 	l1Handler.startThread("L1DistributionHandler");
+
+	/*
+	 * Packet Dump
+	 */
+	if (Options::GetBool(OPTION_DUMP_PACKETS)) {
+		PcapDumper::startDump(Options::GetString(OPTION_DUMP_PACKETS_PATH));
+	}
 
 	/*
 	 * Packet Handler

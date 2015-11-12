@@ -95,6 +95,13 @@
 #define OPTION_PRINT_MISSING_SOURCES (char*)"printMissingSources"
 #define OPTION_WRITE_BROKEN_CREAM_INFO (char*)"printBrokenCreamInfo"
 
+/*
+ * Dumping packets
+ */
+#define OPTION_DUMP_PACKETS (char*)"EnableDump"
+#define OPTION_DUMP_PACKETS_PATH (char*)"DumpPath"
+
+
 namespace na62 {
 class MyOptions: public Options {
 public:
@@ -231,10 +238,15 @@ public:
 		(OPTION_WRITE_BROKEN_CREAM_INFO,
 				po::value<bool>()->default_value(false),
 				"If set to 1, information about non requested cream data (already received/not requested) is written to /tmp/farm-logs/nonRequestedCreamData)")
-
+		(OPTION_DUMP_PACKETS,
+				po::value<bool>()->default_value(false),
+				"If set to 1, arriving packets are dumped on a .pcap files")
+		(OPTION_DUMP_PACKETS_PATH,
+				po::value<std::string>()->default_value("/performance/networkDump/Default"),
+				"Path and basename of the dumped packets")
 				;
-
-		Options::Initialize(argc, argv, desc);
+		
+		Options::Initialize(argc, argv, desc);		
 	}
 };
 

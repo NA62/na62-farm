@@ -20,6 +20,7 @@ class HandleFrameTask: public tbb::task {
 private:
 	std::vector<DataContainer> containers_;
 	uint burstID_;
+	std::string timeSource;
 
 	void processARPRequest(ARP_HDR* arp);
 

@@ -128,7 +128,7 @@ void L2Builder::processL2(Event *event) {
 		 * L1 already passed but non zero suppressed LKr data not yet requested -> Process Level 2 trigger
 		 */
 		uint_fast8_t L2Trigger = L2TriggerProcessor::compute(event);
-		l2Block->triggerword = L2Trigger;
+//		l2Block->triggerword = L2Trigger;
 #ifdef MEASURE_TIME
 //		LOG_INFO<< "L2ProcessingTime " << event->getL2ProcessingTime() << ENDL;
 //		LOG_INFO<< "EventTimeStamp " << event->getTimestamp()<< ENDL;
@@ -210,7 +210,7 @@ void L2Builder::processL2(Event *event) {
 					std::memory_order_relaxed);
 			EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 		}
-		l2Block->triggerword = L2Trigger;
+//		l2Block->triggerword = L2Trigger;
 		L2Triggers_[L2Trigger].fetch_add(1, std::memory_order_relaxed);
 		EventPool::freeEvent(event);
 	}
