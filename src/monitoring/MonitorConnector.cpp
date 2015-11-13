@@ -77,7 +77,7 @@ void MonitorConnector::handleUpdate() {
 
 	IPCHandler::updateState(currentState_);
 
-	LOG_INFO<<"Enqueued tasks:\t" << HandleFrameTask::getNumberOfQeuedTasks();
+	//LOG_INFO<<"Enqueued tasks:\t" << HandleFrameTask::getNumberOfQeuedTasks();
 
 	LOG_INFO<<"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames();
 

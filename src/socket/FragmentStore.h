@@ -76,7 +76,7 @@ public:
 			}
 		}
 
-		return {nullptr, 0};
+		return {nullptr, 0, false};
 	}
 
 	static uint getNumberOfReceivedFragments() {
@@ -147,7 +147,7 @@ private:
 					}
 				}
 
-				return {nullptr, 0};
+				return {nullptr, 0, false};
 			}
 
 			/*
@@ -169,7 +169,7 @@ private:
 			}
 			fragment.free();
 		}
-		return {newFrameBuff, currentOffset};
+		return {newFrameBuff, currentOffset, false};
 	}
 };
 

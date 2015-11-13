@@ -4,7 +4,7 @@
  *  Created on: Jun 27, 2014
  *      Author: Jonas Kunze (kunze.jonas@gmail.com)
  */
-
+#ifndef USE_PFRING
 #include "HandleFrameTask.h"
 
 #include <glog/logging.h>
@@ -440,3 +440,4 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 
 }
 /* namespace na62 */
+#endif
