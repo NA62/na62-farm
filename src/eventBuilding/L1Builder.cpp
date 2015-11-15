@@ -51,6 +51,8 @@ uint L1Builder::autoFlagFactor_ = 0;
 
 //bool L1Builder::L1_flag_mode_ = 0;
 uint16_t L1Builder::l1FlagMask_ = 0;
+uint L1Builder::l1TriggerMask_ = 0;
+uint L1Builder::l1ReferenceTimeSource_ = 0;
 
 bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 	Event *event = EventPool::getEvent(fragment->getEventNumber());
@@ -178,6 +180,8 @@ void L1Builder::processL1(Event *event) {
 			l1FlagTrigger = 0;
 		}
 	}
+//	LOG_INFO<< "*******l1ReferenceTimeSource " << (uint)l1ReferenceTimeSource_ << ENDL;
+	L1TriggerProcessor::setL1ReferenceTimeSource(l1ReferenceTimeSource_);
 	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event);
 //	LOG_INFO<< "*******l1TriggerTypeWord (before flag) " << (uint)l1TriggerTypeWord << ENDL;
 	l1TriggerTypeWord = (l1FlagTrigger << 7) | l1TriggerTypeWord;
@@ -212,8 +216,10 @@ void L1Builder::processL1(Event *event) {
 //	if (l1TriggerTypeWord != 0) {
 	uint_fast8_t l1KTAGtrigger_mask = 4;
 //	LOG_INFO << "l1KTAGtrigger_mask " << (uint)l1KTAGtrigger_mask << ENDL;
-	if (l1FlagTrigger || (l1TriggerTypeWord & l1KTAGtrigger_mask)) {
-
+//	LOG_INFO << "l1TriggerTypeWord " << (uint)l1TriggerTypeWord << ENDL;
+//	LOG_INFO << "l1TriggerMask " << (uint)l1TriggerMask_ << ENDL;
+//	if (l1FlagTrigger || (l1TriggerTypeWord & l1KTAGtrigger_mask)) {
+	if (l1FlagTrigger || (l1TriggerTypeWord == l1TriggerMask_)) {
 		if (!event->isSpecialTriggerEvent()) {
 			L1AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
 

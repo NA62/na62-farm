@@ -54,6 +54,9 @@ private:
 //	static bool L1_flag_mode_;
 	static uint16_t l1FlagMask_;
 	static uint autoFlagFactor_;
+
+	static uint l1TriggerMask_;
+	static uint l1ReferenceTimeSource_;
 	/*
 	 * @return <true> if any packet has been sent (time has passed)
 	 */
@@ -162,7 +165,12 @@ public:
 	static inline uint16_t GetL1FlagMask() {
 		return l1FlagMask_;
 	}
-
+	static inline uint GetL1TriggerMask() {
+		return l1TriggerMask_;
+	}
+	static inline uint GetL1ReferenceTimeSource() {
+		return l1ReferenceTimeSource_;
+	}
 	static void initialize() {
 		for (int i = 0; i != 0xFF + 1; i++) {
 			L1Triggers_[i] = 0;
@@ -189,6 +197,12 @@ public:
 		l1FlagMask_ = MyOptions::GetInt(OPTION_L1_FLAG_MASK);
 
 		autoFlagFactor_ = Options::GetInt(OPTION_L1_AUTOFLAG_FACTOR);
+		l1ReferenceTimeSource_ = Options::GetInt(OPTION_L1_REFERENCE_TIME);
+
+		std::stringstream hexToInt;
+		hexToInt << std::hex << (MyOptions::GetString(OPTION_L1_TRIGGER_MASK));
+		hexToInt >> l1TriggerMask_;
+//		LOG_INFO << "l1TriggerMask " << std::hex << (uint)l1TriggerMask_ << ENDL;
 	}
 };
 

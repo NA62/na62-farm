@@ -47,6 +47,9 @@
 //#define OPTION_L1_FLAG_MODE (char*) "L1FlagMode"
 #define OPTION_L1_FLAG_MASK (char*) "L1FlagMode"
 
+#define OPTION_L1_TRIGGER_MASK (char*) "L1TriggerMask"
+#define OPTION_L1_REFERENCE_TIME (char*) "L1ReferenceTime"
+
 #define OPTION_L1_AUTOFLAG_FACTOR (char*) "L1AutoFlagFactor"
 /*
  * Triggering
@@ -203,6 +206,9 @@ public:
 
 //		(OPTION_L1_FLAG_MODE, po::value<bool>()->required(), "Enable flagging mode (No CUT) for L1 trigger.")
 		(OPTION_L1_FLAG_MASK, po::value<int>()->required(), "Enable flagging mask for L1 trigger.")
+
+		(OPTION_L1_TRIGGER_MASK, po::value<std::string>()->default_value("0"), "Set global L1 trigger mask.")
+		(OPTION_L1_REFERENCE_TIME, po::value<int>()->default_value(0), "Set L1 reference time source.")
 
 		(OPTION_L1_AUTOFLAG_FACTOR, po::value<int>()->required(),
 				"With this integer you can select events being flagged at L1 even if L1 is running in cutting mode. L1 Trigger Algorithms will be processed every events.")
