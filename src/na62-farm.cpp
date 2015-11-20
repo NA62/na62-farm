@@ -12,6 +12,7 @@
 #include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
 #include <monitoring/BurstIdHandler.h>
+#include <monitoring/FarmStatistics.h>
 #include <options/Options.h>
 #include <socket/NetworkHandler.h>
 #include <unistd.h>
@@ -57,6 +58,7 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 	if (!error) {
 		ZMQHandler::Stop();
 		AExecutable::InterruptAll();
+		FarmStatistics::stopRunning();
 
 		LOG_INFO<< "Stopping packet handlers";
 		for (auto& handler : packetHandlers) {
@@ -108,6 +110,10 @@ int main(int argc, char* argv[]) {
 	L2TriggerProcessor::initialize(
 			TriggerOptions::GetDouble(OPTION_L2_BYPASS_PROBABILITY));
 
+
+	FarmStatistics::init();
+	FarmStatistics farmstats;
+	farmstats.startThread("StatisticsWriter");
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread
 	 */
