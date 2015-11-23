@@ -76,7 +76,6 @@ void CommandConnector::thread() {
 						L2Builder::ResetL1BuidingTimeVsEvtNumber();
 						L1Builder::ResetL1ProcessingTimeVsEvtNumber();
 						L2Builder::ResetL2ProcessingTimeVsEvtNumber();
-						NetworkHandler::ResetPacketTimeDiffVsTime();
 						LOG_INFO<< "Resetting L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative() << ENDL;
 						LOG_INFO<< "Resetting L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax() << ENDL;
 						LOG_INFO<< "Resetting L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
@@ -107,7 +106,6 @@ void CommandConnector::thread() {
 						L2Builder::ResetL1BuidingTimeVsEvtNumber();
 						L1Builder::ResetL1ProcessingTimeVsEvtNumber();
 						L2Builder::ResetL2ProcessingTimeVsEvtNumber();
-						NetworkHandler::ResetPacketTimeDiffVsTime();
 //						LOG_INFO<< "Resetting L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative() << ENDL;
 //						LOG_INFO<< "Resetting L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax() << ENDL;
 //						LOG_INFO<< "Resetting L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
