@@ -110,11 +110,20 @@ void PacketHandler::thread() {
 
 			if (receivedFrame > 0) {
 
-				char* data = new char[hdr.len];
-				memcpy(data, buff, hdr.len);
-				frames.push_back( { data, (uint_fast16_t) hdr.len, true });
-				goToSleep = false;
-				spinsInARow = 0;
+				/*
+				 * Check if the burst should be flushed else prepare the data to be handled
+				 */
+				if(BurstIdHandler::flushBurst()) {
+					LOG_INFO <<"Dropping data because we are at EoB";
+					//delete buff;
+				}
+				else {
+					char* data = new char[hdr.len];
+					memcpy(data, buff, hdr.len);
+					frames.push_back( { data, (uint_fast16_t) hdr.len, true });
+					goToSleep = false;
+					spinsInARow = 0;
+				}
 			} else {
 				if (threadNum_ == 0
 						&& sendTimer.elapsed().wall / 1000
@@ -171,11 +180,6 @@ void PacketHandler::thread() {
 		}
 
 		if (!frames.empty()) {
-			/*
-			 * Check if the burstID is already updated and the update is long enough ago. Otherwise
-			 * we would increment the burstID while we are still processing events from the last burst.
-			 */
-			BurstIdHandler::checkBurstIdChange();
 
 			/*
 			 * Start a new task which will check the frame
