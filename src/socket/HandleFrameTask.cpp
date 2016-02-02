@@ -362,7 +362,8 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				}
 			}
 
-			for (uint i = 0; i != mep->getNumberOfFragments(); i++) {
+			uint maxFrags =  mep->getNumberOfFragments();
+			for (uint i = 0; i < maxFrags; i++) {
 				// Add every fragment
 //				if (EventPool::getPoolSize()
 //						> mep->getFragment(i)->getEventNumber()) {
