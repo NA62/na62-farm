@@ -261,7 +261,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					BytesReceivedBySourceNum_[sourceNum].fetch_add(
 							L1BlockLength + sizeof(UDP_HDR),
 							std::memory_order_relaxed);
-					for (uint i = 0; i != mep_L1->getNumberOfFragments(); i++) {
+					for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
 						L1Builder::buildEvent(mep_L1->getFragment(i), burstID_);
 					}
@@ -306,7 +306,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 							L2BlockLength + sizeof(UDP_HDR),
 							std::memory_order_relaxed);
 
-					for (uint i = 0; i != mep_L2->getNumberOfFragments(); i++) {
+					for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
 						L1Builder::buildEvent(mep_L2->getFragment(i), burstID_);
 					}
@@ -353,8 +353,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 							NSTDBlockLength + sizeof(UDP_HDR),
 							std::memory_order_relaxed);
 
-					for (uint i = 0; i != mep_NSTD->getNumberOfFragments();
-							i++) {
+					for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
 						L1Builder::buildEvent(mep_NSTD->getFragment(i),
 								burstID_);
@@ -362,14 +361,10 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				}
 			}
 
+
 			uint maxFrags =  mep->getNumberOfFragments();
-			for (uint i = 0; i < maxFrags; i++) {
+			for (uint i = 0; i != maxFrags; i++) {
 				// Add every fragment
-//				if (EventPool::getPoolSize()
-//						> mep->getFragment(i)->getEventNumber()) {
-//					EventPool::getL0PacketCounter()[mep->getFragment(i)->getEventNumber()].fetch_add(
-//							1, std::memory_order_relaxed);
-//				}
 				L1Builder::buildEvent(mep->getFragment(i), burstID_);
 			}
 		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// CREAM Data //////////////////////////////////////////////////
