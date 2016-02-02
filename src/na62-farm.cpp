@@ -78,6 +78,9 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 		LOG_INFO<< "Stopping ZMQ handler";
 		ZMQHandler::shutdown();
 
+		LOG_INFO<< "Stopping Burst handler";
+		BurstIdHandler::shutDown();
+
 		LOG_INFO<< "Cleanly shut down na62-farm";
 		exit(0);
 	}
@@ -151,6 +154,12 @@ int main(int argc, char* argv[]) {
 			Options::GetInt(OPTION_CREAM_RECEIVER_PORT),
 			Options::GetInt(OPTION_CREAM_MULTICAST_PORT));
 
+	/*
+	 * Burst Handler
+	 */
+	LOG_INFO << "Start burst handler thread.";
+	BurstIdHandler bHandler;
+	bHandler.startThread("BurstHandler");
 	/*
 	 * Monitor
 	 */

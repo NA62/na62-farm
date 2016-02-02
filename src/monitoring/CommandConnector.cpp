@@ -61,7 +61,7 @@ void CommandConnector::thread() {
 					uint_fast32_t burst = BurstIdHandler::getCurrentBurstId()+1;
 					BurstIdHandler::setNextBurstID(burst);
 #ifdef MEASURE_TIME
-					if (BurstIdHandler::getResetCounters()) {
+//					if (BurstIdHandler::getResetCounters()) {
 						L1Builder::ResetL0BuildingTimeCumulative();
 						L1Builder::ResetL0BuildingTimeMax();
 						L1Builder::ResetL1ProcessingTimeCumulative();
@@ -81,7 +81,7 @@ void CommandConnector::thread() {
 						LOG_INFO<< "Resetting L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
 						LOG_INFO<< "Resetting L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax() << ENDL;
 						LOG_INFO<< "Resetting L1InputEvents " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
-					}
+//					}
 #endif
 					LOG_INFO << "Got EOB time: Incrementing burstID to" << burst << ENDL;
 				}
@@ -91,7 +91,7 @@ void CommandConnector::thread() {
 					LOG_INFO << "Received new burstID: " << burst << ENDL;
 					BurstIdHandler::setNextBurstID(burst);
 #ifdef MEASURE_TIME
-					if (BurstIdHandler::getResetCounters()) {
+//					if (BurstIdHandler::getResetCounters()) {
 						L1Builder::ResetL0BuildingTimeCumulative();
 						L1Builder::ResetL0BuildingTimeMax();
 						L1Builder::ResetL1ProcessingTimeCumulative();
@@ -111,7 +111,7 @@ void CommandConnector::thread() {
 //						LOG_INFO<< "Resetting L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
 //						LOG_INFO<<"Resetting L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax() << ENDL;
 //						LOG_INFO<< "Resetting L1InputEvents " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
-					}
+//					}
 #endif
 				}
 			} else if (command == "runningmergers") {

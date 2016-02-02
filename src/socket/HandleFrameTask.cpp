@@ -108,17 +108,27 @@ void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
 }
 
 tbb::task* HandleFrameTask::execute() {
-	while (BurstIdHandler::isEobProcessingRunning()) {
-		usleep(1);
-	}
+
+
+//	while (BurstIdHandler::isEobProcessingRunning()) {
+//		usleep(1);
+//	}
 
 	for (DataContainer& container : containers_) {
-		processFrame(std::move(container));
+		//If we must clean up the burst we just drop data
+		if(BurstIdHandler::flushBurst()) {
+			LOG_INFO <<"Dropping data because we are at EoB";
+			container.free();
+		}
+		else {
+			processFrame(std::move(container));
+
+		}
 	}
 
-	if (queuedTasksNum_ == 1) {
-		BurstIdHandler::checkBurstFinished();
-	}
+//	if (queuedTasksNum_ == 1) {
+//		BurstIdHandler::checkBurstFinished();
+//	}
 
 	return nullptr;
 }
@@ -169,6 +179,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check if we are really the destination of the IP datagram
 		 */
 		if (MyIP != dstIP) {
+		//if("10.194.20.37" != EthernetUtils::ipToString(dstIP)) {
 			LOG_WARNING<< "Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP) << ENDL;
 			container.free();
 			return;
@@ -209,6 +220,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			 */
 			if (mep->getSourceID() == SOURCE_ID_L0TP) {
 				if (SourceIDManager::isL1Active()) {
+					//LOG_INFO << "Invent L1 MEP for event " << mep->getFirstEventNum();
 					uint16_t mep_factor = mep->getNumberOfFragments();
 					uint16_t fragmentLength = sizeof(L1_BLOCK) + 8; //event length in bytes
 					const uint32_t L1BlockLength = mep_factor * fragmentLength
@@ -255,6 +267,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					}
 				}
 				if (SourceIDManager::isL2Active()) {
+					//LOG_INFO << "Invent L2 MEP for event " << mep->getFirstEventNum();
 					uint16_t mep_factor = mep->getNumberOfFragments();
 					uint32_t L2EventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
 					uint32_t L2BlockLength = mep_factor * L2EventLength + 8; //L2 block length in bytes
@@ -299,6 +312,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					}
 				}
 				if (SourceIDManager::isNSTDActive()) {
+					//LOG_INFO << "Invent NSTD MEP for event " << mep->getFirstEventNum();
 					uint16_t mep_factor = mep->getNumberOfFragments();
 					uint32_t NSTDEventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
 					uint32_t NSTDBlockLength = mep_factor * NSTDEventLength + 8; //L2 block length in bytes
