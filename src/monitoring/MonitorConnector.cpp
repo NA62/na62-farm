@@ -72,7 +72,7 @@ void MonitorConnector::handleUpdate() {
 		return;
 	}
 	// Invoke this method every second
-	timer_.expires_from_now(boost::posix_time::milliseconds(10000));
+	timer_.expires_from_now(boost::posix_time::milliseconds(1000));
 	timer_.async_wait(boost::bind(&MonitorConnector::handleUpdate, this));
 
 	// GLM TEST: Change burst ID
