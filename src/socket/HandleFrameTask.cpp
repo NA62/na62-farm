@@ -107,7 +107,7 @@ void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
 	}
 }
 
-tbb::task* HandleFrameTask::execute() {
+void HandleFrameTask::execute() {
 
 
 //	while (BurstIdHandler::isEobProcessingRunning()) {
@@ -130,7 +130,7 @@ tbb::task* HandleFrameTask::execute() {
 //		BurstIdHandler::checkBurstFinished();
 //	}
 
-	return nullptr;
+	//return nullptr;
 }
 
 void HandleFrameTask::processFrame(DataContainer&& container) {

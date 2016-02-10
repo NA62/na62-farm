@@ -42,6 +42,7 @@
 #include <monitoring/BurstIdHandler.h>
 
 #include "HandleFrameTask.h"
+#include "TaskProcessor.h"
 
 namespace na62 {
 
@@ -184,12 +185,14 @@ void PacketHandler::thread() {
 			/*
 			 * Start a new task which will check the frame
 			 *
-			 */
+			 *
 			HandleFrameTask* task =
 					new (tbb::task::allocate_root()) HandleFrameTask(
 							std::move(frames), BurstIdHandler::getCurrentBurstId());
 			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
-
+*/
+			HandleFrameTask* task = new HandleFrameTask(std::move(frames), BurstIdHandler::getCurrentBurstId());
+			TaskProcessor::TasksQueue_.push(task);
 			goToSleep = false;
 			frameHandleTasksSpawned_++;
 		} else {

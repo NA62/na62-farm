@@ -32,6 +32,7 @@
 #include "monitoring/MonitorConnector.h"
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
+#include "socket/TaskProcessor.h"
 #include "socket/ZMQHandler.h"
 #include "socket/HandleFrameTask.h"
 #include "monitoring/CommandConnector.h"
@@ -42,6 +43,7 @@ using namespace std;
 using namespace na62;
 
 std::vector<PacketHandler*> packetHandlers;
+std::vector<TaskProcessor*> taskProcessors;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
 #ifdef USE_GLOG
@@ -182,8 +184,7 @@ int main(int argc, char* argv[]) {
 	<< " PacketHandler threads" << ENDL;
 
 	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
-		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
-				i);
+		PacketHandler* handler = new PacketHandler(i);
 		packetHandlers.push_back(handler);
 
 		uint coresPerSocket = std::thread::hardware_concurrency()
@@ -191,6 +192,12 @@ int main(int argc, char* argv[]) {
 		uint cpuMask = i % 2 == 0 ? i / 2 : coresPerSocket + i / 2;
 		handler->startThread(i, "PacketHandler", cpuMask, 15,
 				MyOptions::GetInt(OPTION_PH_SCHEDULER));
+	}
+
+	for (unsigned int i = 0; i < 1; i++) {
+		TaskProcessor* tp = new TaskProcessor();
+		taskProcessors.push_back(tp);
+		tp->startThread(i, "TaskProcessor");
 	}
 
 	CommandConnector c;

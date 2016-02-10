@@ -8,16 +8,18 @@
 #ifndef HANDLEFRAMETASK_H_
 #define HANDLEFRAMETASK_H_
 
-#include <tbb/task.h>
+//#include <tbb/task.h>
 #include <cstdint>
 #include <atomic>
 
 #include <socket/EthernetUtils.h>
+#include <utils/AExecutable.h>
 
 namespace na62 {
 
-class HandleFrameTask: public tbb::task {
+class HandleFrameTask {
 private:
+
 	std::vector<DataContainer> containers_;
 	uint burstID_;
 
@@ -27,8 +29,6 @@ private:
 	 * @return <true> If no checksum errors have been found
 	 */
 	bool checkFrame(UDP_HDR* hdr, uint_fast16_t length);
-
-
 
 	static uint_fast16_t L0_Port;
 	static uint_fast16_t CREAM_Port;
@@ -47,8 +47,8 @@ public:
 	HandleFrameTask(std::vector<DataContainer>&& _containers, uint burstID);
 	virtual ~HandleFrameTask();
 
-	tbb::task* execute();
-
+	//tbb::task* execute();
+	void execute();
 	static void initialize();
 
 	static inline uint getNumberOfQeuedTasks() {
