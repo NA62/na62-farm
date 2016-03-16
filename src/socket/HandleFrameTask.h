@@ -41,6 +41,10 @@ private:
 	static std::atomic<uint64_t>* MEPsReceivedBySourceNum_;
 	static std::atomic<uint64_t>* BytesReceivedBySourceNum_;
 
+	static uint highestL1SourceNum_;
+	static std::atomic<uint64_t>* L1MEPsReceivedBySourceNum_;
+	static std::atomic<uint64_t>* L1BytesReceivedBySourceNum_;
+
 	void processFrame(DataContainer&& container);
 
 public:
@@ -61,6 +65,13 @@ public:
 
 	static inline uint64_t GetBytesReceivedBySourceNum(uint_fast8_t sourceNum) {
 		return BytesReceivedBySourceNum_[sourceNum];
+	}
+	static inline uint64_t GetL1MEPsReceivedBySourceNum(uint_fast8_t sourceNum) {
+		return L1MEPsReceivedBySourceNum_[sourceNum];
+	}
+
+	static inline uint64_t GetL1BytesReceivedBySourceNum(uint_fast8_t sourceNum) {
+		return L1BytesReceivedBySourceNum_[sourceNum];
 	}
 };
 

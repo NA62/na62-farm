@@ -26,6 +26,7 @@
  */
 #define OPTION_NUMBER_OF_EBS (char*)"numberOfEB"
 #define OPTION_DATA_SOURCE_IDS (char*)"L0DataSourceIDs"
+#define OPTION_L1_DATA_SOURCE_IDS (char*)"L1DataSourceIDs"
 
 #define OPTION_TS_SOURCEID (char*)"timestampSourceID"
 
@@ -37,8 +38,6 @@
 #define OPTION_CREAM_MULTICAST_GROUP (char*)"creamMulticastIP"
 #define OPTION_CREAM_MULTICAST_PORT (char*)"creamMulticastPort"
 #define OPTION_MAX_TRIGGERS_PER_L1MRP (char*)"maxTriggerPerL1MRP"
-
-#define OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST (char*)"maxNumberOfEventsPerBurst"
 
 #define OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG (char*)"sendMRPsWithZSuppressionFlag"
 
@@ -94,6 +93,12 @@
 #define OPTION_PRINT_MISSING_SOURCES (char*)"printMissingSources"
 #define OPTION_WRITE_BROKEN_CREAM_INFO (char*)"printBrokenCreamInfo"
 
+//For eventPool building
+
+#define OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST (char*)"maxNumberOfEventsPerBurst"
+#define OPTION_NUMBER_OF_FRAGS_PER_L0MEP (char*)"numberOfFragmentsPerMEP"
+#define OPTION_FARM_HOST_NAMES (char*)"farmHostNames"
+
 namespace na62 {
 class MyOptions: public Options {
 public:
@@ -114,13 +119,22 @@ public:
 		(OPTION_L0_RECEIVER_PORT, po::value<int>()->default_value(58913),
 				"UDP-Port for L1 data reception")
 
-		(OPTION_NUMBER_OF_EBS,
-				po::value<int>()->default_value(
-						boost::thread::hardware_concurrency() - 4),
+		(OPTION_FARM_HOST_NAMES, po::value<std::string>()->required(),
+				"Comma separated list of IPs or hostnames of the farm PCs.")
+
+		(OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST, po::value<int>()->default_value(2000000),
+				"The number of events this pc should be able to receive. The system will ignore events with event numbers larger than this value")
+
+		(OPTION_NUMBER_OF_FRAGS_PER_L0MEP, po::value<int>()->default_value(8),
+				"The number of fragments excepted in each L0 MEP fragment")
+		(OPTION_NUMBER_OF_EBS, po::value<int>()->default_value(boost::thread::hardware_concurrency() - 4),
 				"Number of threads to be used for eventbuilding and L1/L2 processing")
 
 		(OPTION_DATA_SOURCE_IDS, po::value<std::string>()->required(),
-				"Comma separated list of all available data source IDs sending Data to L1 (all but LKr) together with the expected numbers of packets per source. The format is like following (A,B,C are sourceIDs and a,b,c are the number of expected packets per source):\n \t A:a,B:b,C:c")
+				"Comma separated list of all available L0 data source IDs sending Data to L1 together with the expected numbers of packets per source. The format is like following (A,B,C are sourceIDs and a,b,c are the number of expected packets per source):\n \t A:a,B:b,C:c")
+
+		(OPTION_L1_DATA_SOURCE_IDS, po::value<std::string>()->required(),
+						"Comma separated list of all available data source IDs sending Data to L1 together with the expected numbers of packets per source. The format is like following (A,B,C are sourceIDs and a,b,c are the number of expected packets per source):\n \t A:a,B:b,C:c")
 
 		(OPTION_CREAM_RECEIVER_PORT, po::value<int>()->default_value(58915),
 				"UDP-Port for L2 CREAM data reception")
@@ -148,10 +162,17 @@ public:
 				"With this integer you can downscale the event rate accepted by L1 to a factor of 1/L1DownscaleFactor. L1 Trigger will accept every succeeded i event if  i++%downscaleFactor==0")
 
 		(OPTION_L2_DOWNSCALE_FACTOR, po::value<int>()->required(),
-				"With this integer you can downscale the event rate accepted by L2 to a factor of 1/L2DownscaleFactor. L2 Trigger will accept every succeeded i event if  i++%downscaleFactor==0")(
-		OPTION_MIN_USEC_BETWEEN_L1_REQUESTS,
+				"With this integer you can downscale the event rate accepted by L2 to a factor of 1/L2DownscaleFactor. L2 Trigger will accept every succeeded i event if  i++%downscaleFactor==0")
+
+		(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS,
 				po::value<int>()->default_value(1000),
 				"Minimum time between two MRPs sent to the CREAMs")
+
+		(OPTION_MERGER_HOST_NAMES, po::value<std::string>()->required(),
+				"Comma separated list of IPs or hostnames of the merger PCs.")
+
+		(OPTION_MERGER_PORT, po::value<int>()->required(),
+				"The TCP port the merger is listening to.")
 
 		(OPTION_CREAM_MULTICAST_GROUP,
 				po::value<std::string>()->default_value("239.1.1.1"),
@@ -167,15 +188,6 @@ public:
 				po::value<int>()->default_value(0),
 				"Set to true if only zero-suppressed data from LKr should be requested after L1")
 
-		(OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST,
-				po::value<int>()->default_value(2000000),
-				"The number of events this pc should be able to receive. The system will ignore events with event numbers larger than this value")
-
-		(OPTION_MERGER_HOST_NAMES, po::value<std::string>()->required(),
-				"Comma separated list of IPs or hostnames of the merger PCs.")
-
-		(OPTION_MERGER_PORT, po::value<int>()->required(),
-				"The TCP port the merger is listening to.")
 
 		(OPTION_ZMQ_IO_THREADS, po::value<int>()->default_value(1),
 				"Number of ZMQ IO threads")

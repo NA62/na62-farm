@@ -6,6 +6,7 @@
  */
 
 #include "TaskProcessor.h"
+#include <boost/timer/timer.hpp>
 
 namespace na62 {
 tbb::concurrent_queue<HandleFrameTask*> TaskProcessor::TasksQueue_;
@@ -22,6 +23,9 @@ void TaskProcessor::thread() {
 			if (TaskProcessor::TasksQueue_.try_pop(task)) {
 				task->execute();
 				delete task;
+			}
+			else {
+				boost::this_thread::sleep(boost::posix_time::microsec(50));
 			}
 		}
 	}

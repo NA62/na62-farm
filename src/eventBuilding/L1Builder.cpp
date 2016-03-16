@@ -13,9 +13,9 @@
 #include <l0/MEP.h>
 #include <l0/MEPFragment.h>
 #include <l0/Subevent.h>
+#include <l1/L1DistributionHandler.h>
 #include <l1/L1Fragment.h>
 #include <l1/L1TriggerProcessor.h>
-#include <LKr/L1DistributionHandler.h>
 #include <sys/types.h>
 #include <cstdbool>
 
@@ -33,7 +33,7 @@ std::atomic<uint64_t> L1Builder::L1AcceptedEvents_(0);
 
 std::atomic<uint64_t> L1Builder::L1BypassedEvents_(0);
 
-std::atomic<uint64_t> L1Builder::L1RequestToCreams_(0);
+std::atomic<uint64_t> L1Builder::L1Requests_(0);
 
 std::atomic<uint64_t> L1Builder::L0BuildingTimeCumulative_(0);
 std::atomic<uint64_t> L1Builder::L0BuildingTimeMax_(0);
@@ -58,7 +58,11 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 	/*
 	 * If the event number is too large event is null and we have to drop the data
 	 */
+
 	if (event == nullptr) {
+		LOG_ERROR << "Eliminating " << (int)(fragment->getEventNumber()) << " from source " << std::hex << (int)(fragment->getSourceID())
+		                                << ":" << (int)(fragment->getSourceSubID()) << std::dec;
+
 		delete fragment;
 		return false;
 	}
@@ -73,7 +77,7 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 	/*
 	 * Add new packet to Event
 	 */
-	if (event->addL0Event(fragment, burstID)) {
+	if (event->addL0Fragment(fragment, burstID)) {
 
 		/*
 		 * Store the global event timestamp taken from the reverence detector
@@ -116,7 +120,8 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 		//L1 Input Reduction
 		if ((L1InputEvents_ % reductionFactor_ != 0)
 				&& (!event->isSpecialTriggerEvent())
-				&& (!L1TriggerProcessor::bypassEvent())) {
+				//&& (!L1TriggerProcessor::bypassEvent())
+				) {
 			EventPool::freeEvent(event);
 		} else {
 			processL1(event);
@@ -150,68 +155,40 @@ void L1Builder::processL1(Event *event) {
 	event->setTimestamp(tsFragment->getTimestamp());
 
 	/*
-	 * Prepare L1 Data Block to store useful info
-	 *
-	 */
-	l0::MEPFragment* L1Fragment = event->getL1Subevent()->getFragment(0);
-	L1_BLOCK* l1Block = (L1_BLOCK*) L1Fragment->getPayload();
-
-	//	const l0::MEPFragment* const L1Fragment = event->getL1Subevent()->getFragment(0);
-	//	const char* payload = L1Fragment->getPayload();
-	//	L1_BLOCK * l1Block = (L1_BLOCK *) (payload);
-
-	/*
 	 * Process Level 1 trigger
 	 */
 	uint_fast8_t l1FlagTrigger = 0;
-//	LOG_INFO<< "l1FlagMask_ " << (uint) l1FlagMask_ << ENDL;
-//	LOG_INFO<< "l0TriggerFlags " << (uint) l0TriggerFlags << ENDL;
-//	LOG_INFO<< " AND " << (l1FlagMask_ & l0TriggerFlags) << ENDL;
-//	LOG_INFO << "IsSpecialEvent? " << event->isSpecialTriggerEvent() << ENDL;
-//	if (L1_flag_mode_ || (!L1_flag_mode_ && (L1InputEvents_ % autoFlagFactor_ == 0))) {
+
 	if (!event->isSpecialTriggerEvent()) {
 		if ((l1FlagMask_ & l0TriggerFlags) || (L1InputEvents_ % autoFlagFactor_ == 0)) {
-//			LOG_INFO<< "******FLAG!!! " << L1InputEvents_ << " % " << autoFlagFactor_ << ENDL;
 			l1FlagTrigger = 1;
 		} else {
-//			LOG_INFO<< "******CUT!!! *******"<< ENDL;
 			l1FlagTrigger = 0;
 		}
 	}
 	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event);
-//	LOG_INFO<< "*******l1TriggerTypeWord (before flag) " << (uint)l1TriggerTypeWord << ENDL;
 	l1TriggerTypeWord = (l1FlagTrigger << 7) | l1TriggerTypeWord;
-//	LOG_INFO<< "*******l1TriggerTypeWord (after flag) " << (uint)l1TriggerTypeWord << ENDL;
-//	l1Block->triggerword = l1TriggerTypeWord;
 
 	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
 
 	L1Triggers_[l1TriggerTypeWord].fetch_add(1, std::memory_order_relaxed); // The second 8 bits are the L1 trigger type word
 	event->setL1Processed(L0L1Trigger);
-//	LOG_INFO<< "L1ProcessingTime " << event->getL1ProcessingTime() << ENDL;
-//	LOG_INFO<< "EventTimeStamp " << event->getTimestamp()<< ENDL;
 	uint L1ProcessingTimeIndex = (uint) event->getL1ProcessingTime() / 10.;
 	if (L1ProcessingTimeIndex >= 0x64)
 		L1ProcessingTimeIndex = 0x64;
 	uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-08) / 2);
 	if (EventTimestampIndex >= 0x64)
 		EventTimestampIndex = 0x64;
-//	LOG_INFO<< "[L1ProcessingTimeIndex,EventTimeStampIndex] " << L1ProcessingTimeIndex << " " << EventTimestampIndex << ENDL;
 	L1ProcessingTimeVsEvtNumber_[L1ProcessingTimeIndex][EventTimestampIndex].fetch_add(
 			1, std::memory_order_relaxed);
-//	LOG_INFO<< L1ProcessingTimeVsEvtNumber_[L1ProcessingTimeIndex][EventTimestampIndex] << ENDL;
-//	LOG_INFO<< "L1ProcessingTime " << event->getL1ProcessingTime() << ENDL;
-//	LOG_INFO<< "L1ProcessingTimeMax (before comparison)" << L1ProcessingTimeMax_ << ENDL;
 	L1ProcessingTimeCumulative_.fetch_add(event->getL1ProcessingTime(),
 			std::memory_order_relaxed);
-//	LOG_INFO<< "L1ProcessingTimeCumulative_ " << L1ProcessingTimeCumulative_ << ENDL;
 	if (event->getL1ProcessingTime() >= L1ProcessingTimeMax_)
 		L1ProcessingTimeMax_ = event->getL1ProcessingTime();
-//	LOG_INFO<< "L1ProcessingTimeMax (after comparison)" << L1ProcessingTimeMax_ << ENDL;
 
-//	if (l1TriggerTypeWord != 0) {
+
+	// KTAG special
 	uint_fast8_t l1KTAGtrigger_mask = 4;
-//	LOG_INFO << "l1KTAGtrigger_mask " << (uint)l1KTAGtrigger_mask << ENDL;
 	if (l1FlagTrigger || (l1TriggerTypeWord & l1KTAGtrigger_mask)) {
 
 		if (!event->isSpecialTriggerEvent()) {
@@ -227,12 +204,11 @@ void L1Builder::processL1(Event *event) {
 			EventPool::freeEvent(event);
 		} else {  // Downscaled event
 
-			if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT
-					!= 0) {
+			if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
 				/*
-				 * Only request accepted events from LKr
+				 * Only request accepted events from L1 detectors
 				 */
-				sendL1RequestToCREAMS(event);
+				sendL1Request(event);
 			} else {
 				L2Builder::processL2(event);
 			}
@@ -246,13 +222,13 @@ void L1Builder::processL1(Event *event) {
 
 }
 
-void L1Builder::sendL1RequestToCREAMS(Event* event) {
-// Request non zero suppressed LKr data if either the requestZSuppressedLkrData_ is set or
+void L1Builder::sendL1Request(Event* event) {
+
 // See https://github.com/NA62/na62-trigger-algorithms/wiki/CREAM-data
-	cream::L1DistributionHandler::Async_RequestLKRDataMulticast(event,
+	l1::L1DistributionHandler::Async_RequestL1DataMulticast(event,
 			event->isRrequestZeroSuppressedCreamData()
 					&& requestZSuppressedLkrData_);
-	L1RequestToCreams_.fetch_add(1, std::memory_order_relaxed);
+	L1Requests_.fetch_add(1, std::memory_order_relaxed);
 }
 
 }

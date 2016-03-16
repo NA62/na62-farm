@@ -20,6 +20,9 @@ public:
 	virtual ~TaskProcessor();
 	static tbb::concurrent_queue<HandleFrameTask*> TasksQueue_;
 
+	static int getSize() {
+		return TasksQueue_.unsafe_size();
+	}
 private:
 	virtual void thread() override;
 	virtual void onInterruption() override;
