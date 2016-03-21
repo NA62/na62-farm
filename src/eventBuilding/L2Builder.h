@@ -14,8 +14,8 @@
 #include "../options/MyOptions.h"
 namespace na62 {
 class Event;
-namespace cream {
-class LkrFragment;
+namespace l1 {
+class MEPFragment;
 } /* namespace cream */
 } /* namespace na62 */
 
@@ -50,7 +50,7 @@ public:
 	 *
 	 * @return true if the event is complete and therefore L2 has been processed, false otherwise
 	 */
-	static bool buildEvent(cream::LkrFragment* lkrFragment);
+	static bool buildEvent(l1::MEPFragment* Fragment);
 
 	static void processL2(Event *event);
 

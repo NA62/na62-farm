@@ -20,7 +20,7 @@
 #include <iostream>
 
 #include <eventBuilding/SourceIDManager.h>
-#include <LKr/L1DistributionHandler.h>
+#include <l1/L1DistributionHandler.h>
 #include <socket/NetworkHandler.h>
 #include <utils/Utils.h>
 #include <monitoring/IPCHandler.h>
@@ -116,87 +116,64 @@ void MonitorConnector::handleUpdate() {
 	 * Number of Events and data rate from all detectors
 	 */
 	std::stringstream statistics;
-//	std::stringstream monitoring;
+
 	for (int soruceIDNum = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES - 1;
 			soruceIDNum >= 0; soruceIDNum--) {
 		uint_fast8_t sourceID = SourceIDManager::sourceNumToID(soruceIDNum);
 		statistics << "0x" << std::hex << (int) sourceID << ";";
-//		monitoring << "0x" << std::hex << (int) sourceID << std::dec;
 
 		if (SourceIDManager::getExpectedPacksBySourceID(sourceID) > 0) {
 			setDetectorDifferentialData("MEPsReceived",
 					HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum)
-							/ SourceIDManager::getExpectedPacksBySourceID(
-									sourceID), sourceID);
+							/ SourceIDManager::getExpectedPacksBySourceID(sourceID), sourceID);
 
 			statistics << std::dec
 					<< HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum)
 							/ SourceIDManager::getExpectedPacksBySourceID(
 									sourceID) << ";";
 		}
+        setDetectorDifferentialData("EventsReceived",
+                         Event::getMissingL0EventsBySourceNum(soruceIDNum), sourceID);
+         statistics << std::dec
+                         << Event::getMissingL0EventsBySourceNum(soruceIDNum) << ";";
 
-		setDetectorDifferentialData("EventsReceived",
-				Event::getMissingEventsBySourceNum(soruceIDNum), sourceID);
-		statistics << std::dec
-				<< Event::getMissingEventsBySourceNum(soruceIDNum) << ";";
-
-//		setDetectorDifferentialData("BytesReceived",
-//				HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum),
-//				sourceID);
 		statistics << std::dec
 				<< HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum)
 				<< ";";
-//		for (uint f = 0;
-//				f != SourceIDManager::getExpectedPacksBySourceNum(soruceIDNum);
-//				f++) {
-//			uint_fast8_t subID = (uint_fast8_t) f;
-//			monitoring << ":" << f << ","
-//					<< Event::getReceivedEventsBySourceNumBySubId(soruceIDNum,f);
-//			if (f== SourceIDManager::getExpectedPacksBySourceNum(soruceIDNum)- 1)
-//				monitoring << ";" << ENDL;
-//			setDetectorSubIdDifferentialData("EventsReceivedBySubId-",
-//					Event::getReceivedEventsBySourceNumBySubId(soruceIDNum, f),
-//					subID, sourceID);
-//		}
 	}
 
-	if (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT != 0) {
-		statistics << "0x" << std::hex << (int) SOURCE_ID_LKr << ";";
+	if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
 
-		/*
-		 * Store CREAM specific statistics stored at SourceIDManager::NUMBER_OF_L0_DATA_SOURCES as sourceNum
-		 */
-		setDetectorDifferentialData("MEPsReceived",
-				HandleFrameTask::GetMEPsReceivedBySourceNum(
-						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES)
-						/ (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT),
-				SOURCE_ID_LKr);
-		statistics << std::dec
-				<< HandleFrameTask::GetMEPsReceivedBySourceNum(
-						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES)
-						/ (SourceIDManager::NUMBER_OF_EXPECTED_CREAM_PACKETS_PER_EVENT)
-				<< ";";
+		for (int soruceIDNum = SourceIDManager::NUMBER_OF_L1_DATA_SOURCES - 1;
+				soruceIDNum >= 0; soruceIDNum--) {
 
-		setDetectorDifferentialData("EventsReceived",
-				Event::getMissingEventsBySourceNum(
-						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES),
-				SOURCE_ID_LKr);
+			uint_fast8_t sourceID = SourceIDManager::l1SourceNumToID(soruceIDNum);
+			statistics << "0x" << std::hex << (int) sourceID << ";";
 
-		statistics << std::dec
-				<< Event::getMissingEventsBySourceNum(
-						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES) << ";";
+			if (SourceIDManager::getExpectedL1PacksBySourceID(sourceID) > 0) {
+				setDetectorDifferentialData("MEPsReceived",
+						HandleFrameTask::GetL1MEPsReceivedBySourceNum(soruceIDNum)
+								/ SourceIDManager::getExpectedL1PacksBySourceID(sourceID), sourceID);
 
-//		setDetectorDifferentialData("BytesReceived",
-//				HandleFrameTask::GetBytesReceivedBySourceNum(
-//						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES),
-//				SOURCE_ID_LKr);
-		statistics << std::dec
-				<< HandleFrameTask::GetBytesReceivedBySourceNum(
-						SourceIDManager::NUMBER_OF_L0_DATA_SOURCES) << ";";
+				statistics << std::dec
+						<< HandleFrameTask::GetL1MEPsReceivedBySourceNum(soruceIDNum)
+								/ SourceIDManager::getExpectedL1PacksBySourceID(
+										sourceID) << ";";
+			}
 
-		setDetectorDifferentialData("NonRequestedCreamFrags",
-				Event::getNumberOfNonRequestedCreamFragments(),
-				SOURCE_ID_LKr);
+            setDetectorDifferentialData("EventsReceived",
+                             Event::getMissingL1EventsBySourceNum(soruceIDNum), sourceID);
+             statistics << std::dec
+                             << Event::getMissingL1EventsBySourceNum(soruceIDNum) << ";";
+
+			statistics << std::dec
+					<< HandleFrameTask::GetL1BytesReceivedBySourceNum(soruceIDNum)
+					<< ";";
+
+			setDetectorDifferentialData("NonRequested:1Frags",
+					Event::getNumberOfNonRequestedL1Fragments(), sourceID);
+
+		}
 	}
 
 	IPCHandler::sendStatistics("DetectorData", statistics.str());
@@ -211,10 +188,9 @@ void MonitorConnector::handleUpdate() {
 	setDifferentialData("L2InputEvents ", L2InputEvents);
 	IPCHandler::sendStatistics("L2InputEvents", std::to_string(L2InputEvents));
 
-	uint_fast32_t L1RequestToCreams = L1Builder::GetL1RequestToCreams();
-	setDifferentialData("L1RequestToCreams ", L1RequestToCreams);
-	IPCHandler::sendStatistics("L1RequestToCreams",
-			std::to_string(L1RequestToCreams));
+	uint_fast32_t L1Requests = L1Builder::GetL1Requests();
+	setDifferentialData("L1RequestToCreams", L1Requests);
+	IPCHandler::sendStatistics("L1RequestToCreams",std::to_string(L1Requests));
 
 	uint_fast32_t L1BypassedEvents = L1Builder::GetL1BypassedEvents();
 	setDifferentialData("L1BypassedEvents ", L1BypassedEvents);
@@ -272,14 +248,14 @@ void MonitorConnector::handleUpdate() {
 			std::to_string(eventsToStorage));
 
 	setDifferentialData("L1MRPsSent",
-			cream::L1DistributionHandler::GetL1MRPsSent());
+			l1::L1DistributionHandler::GetL1MRPsSent());
 	IPCHandler::sendStatistics("L1MRPsSent",
-			std::to_string(cream::L1DistributionHandler::GetL1MRPsSent()));
+			std::to_string(l1::L1DistributionHandler::GetL1MRPsSent()));
 
 	setDifferentialData("L1TriggersSent",
-			cream::L1DistributionHandler::GetL1TriggersSent());
+			l1::L1DistributionHandler::GetL1TriggersSent());
 	IPCHandler::sendStatistics("L1TriggersSent",
-			std::to_string(cream::L1DistributionHandler::GetL1TriggersSent()));
+			std::to_string(l1::L1DistributionHandler::GetL1TriggersSent()));
 
 	setDifferentialData("FramesSent", NetworkHandler::GetFramesSent());
 	setContinuousData("OutFramesQueued",

@@ -14,7 +14,8 @@
 #include <l0/Subevent.h>
 #include <l2/L2Fragment.h>
 #include <l2/L2TriggerProcessor.h>
-#include <LKr/LkrFragment.h>
+#include <l1/MEP.h>
+#include <l1/MEPFragment.h>
 #include <netinet/ip.h>
 #include <structs/Network.h>
 #include <sys/types.h>
@@ -45,30 +46,24 @@ uint L2Builder::reductionFactor_ = 0;
 
 uint L2Builder::downscaleFactor_ = 0;
 
-bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
+bool L2Builder::buildEvent(l1::MEPFragment* fragment) {
+
 	Event *event = EventPool::getEvent(fragment->getEventNumber());
 
 	/*
 	 * If the event number is too large event is null and we have to drop the data
 	 */
 	if (event == nullptr) {
+		LOG_ERROR << "Eliminating " << (int)(fragment->getEventNumber()) << " from source " << std::hex << (int)(fragment->getSourceID())
+		                                << ":" << (int)(fragment->getSourceSubID()) << std::dec;
 		delete fragment;
 		return false;
 	}
 
-	const UDP_HDR* etherFrame =
-			reinterpret_cast<const UDP_HDR*>(fragment->getRawData().data);
-
-	// L2 Input reduction
-//	if (fragment->getEventNumber() % reductionFactor_ != 0) {
-//		delete fragment;
-//		return false;
-//	}
-
 	/*
 	 * Add new packet to EventCollector
 	 */
-	if (event->addLkrFragment(fragment, etherFrame->ip.saddr)) {
+	if (event->addL1Fragment(fragment)) {
 #ifdef MEASURE_TIME
 //		LOG_INFO<< "L1BuildingTime " << event->getL1BuildingTime() << ENDL;
 //		LOG_INFO<< "EventTimeStamp " << event->getTimestamp()<< ENDL;
@@ -90,17 +85,18 @@ bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
 		if (event->getL0BuildingTime() >= L1BuildingTimeMax_)
 			L1BuildingTimeMax_ = event->getL1BuildingTime();
 //		LOG_INFO<< "L0BuildingTimeMax (after comparison)" << L1BuildingTimeMax_ << ENDL;
+#endif
 
 		L2InputEvents_.fetch_add(1, std::memory_order_relaxed);
 		L2InputEventsPerBurst_.fetch_add(1, std::memory_order_relaxed);
-#endif
+
 		/*
 		 * This event is complete -> process it
 		 */
 
 		if ((L2InputEvents_ % reductionFactor_ != 0)
-				&& !event->isSpecialTriggerEvent()
-				&& (!L2TriggerProcessor::bypassEvent())) {
+				&& !event->isSpecialTriggerEvent()) {
+				//&& (!L2TriggerProcessor::bypassEvent())
 			EventPool::freeEvent(event);
 			//return false;
 		} else {
@@ -113,16 +109,6 @@ bool L2Builder::buildEvent(cream::LkrFragment* fragment) {
 }
 
 void L2Builder::processL2(Event *event) {
-	/*
-	 * Prepare L2 Data Block to store useful info
-	 *
-	 */
-	l0::MEPFragment* L2Fragment = event->getL2Subevent()->getFragment(0);
-	L2_BLOCK* l2Block = (L2_BLOCK*) L2Fragment->getPayload();
-
-	//	const l0::MEPFragment* const L2Fragment = event->getL2Subevent()->getFragment(0);
-	//	const char* payload = L2Fragment->getPayload();
-	//	L2_BLOCK * l2Block = (L2_BLOCK *) (payload);
 
 	if (!event->isWaitingForNonZSuppressedLKrData()) {
 		/*

@@ -9,7 +9,6 @@
 #include <tbb/task.h>
 #include <thread>
 
-#include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
 #include <monitoring/BurstIdHandler.h>
 #include <monitoring/FarmStatistics.h>
@@ -23,6 +22,7 @@
 #include <l2/L2TriggerProcessor.h>
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/Event.h>
+#include <l1/L1DistributionHandler.h>
 #include <options/TriggerOptions.h>
 #include <storage/EventSerializer.h>
 
@@ -32,6 +32,7 @@
 #include "monitoring/MonitorConnector.h"
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
+#include "socket/TaskProcessor.h"
 #include "socket/ZMQHandler.h"
 #include "socket/HandleFrameTask.h"
 #include "monitoring/CommandConnector.h"
@@ -42,6 +43,7 @@ using namespace std;
 using namespace na62;
 
 std::vector<PacketHandler*> packetHandlers;
+std::vector<TaskProcessor*> taskProcessors;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
 #ifdef USE_GLOG
@@ -125,9 +127,7 @@ int main(int argc, char* argv[]) {
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
-			Options::GetIntPairList(OPTION_CREAM_CRATES),
-			Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES),
-			Options::GetInt(OPTION_MUV_CREAM_CRATE_ID));
+			Options::GetIntPairList(OPTION_L1_DATA_SOURCE_IDS));
 
 	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID));
 
@@ -140,13 +140,26 @@ int main(int argc, char* argv[]) {
 	L1Builder::initialize();
 	L2Builder::initialize();
 
-	Event::initialize(MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES),
-			Options::GetBool(OPTION_WRITE_BROKEN_CREAM_INFO));
+	Event::initialize(MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES));
 
-	EventPool::initialize(Options::GetInt(
-	OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST));
+    // Get the list of farm nodes and find my position
+    vector<std::string> nodes = Options::GetStringList(OPTION_FARM_HOST_NAMES);
+    std::string myIP = EthernetUtils::ipToString(EthernetUtils::GetIPOfInterface(Options::GetString(OPTION_ETH_DEVICE_NAME)));
+    uint logicalNodeID = 0xffffffff;
+    for (size_t i=0; i< nodes.size(); ++i) {
+            if (myIP==nodes[i]) {
+                    logicalNodeID = i;
+                    break;
+            }
+    }
+    if (logicalNodeID == 0xffffffff) {
+            LOG_ERROR << "You must provide a list of farm nodes IP addresses containing the IP address of this node!";
+            exit(1);
+    }
 
-	cream::L1DistributionHandler::Initialize(
+    EventPool::initialize(Options::GetInt(OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST), nodes.size(), logicalNodeID, Options::GetInt(OPTION_NUMBER_OF_FRAGS_PER_L0MEP));
+
+	l1::L1DistributionHandler::Initialize(
 			Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP),
 			Options::GetInt(OPTION_NUMBER_OF_EBS),
 			Options::GetInt(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS),
@@ -171,7 +184,7 @@ int main(int argc, char* argv[]) {
 	/*
 	 * L1 Distribution handler
 	 */
-	cream::L1DistributionHandler l1Handler;
+	l1::L1DistributionHandler l1Handler;
 	l1Handler.startThread("L1DistributionHandler");
 
 	/*
@@ -182,8 +195,7 @@ int main(int argc, char* argv[]) {
 	<< " PacketHandler threads" << ENDL;
 
 	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
-		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
-				i);
+		PacketHandler* handler = new PacketHandler(i);
 		packetHandlers.push_back(handler);
 
 		uint coresPerSocket = std::thread::hardware_concurrency()
@@ -191,6 +203,13 @@ int main(int argc, char* argv[]) {
 		uint cpuMask = i % 2 == 0 ? i / 2 : coresPerSocket + i / 2;
 		handler->startThread(i, "PacketHandler", cpuMask, 15,
 				MyOptions::GetInt(OPTION_PH_SCHEDULER));
+	}
+
+	for (unsigned int i = 0; i < 4; i++) {
+		//for (unsigned int i = 0; i < std::thread::hardware_concurrency() - numberOfPacketHandler; i++) {
+		TaskProcessor* tp = new TaskProcessor();
+		taskProcessors.push_back(tp);
+		tp->startThread(i, "TaskProcessor");
 	}
 
 	CommandConnector c;

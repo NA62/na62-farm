@@ -25,12 +25,11 @@
 #include <queue>
 #include <thread>
 
-#include <exceptions/UnknownCREAMSourceIDFound.h>
 #include <exceptions/UnknownSourceIDFound.h>
 #include <l0/MEP.h>
 #include <l0/MEPFragment.h>
-#include <LKr/L1DistributionHandler.h>
-#include <LKr/LkrFragment.h>
+#include <l1/L1DistributionHandler.h>
+#include <l1/MEPFragment.h>
 #include "../options/MyOptions.h"
 #include <structs/Event.h>
 #include <structs/Network.h>
@@ -42,6 +41,7 @@
 #include <monitoring/BurstIdHandler.h>
 
 #include "HandleFrameTask.h"
+#include "TaskProcessor.h"
 
 namespace na62 {
 
@@ -77,8 +77,7 @@ void PacketHandler::thread() {
 
 	uint sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
 
-	const uint framesToBeGathered = Options::GetInt(
-	OPTION_MAX_FRAME_AGGREGATION);
+	const uint framesToBeGathered = Options::GetInt(OPTION_MAX_FRAME_AGGREGATION);
 
 	//boost::timer::cpu_timer sendTimer;
 
@@ -97,6 +96,7 @@ void PacketHandler::thread() {
 		uint spinsInARow = 0;
 
 		boost::timer::cpu_timer aggregationTimer;
+
 		/*
 		 * Try to receive [framesToBeCollected] frames
 		 */
@@ -113,11 +113,7 @@ void PacketHandler::thread() {
 				/*
 				 * Check if the burst should be flushed else prepare the data to be handled
 				 */
-				if(BurstIdHandler::flushBurst()) {
-					LOG_INFO <<"Dropping data because we are at EoB";
-					//delete buff;
-				}
-				else {
+				if(!BurstIdHandler::flushBurst()) {
 					char* data = new char[hdr.len];
 					memcpy(data, buff, hdr.len);
 					frames.push_back( { data, (uint_fast16_t) hdr.len, true });
@@ -125,15 +121,16 @@ void PacketHandler::thread() {
 					spinsInARow = 0;
 				}
 			} else {
-				if (threadNum_ == 0
-						&& sendTimer.elapsed().wall / 1000
-								> minUsecBetweenL1Requests) {
+				//GLM: probably we should remove the timer from here...
+				if(threadNum_ == 0 && NetworkHandler::getNumberOfEnqueuedSendFrames() > 0
+					&& sendTimer.elapsed().wall / 1000 > minUsecBetweenL1Requests) {
 
 					/*
 					 * We didn't receive anything for a while -> send enqueued frames
 					 */
 					sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
-					if (NetworkHandler::DoSendQueuedFrames(threadNum_)) {
+					// GLM: keep this while loop else performance is a disaster!
+					while (NetworkHandler::DoSendQueuedFrames(threadNum_)) {
 						sleepMicros =
 								sleepMicros > minUsecBetweenL1Requests ?
 										minUsecBetweenL1Requests : sleepMicros;
@@ -145,25 +142,24 @@ void PacketHandler::thread() {
 					 * Push the aggregated frames to a new task if already tried to send something
 					 * two times during current frame aggregation
 					 */
-				} else {
+				}
+
+				else {
 					if (!running_) {
 						goto finish;
 					}
-//					if (threadNum_ == 0
-//							&& NetworkHandler::getNumberOfEnqueuedSendFrames()
-//									!= 0) {
-//						continue;
-//					}
+					//if (threadNum_ == 0 && NetworkHandler::getNumberOfEnqueuedSendFrames() != 0) {
+					//	continue;
+					//}
 
 					/*
 					 * If we didn't receive anything at the first try or in average for a while go to sleep
 					 */
 					if ((stepNum == 0 || spinsInARow++ == 10
 							|| aggregationTimer.elapsed().wall / 1000
-									> maxAggregationMicros)
+							> maxAggregationMicros)
 							&& (threadNum_ != 0
-									|| NetworkHandler::getNumberOfEnqueuedSendFrames()
-											== 0)) {
+									|| NetworkHandler::getNumberOfEnqueuedSendFrames() == 0)) {
 						goToSleep = true;
 						break;
 					}
@@ -175,21 +171,27 @@ void PacketHandler::thread() {
 					for (volatile uint i = 0; i < pollDelay; i++) {
 						asm("");
 					}
+
 				}
 			}
 		}
-
 		if (!frames.empty()) {
 
 			/*
 			 * Start a new task which will check the frame
 			 *
 			 */
-			HandleFrameTask* task =
-					new (tbb::task::allocate_root()) HandleFrameTask(
-							std::move(frames), BurstIdHandler::getCurrentBurstId());
-			tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
+			//HandleFrameTask* task =
+			//		new (tbb::task::allocate_root()) HandleFrameTask(
+			//				std::move(frames), BurstIdHandler::getCurrentBurstId());
+			//tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 
+			HandleFrameTask* task = new HandleFrameTask(std::move(frames), BurstIdHandler::getCurrentBurstId());
+			TaskProcessor::TasksQueue_.push(task);
+			int queueSize = TaskProcessor::getSize();
+			if(queueSize >0 && (queueSize%100 == 0)) {
+				LOG_ERROR << "Tasks queue size " << (int) queueSize << ENDL;
+			}
 			goToSleep = false;
 			frameHandleTasksSpawned_++;
 		} else {
@@ -207,8 +209,8 @@ void PacketHandler::thread() {
 			}
 		}
 	}
-	finish: LOG_INFO<<"Stopping PacketHandler thread " << threadNum_
-	<< ENDL;
+
+	finish: LOG_INFO<<"Stopping PacketHandler thread " << threadNum_ << ENDL;
 }
 }
 /* namespace na62 */

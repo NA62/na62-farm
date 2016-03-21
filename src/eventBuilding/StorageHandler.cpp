@@ -54,8 +54,7 @@ std::vector<std::string> StorageHandler::GetMergerAddresses(
 	std::vector<std::string> addresses;
 	for (std::string host : mergers) {
 		std::stringstream address;
-		address << "tcp://" << host << ":"
-				<< Options::GetInt(OPTION_MERGER_PORT);
+		address << "tcp://" << host << ":" << Options::GetInt(OPTION_MERGER_PORT);
 		addresses.push_back(address.str());
 	}
 	return addresses;

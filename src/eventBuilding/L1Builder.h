@@ -34,7 +34,7 @@ private:
 
 	static std::atomic<uint64_t> L1BypassedEvents_;
 
-	static std::atomic<uint64_t> L1RequestToCreams_;
+	static std::atomic<uint64_t> L1Requests_;
 
 	static std::atomic<uint64_t> L0BuildingTimeCumulative_;
 	static std::atomic<uint64_t> L0BuildingTimeMax_;
@@ -57,7 +57,7 @@ private:
 	/*
 	 * @return <true> if any packet has been sent (time has passed)
 	 */
-	static void sendL1RequestToCREAMS(Event * event);
+	static void sendL1Request(Event * event);
 
 public:
 	/**
@@ -100,8 +100,8 @@ public:
 		return L1InputEvents_;
 	}
 
-	static inline uint64_t GetL1RequestToCreams() {
-		return L1RequestToCreams_;
+	static inline uint64_t GetL1Requests() {
+		return L1Requests_;
 	}
 
 	static inline uint64_t GetL1ProcessingTimeCumulative() {
