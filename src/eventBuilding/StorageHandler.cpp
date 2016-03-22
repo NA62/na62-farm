@@ -14,11 +14,8 @@
 #include <tbb/spin_mutex.h>
 #include <sstream>
 
-#include <l0/MEPFragment.h>
-#include <l0/Subevent.h>
-#include <LKr/LkrFragment.h>
-#include <structs/Event.h>
-#include <structs/Versions.h>
+//#include <structs/Event.h>
+//#include <structs/Versions.h>
 #include <zmq.h>
 #include <zmq.hpp>
 #include <cstdbool>
