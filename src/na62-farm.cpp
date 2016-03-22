@@ -7,7 +7,9 @@
 #include <boost/bind.hpp>
 #include <eventBuilding/SourceIDManager.h>
 #include <tbb/task.h>
+#include <tbb/tbb.h>
 #include <thread>
+#include <atomic>
 
 #include <monitoring/IPCHandler.h>
 #include <monitoring/BurstIdHandler.h>
@@ -88,6 +90,47 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 	}
 }
 
+void onBurstFinished() {
+    static std::atomic<uint> incompleteEvents_;
+    incompleteEvents_ = 0;
+
+
+#ifdef HAVE_TCMALLOC
+    // Do it with parallel_for using tbb if tcmalloc is linked
+	tbb::parallel_for(
+			tbb::blocked_range<uint_fast32_t>(0, EventPool::getLargestTouchedEventnumberIndex() + 1,
+					EventPool::getLargestTouchedEventnumberIndex() / std::thread::hardware_concurrency()),
+					[](const tbb::blocked_range<uint_fast32_t>& r) {
+		for(size_t index=r.begin();index!=r.end(); index++) {
+			Event* event = EventPool::getEventByIndex(index);
+			if(event == nullptr) continue;
+			if (event->isUnfinished()) {
+				if(event->isLastEventOfBurst()) {
+					LOG_ERROR << "Handling unfinished EOB " << ENDL;
+					StorageHandler::SendEvent(event);
+				}
+				++incompleteEvents_;
+				event->updateMissingEventsStats();
+				EventPool::freeEvent(event);
+			}
+		}
+	});
+#else
+	for (uint idx = 0; idx != EventPool::getLargestTouchedEventnumberIndex() + 1; ++idx) {
+		Event* event = EventPool::getEventByIndex(idx);
+		if (event->isUnfinished()) {
+			++incompleteEvents_;
+			// if EOB send event to merger as in L2Builder.cpp
+			EventPool::freeEvent(event);
+		}
+	}
+#endif
+
+	if(incompleteEvents_ > 0) {
+		LOG_ERROR << "Dropped " << incompleteEvents_ << " events in burst ID = " << (int) BurstIdHandler::getCurrentBurstId() << ".";
+	}
+}
+
 int main(int argc, char* argv[]) {
 	/*
 	 * Signals
@@ -129,7 +172,7 @@ int main(int argc, char* argv[]) {
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
 			Options::GetIntPairList(OPTION_L1_DATA_SOURCE_IDS));
 
-	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID));
+	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID), &onBurstFinished);
 
 	HandleFrameTask::initialize();
 
