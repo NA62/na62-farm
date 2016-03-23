@@ -208,8 +208,10 @@ void L1Builder::processL1(Event *event) {
 				/*
 				 * Only request accepted events from L1 detectors
 				 */
+
 				sendL1Request(event);
 			} else {
+
 				L2Builder::processL2(event);
 			}
 		}
