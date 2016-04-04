@@ -106,6 +106,7 @@ public:
 	virtual ~MyOptions();
 
 	static void Load(int argc, char* argv[]) {
+
 		desc.add_options()
 
 		(OPTION_CONFIG_FILE,
@@ -133,7 +134,7 @@ public:
 		(OPTION_DATA_SOURCE_IDS, po::value<std::string>()->required(),
 				"Comma separated list of all available L0 data source IDs sending Data to L1 together with the expected numbers of packets per source. The format is like following (A,B,C are sourceIDs and a,b,c are the number of expected packets per source):\n \t A:a,B:b,C:c")
 
-		(OPTION_L1_DATA_SOURCE_IDS, po::value<std::string>()->required(),
+		(OPTION_L1_DATA_SOURCE_IDS, po::value<std::string>()->default_value(""),
 						"Comma separated list of all available data source IDs sending Data to L1 together with the expected numbers of packets per source. The format is like following (A,B,C are sourceIDs and a,b,c are the number of expected packets per source):\n \t A:a,B:b,C:c")
 
 		(OPTION_CREAM_RECEIVER_PORT, po::value<int>()->default_value(58915),

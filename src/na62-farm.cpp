@@ -11,6 +11,7 @@
 #include <thread>
 #include <atomic>
 
+
 #include <monitoring/IPCHandler.h>
 #include <monitoring/BurstIdHandler.h>
 #include <monitoring/FarmStatistics.h>
@@ -105,8 +106,9 @@ void onBurstFinished() {
 			Event* event = EventPool::getEventByIndex(index);
 			if(event == nullptr) continue;
 			if (event->isUnfinished()) {
+					//LOG_ERROR << "Incomplete event " << (uint)(event->getEventNumber());
 				if(event->isLastEventOfBurst()) {
-					LOG_ERROR << "Handling unfinished EOB " << ENDL;
+					LOG_ERROR << "Handling unfinished EOB event " << event->getEventNumber()<< ENDL;
 					StorageHandler::SendEvent(event);
 				}
 				++incompleteEvents_;
@@ -241,22 +243,23 @@ int main(int argc, char* argv[]) {
 		PacketHandler* handler = new PacketHandler(i);
 		packetHandlers.push_back(handler);
 
-		uint coresPerSocket = std::thread::hardware_concurrency()
-				/ 2/*hyperthreading*/;
+		uint coresPerSocket = std::thread::hardware_concurrency() / 2/*hyperthreading*/;
 		uint cpuMask = i % 2 == 0 ? i / 2 : coresPerSocket + i / 2;
-		handler->startThread(i, "PacketHandler", cpuMask, 15,
+		handler->startThread(i, "PacketHandler", cpuMask, 25,
 				MyOptions::GetInt(OPTION_PH_SCHEDULER));
+
 	}
 
-	for (unsigned int i = 0; i < 4; i++) {
-		//for (unsigned int i = 0; i < std::thread::hardware_concurrency() - numberOfPacketHandler; i++) {
+	//for (unsigned int i = 0; i < 4; i++) {
+	for (unsigned int i = 0; i < std::thread::hardware_concurrency() - numberOfPacketHandler; i++) {
 		TaskProcessor* tp = new TaskProcessor();
 		taskProcessors.push_back(tp);
 		tp->startThread(i, "TaskProcessor");
+
 	}
 
 	CommandConnector c;
-	c.startThread(0, "Commandconnector", -1, 0);
+	c.startThread(0, "Commandconnector", -1, 1);
 	monitoring::MonitorConnector::setState(RUNNING);
 
 	/*

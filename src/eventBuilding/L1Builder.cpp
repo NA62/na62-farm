@@ -119,7 +119,7 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 
 		//L1 Input Reduction
 		if ((L1InputEvents_ % reductionFactor_ != 0)
-				&& (!event->isSpecialTriggerEvent())
+				&& (!event->isSpecialTriggerEvent() && (!event->isLastEventOfBurst()))
 				//&& (!L1TriggerProcessor::bypassEvent())
 				) {
 			EventPool::freeEvent(event);
@@ -208,8 +208,10 @@ void L1Builder::processL1(Event *event) {
 				/*
 				 * Only request accepted events from L1 detectors
 				 */
+
 				sendL1Request(event);
 			} else {
+
 				L2Builder::processL2(event);
 			}
 		}

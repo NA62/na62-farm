@@ -199,7 +199,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 */
 		if (MyIP != dstIP) {
 		//if("10.194.20.37" != EthernetUtils::ipToString(dstIP)) {
-			LOG_WARNING<< "Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP) << ENDL;
+			LOG_INFO<< "Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP) << ENDL;
 			container.free();
 			return;
 		}

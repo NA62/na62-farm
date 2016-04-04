@@ -122,8 +122,8 @@ void PacketHandler::thread() {
 				}
 			} else {
 				//GLM: probably we should remove the timer from here...
-				if(threadNum_ == 0 && NetworkHandler::getNumberOfEnqueuedSendFrames() > 0
-					&& sendTimer.elapsed().wall / 1000 > minUsecBetweenL1Requests) {
+				if(threadNum_ == 0 && NetworkHandler::getNumberOfEnqueuedSendFrames() > 0 ) {
+					//&& sendTimer.elapsed().wall / 1000 > minUsecBetweenL1Requests) {
 
 					/*
 					 * We didn't receive anything for a while -> send enqueued frames
@@ -136,7 +136,7 @@ void PacketHandler::thread() {
 										minUsecBetweenL1Requests : sleepMicros;
 						spinsInARow = 0;
 					}
-					sendTimer.start();
+					//sendTimer.start();
 
 					/*
 					 * Push the aggregated frames to a new task if already tried to send something
