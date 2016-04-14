@@ -47,44 +47,54 @@ uint L2Builder::reductionFactor_ = 0;
 uint L2Builder::downscaleFactor_ = 0;
 
 bool L2Builder::buildEvent(l1::MEPFragment* fragment) {
+	Event * event=nullptr;
 
-	Event *event = EventPool::getEvent(fragment->getEventNumber());
+#ifdef USE_ERS
+	try {
+		event = EventPool::getEvent(fragment->getEventNumber());
+	}
+	catch (na62::Issue &e) {
+		ers::error(UnexpectedFragment(ERS_HERE, fragment->getEventNumber(), SourceIDManager::sourceIdToDetectorName( fragment->getSourceID()), fragment->getSourceSubID(), e));
+		delete fragment;
+		return false;
+	}
+#else
+	event = EventPool::getEvent(fragment->getEventNumber());
 
 	/*
 	 * If the event number is too large event is null and we have to drop the data
 	 */
 	if (event == nullptr) {
-		LOG_ERROR << "Eliminating " << (int)(fragment->getEventNumber()) << " from source " << std::hex << (int)(fragment->getSourceID())
-		                                << ":" << (int)(fragment->getSourceSubID()) << std::dec;
+
+			uint crateID = (fragment->getSourceSubID() >> 5) & 0x3f;
+			uint creamID =  fragment->getSourceSubID() & 0x1f;
+
+		LOG_ERROR << "type = BadEv : Eliminating " << std::hex << (int)(fragment->getEventNumber()) << " from source = 0x"
+				<< std::hex << (int)(fragment->getSourceID())
+				<< ":0x" << (int)(fragment->getSourceSubID()) << std::dec << " -- "<< crateID << "--" << creamID;
 		delete fragment;
 		return false;
 	}
+#endif
 
 	/*
 	 * Add new packet to EventCollector
 	 */
+
 	if (event->addL1Fragment(fragment)) {
 #ifdef MEASURE_TIME
-//		LOG_INFO<< "L1BuildingTime " << event->getL1BuildingTime() << ENDL;
-//		LOG_INFO<< "EventTimeStamp " << event->getTimestamp()<< ENDL;
 		uint L1BuildingTimeIndex = (uint) event->getL1BuildingTime() / 10000.;
 		if (L1BuildingTimeIndex >= 0x64)
 			L1BuildingTimeIndex = 0x64;
 		uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-08) / 2);
 		if (EventTimestampIndex >= 0x64)
 			EventTimestampIndex = 0x64;
-//		LOG_INFO<< "[L1BuildingTimeIndex,EventTimeStampIndex] " << L1BuildingTimeIndex << " " << EventTimestampIndex << ENDL;
 		L1BuildingTimeVsEvtNumber_[L1BuildingTimeIndex][EventTimestampIndex].fetch_add(
 				1, std::memory_order_relaxed);
-//		LOG_INFO<< L1BuildingTimeVsEvtNumber_[L1BuildingTimeIndex][EventTimestampIndex] << ENDL;
-//		LOG_INFO<< "L1BuildingTime " << event->getL1BuildingTime() << ENDL;
-//		LOG_INFO<< "L1BuildingTimeMax (before comparison)" << L1BuildingTimeMax_ << ENDL;
 		L1BuildingTimeCumulative_.fetch_add(event->getL1BuildingTime(),
 				std::memory_order_relaxed);
-//		LOG_INFO<< "L1BuildingTimeCumulative_ " << L1BuildingTimeCumulative_ << ENDL;
 		if (event->getL0BuildingTime() >= L1BuildingTimeMax_)
 			L1BuildingTimeMax_ = event->getL1BuildingTime();
-//		LOG_INFO<< "L0BuildingTimeMax (after comparison)" << L1BuildingTimeMax_ << ENDL;
 #endif
 
 		L2InputEvents_.fetch_add(1, std::memory_order_relaxed);
@@ -96,12 +106,9 @@ bool L2Builder::buildEvent(l1::MEPFragment* fragment) {
 
 		if ((L2InputEvents_ % reductionFactor_ != 0)
 				&& !event->isSpecialTriggerEvent()) {
-				//&& (!L2TriggerProcessor::bypassEvent())
 			EventPool::freeEvent(event);
-			//return false;
 		} else {
 			processL2(event);
-
 			return true;
 		}
 	}
@@ -115,31 +122,23 @@ void L2Builder::processL2(Event *event) {
 		 * L1 already passed but non zero suppressed LKr data not yet requested -> Process Level 2 trigger
 		 */
 		uint_fast8_t L2Trigger = L2TriggerProcessor::compute(event);
-//		l2Block->triggerword = L2Trigger;
+
 #ifdef MEASURE_TIME
-//		LOG_INFO<< "L2ProcessingTime " << event->getL2ProcessingTime() << ENDL;
-//		LOG_INFO<< "EventTimeStamp " << event->getTimestamp()<< ENDL;
 		uint L2ProcessingTimeIndex = (uint) event->getL2ProcessingTime() / 1.;
 		if (L2ProcessingTimeIndex >= 0x64)
 			L2ProcessingTimeIndex = 0x64;
 		uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-08) / 2);
 		if (EventTimestampIndex >= 0x64)
 			EventTimestampIndex = 0x64;
-//		LOG_INFO<< "[L2ProcessingTimeIndex,EventTimeStampIndex] " << L2ProcessingTimeIndex << " " << EventTimestampIndex << ENDL;
 		L2ProcessingTimeVsEvtNumber_[L2ProcessingTimeIndex][EventTimestampIndex].fetch_add(
 				1, std::memory_order_relaxed);
-//		LOG_INFO<< L2ProcessingTimeVsEvtNumber_[L2ProcessingTimeIndex][EventTimestampIndex] << ENDL;
 #endif
 		event->setL2Processed(L2Trigger);
 #ifdef MEASURE_TIME
-//		LOG_INFO<< "L2ProcessingTime " << event->getL2ProcessingTime() << ENDL;
-//		LOG_INFO<< "L2ProcessingTimeMax (before comparison)" << L2ProcessingTimeMax_ << ENDL;
 		L2ProcessingTimeCumulative_.fetch_add(event->getL2ProcessingTime(),
 				std::memory_order_relaxed);
-//		LOG_INFO<< "L2ProcessingTimeCumulative_ " << L2ProcessingTimeCumulative_ << ENDL;
 		if (event->getL2ProcessingTime() >= L2ProcessingTimeMax_)
 			L2ProcessingTimeMax_ = event->getL2ProcessingTime();
-//		LOG_INFO<< "L2ProcessingTimeMax (after comparison)" << L2ProcessingTimeMax_ << ENDL;
 #endif
 		/*
 		 * Event has been processed and saved or rejected -> destroy, don't delete so that it can be reused if
@@ -166,8 +165,6 @@ void L2Builder::processL2(Event *event) {
 							std::memory_order_relaxed);
 					EventsSentToStorage_.fetch_add(1,
 							std::memory_order_relaxed);
-//					L2Triggers_[L2Trigger].fetch_add(1,
-//							std::memory_order_relaxed);
 				}
 				EventPool::freeEvent(event);
 			}
@@ -180,14 +177,10 @@ void L2Builder::processL2(Event *event) {
 
 		event->setL2Processed(L2Trigger);
 #ifdef MEASURE_TIME
-//		LOG_INFO<< "L2ProcessingTime " << event->getL2ProcessingTime() << ENDL;
-//		LOG_INFO<< "L2ProcessingTimeMax (before comparison)" << L2ProcessingTimeMax_ << ENDL;
 		L2ProcessingTimeCumulative_.fetch_add(event->getL2ProcessingTime(),
 				std::memory_order_relaxed);
-//		LOG_INFO<< "L2ProcessingTimeCumulative_ " << L2ProcessingTimeCumulative_ << ENDL;
 		if (event->getL2ProcessingTime() >= L2ProcessingTimeMax_)
 			L2ProcessingTimeMax_ = event->getL2ProcessingTime();
-//		LOG_INFO<< "L2ProcessingTimeMax (after comparison)" << L2ProcessingTimeMax_ << ENDL;
 #endif
 		if (event->isL2Accepted()) {
 			if (!event->isSpecialTriggerEvent()) {

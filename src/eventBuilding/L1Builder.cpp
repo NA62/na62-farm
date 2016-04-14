@@ -6,7 +6,7 @@
  */
 
 #include "L1Builder.h"
-
+#include <exceptions/CommonExceptions.h>
 #include <eventBuilding/Event.h>
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/SourceIDManager.h>
@@ -53,20 +53,31 @@ uint L1Builder::autoFlagFactor_ = 0;
 uint16_t L1Builder::l1FlagMask_ = 0;
 
 bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
-	Event *event = EventPool::getEvent(fragment->getEventNumber());
+	Event * event=nullptr;
 
+#ifdef USE_ERS
+	try {
+		event = EventPool::getEvent(fragment->getEventNumber());
+	}
+	catch (na62::Issue &e) {
+		ers::error(UnexpectedFragment(ERS_HERE, fragment->getEventNumber(), SourceIDManager::sourceIdToDetectorName( fragment->getSourceID()), fragment->getSourceSubID(), e));
+		delete fragment;
+		return false;
+	}
+#else
 	/*
 	 * If the event number is too large event is null and we have to drop the data
 	 */
+	event = EventPool::getEvent(fragment->getEventNumber());
 
 	if (event == nullptr) {
-		LOG_ERROR << "Eliminating " << (int)(fragment->getEventNumber()) << " from source " << std::hex << (int)(fragment->getSourceID())
+		LOG_ERROR << "type = BadEv : Eliminating " << (int)(fragment->getEventNumber()) << " from source " << std::hex << (int)(fragment->getSourceID())
 		                                << ":" << (int)(fragment->getSourceSubID()) << std::dec;
 
 		delete fragment;
 		return false;
 	}
-
+#endif
 	// L1 Input reduction
 //	if (fragment->getEventNumber() % reductionFactor_ != 0
 //			&& (!event->isSpecialTriggerEvent() && !event->isL1Bypassed())) {
@@ -86,46 +97,34 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 				SourceIDManager::TS_SOURCEID_NUM)->getFragment(0);
 		event->setTimestamp(tsFragment->getTimestamp());
 
-//		LOG_INFO<< "L0BuildingTime " << event->getL0BuildingTime() << ENDL;
-//		LOG_INFO<< "EventTimeStamp " << event->getTimestamp()<< ENDL;
 		uint L0BuildingTimeIndex = (uint) event->getL0BuildingTime() / 5000.;
 		if (L0BuildingTimeIndex >= 0x64)
 			L0BuildingTimeIndex = 0x64;
 		uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-08) / 2);
 		if (EventTimestampIndex >= 0x64)
 			EventTimestampIndex = 0x64;
-//		LOG_INFO<< "[L0BuildingTimeIndex,EventTimeStampIndex] " << L0BuildingTimeIndex << " " << EventTimestampIndex << ENDL;
 		L0BuildingTimeVsEvtNumber_[L0BuildingTimeIndex][EventTimestampIndex].fetch_add(
 				1, std::memory_order_relaxed);
 
-//		LOG_INFO<< L0BuildingTimeVsEvtNumber_[L0BuildingTimeIndex][EventTimestampIndex] << ENDL;
-//		LOG_INFO<< "L0BuildingTime " << event->getL0BuildingTime() << ENDL;
-//		LOG_INFO<< "L0BuildingTimeMax (before comparison)" << L0BuildingTimeMax_ << ENDL;
 		L0BuildingTimeCumulative_.fetch_add(event->getL0BuildingTime(),
 				std::memory_order_relaxed);
-//		LOG_INFO<< "L0BuildingTimeCumulative_ " << L0BuildingTimeCumulative_ << ENDL;
 		if (event->getL0BuildingTime() >= L0BuildingTimeMax_)
 			L0BuildingTimeMax_ = event->getL0BuildingTime();
-//		LOG_INFO<< "L0BuildingTimeMax (after comparison)" << L0BuildingTimeMax_ << ENDL;
 
 		event->readTriggerTypeWordAndFineTime();
-//		LOG_INFO<< "L1Event number before adding 1 " << L1InputEvents_ << ENDL;
 		L1InputEvents_.fetch_add(1, std::memory_order_relaxed);
-//		LOG_INFO<< "L1Event number after adding 1 " << L1InputEvents_ << ENDL;
 		L1InputEventsPerBurst_.fetch_add(1, std::memory_order_relaxed);
+
 		/*
 		 * This event is complete -> process it
 		 */
 
 		//L1 Input Reduction
 		if ((L1InputEvents_ % reductionFactor_ != 0)
-				&& (!event->isSpecialTriggerEvent())
-				//&& (!L1TriggerProcessor::bypassEvent())
-				) {
+				&& (!event->isSpecialTriggerEvent() && (!event->isLastEventOfBurst()))) {
 			EventPool::freeEvent(event);
 		} else {
 			processL1(event);
-
 			return true;
 		}
 	}
@@ -137,21 +136,10 @@ void L1Builder::processL1(Event *event) {
 	uint_fast8_t l0TriggerTypeWord = event->getL0TriggerTypeWord();
 	uint_fast16_t l0TriggerFlags = event->getTriggerFlags();
 
-//	if (SourceIDManager::L0TP_ACTIVE) {
-//		l0::MEPFragment* L0TPEvent = event->getL0TPSubevent()->getFragment(0);
-//		L0TpHeader* L0TPData = (L0TpHeader*) L0TPEvent->getPayload();
-//		event->setFinetime(L0TPData->refFineTime);
-//
-//		l0TriggerTypeWord = L0TPData->l0TriggerType;
-//	}
-//	LOG_INFO<< "L0 Trigger word " << (uint)l0TriggerTypeWord << ENDL;
-//	LOG_INFO<< "Ref Detector finetime " << (uint)event->getFinetime() << ENDL;
-
 	/*
 	 * Store the global event timestamp taken from the reverence detector
 	 */
-	l0::MEPFragment* tsFragment = event->getL0SubeventBySourceIDNum(
-			SourceIDManager::TS_SOURCEID_NUM)->getFragment(0);
+	l0::MEPFragment* tsFragment = event->getL0SubeventBySourceIDNum(SourceIDManager::TS_SOURCEID_NUM)->getFragment(0);
 	event->setTimestamp(tsFragment->getTimestamp());
 
 	/*
@@ -204,14 +192,10 @@ void L1Builder::processL1(Event *event) {
 			EventPool::freeEvent(event);
 		} else {  // Downscaled event
 
+			// Request L1 data
 			if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
-				/*
-				 * Only request accepted events from L1 detectors
-				 */
-
 				sendL1Request(event);
 			} else {
-
 				L2Builder::processL2(event);
 			}
 		}

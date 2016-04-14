@@ -27,7 +27,7 @@
 #include <vector>
 
 #include <eventBuilding/SourceIDManager.h>
-#include <exceptions/UnknownCREAMSourceIDFound.h>
+#include <exceptions/BrokenPacketReceivedError.h>
 #include <exceptions/UnknownSourceIDFound.h>
 #include <utils/DataDumper.h>
 #include <options/Options.h>
@@ -39,7 +39,7 @@
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
 #include "../options/MyOptions.h"
-#include "../straws/StrawReceiver.h"
+//#include "../straws/StrawReceiver.h"
 #include "PacketHandler.h"
 #include "FragmentStore.h"
 
@@ -47,7 +47,7 @@ namespace na62 {
 
 uint_fast16_t HandleFrameTask::L0_Port;
 uint_fast16_t HandleFrameTask::CREAM_Port;
-uint_fast16_t HandleFrameTask::STRAW_PORT;
+//uint_fast16_t HandleFrameTask::STRAW_PORT;
 uint_fast32_t HandleFrameTask::MyIP;
 
 std::atomic<uint> HandleFrameTask::queuedTasksNum_;
@@ -71,7 +71,7 @@ HandleFrameTask::~HandleFrameTask() {
 void HandleFrameTask::initialize() {
 	L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
 	CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
-	STRAW_PORT = Options::GetInt(OPTION_STRAW_PORT);
+//	STRAW_PORT = Options::GetInt(OPTION_STRAW_PORT);
 	MyIP = NetworkHandler::GetMyIP();
 
 	/*
@@ -189,7 +189,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check checksum errors
 		 */
 		if (!checkFrame(hdr, container.length)) {
-			LOG_WARNING<< "Received broken packet from " << EthernetUtils::ipToString(hdr->ip.saddr) << ENDL;
+			LOG_ERROR<< "type = BadPack : Received broken packet from " << EthernetUtils::ipToString(hdr->ip.saddr) << ENDL;
 			container.free();
 			return;
 		}
@@ -199,7 +199,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 */
 		if (MyIP != dstIP) {
 		//if("10.194.20.37" != EthernetUtils::ipToString(dstIP)) {
-			LOG_WARNING<< "Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP) << ENDL;
+			LOG_ERROR<< "type = BadPack : Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP) << ENDL;
 			container.free();
 			return;
 		}
@@ -386,7 +386,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				// Add every fragment
 				L1Builder::buildEvent(mep->getFragment(i), burstID_);
 			}
-		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// CREAM Data //////////////////////////////////////////////////
+		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// L1 Data //////////////////////////////////////////////////
 			l1::MEP* l1mep = new l1::MEP(UDPPayload, UdpDataLength, container);
 
 			//fragment
@@ -405,18 +405,18 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			for (uint i=0; i!= nfrags ; ++i) {
 				L2Builder::buildEvent(l1mep->getEvent(i));
 			}
-		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
-			StrawReceiver::processFrame(std::move(container), burstID_);
+		//} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
+		//	StrawReceiver::processFrame(std::move(container), burstID_);
 		} else {
 			/*
 			 * Packet with unknown UDP port received
 			 */
-			LOG_ERROR<<"Packet with unknown UDP port received: " << destPort << ENDL;
+			LOG_ERROR<<"type = BadPack : Packet with unknown UDP port received: " << destPort << ENDL;
 			container.free();
 		}
 	} catch (UnknownSourceIDFound const& e) {
 		container.free();
-	} catch (UnknownCREAMSourceIDFound const&e) {
+	} catch (BrokenPacketReceivedError const&e) {
 		container.free();
 	} catch (NA62Error const& e) {
 		container.free();
@@ -442,7 +442,7 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 		 */
 		if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) > length) {
 			LOG_ERROR<<
-			"Received IP-Packet with less bytes than ip.tot_len field! " <<
+			"type = BadPack : Received IP-Packet with less bytes than ip.tot_len field! " <<
 			(ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length << ENDL;
 			return false;
 		}
@@ -452,7 +452,7 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 	 * Does not need to be equal because of ethernet padding
 	 */
 	if (ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr) > length) {
-		LOG_ERROR<<"Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length;
+		LOG_ERROR<<"type = BadPack : Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length;
 		return false;
 	}
 

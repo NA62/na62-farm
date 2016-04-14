@@ -11,6 +11,7 @@
 #include <thread>
 #include <atomic>
 
+
 #include <monitoring/IPCHandler.h>
 #include <monitoring/BurstIdHandler.h>
 #include <monitoring/FarmStatistics.h>
@@ -38,7 +39,7 @@
 #include "socket/ZMQHandler.h"
 #include "socket/HandleFrameTask.h"
 #include "monitoring/CommandConnector.h"
-#include "straws/StrawReceiver.h"
+//#include "straws/StrawReceiver.h"
 
 
 using namespace std;
@@ -72,8 +73,8 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 		LOG_INFO<< "Stopping storage handler";
 		StorageHandler::onShutDown();
 
-		LOG_INFO<< "Stopping STRAW receiver";
-		StrawReceiver::onShutDown();
+		//LOG_INFO<< "Stopping STRAW receiver";
+		//StrawReceiver::onShutDown();
 
 		usleep(1000);
 		LOG_INFO<< "Stopping IPC handler";
@@ -105,9 +106,9 @@ void onBurstFinished() {
 			Event* event = EventPool::getEventByIndex(index);
 			if(event == nullptr) continue;
 			if (event->isUnfinished()) {
-					LOG_ERROR << "Incomplete event " << (uint)(event->getEventNumber());
+					//LOG_ERROR << "Incomplete event " << (uint)(event->getEventNumber());
 				if(event->isLastEventOfBurst()) {
-					LOG_ERROR << "Handling unfinished EOB " << ENDL;
+					LOG_ERROR << "type = EOB : Handling unfinished EOB event " << event->getEventNumber()<< ENDL;
 					StorageHandler::SendEvent(event);
 				}
 				++incompleteEvents_;
@@ -128,7 +129,7 @@ void onBurstFinished() {
 #endif
 
 	if(incompleteEvents_ > 0) {
-		LOG_ERROR << "Dropped " << incompleteEvents_ << " events in burst ID = " << (int) BurstIdHandler::getCurrentBurstId() << ".";
+		LOG_ERROR << "type = EOB : Dropped " << incompleteEvents_ << " events in burst ID = " << (int) BurstIdHandler::getCurrentBurstId() << ".";
 	}
 }
 
@@ -179,7 +180,7 @@ int main(int argc, char* argv[]) {
 
 	EventSerializer::initialize();
 	StorageHandler::initialize();
-	StrawReceiver::initialize();
+	//StrawReceiver::initialize();
 
 	L1Builder::initialize();
 	L2Builder::initialize();
@@ -205,7 +206,6 @@ int main(int argc, char* argv[]) {
 
 	l1::L1DistributionHandler::Initialize(
 			Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP),
-			Options::GetInt(OPTION_NUMBER_OF_EBS),
 			Options::GetInt(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS),
 			Options::GetStringList(OPTION_CREAM_MULTICAST_GROUP),
 			Options::GetInt(OPTION_CREAM_RECEIVER_PORT),
@@ -244,7 +244,7 @@ int main(int argc, char* argv[]) {
 
 		uint coresPerSocket = std::thread::hardware_concurrency() / 2/*hyperthreading*/;
 		uint cpuMask = i % 2 == 0 ? i / 2 : coresPerSocket + i / 2;
-		handler->startThread(i, "PacketHandler", cpuMask, 15,
+		handler->startThread(i, "PacketHandler", cpuMask, 25,
 				MyOptions::GetInt(OPTION_PH_SCHEDULER));
 
 	}
@@ -258,7 +258,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	CommandConnector c;
-	c.startThread(0, "Commandconnector", -1, 0);
+	c.startThread(0, "Commandconnector", -1, 1);
 	monitoring::MonitorConnector::setState(RUNNING);
 
 	/*

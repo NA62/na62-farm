@@ -50,13 +50,11 @@ std::atomic<uint> PacketHandler::sleeps_;
 
 boost::timer::cpu_timer PacketHandler::sendTimer;
 
-uint PacketHandler::NUMBER_OF_EBS = 0;
+
 std::atomic<uint> PacketHandler::frameHandleTasksSpawned_(0);
 
 PacketHandler::PacketHandler(int threadNum) :
-		threadNum_(threadNum), running_(true) {
-	NUMBER_OF_EBS = Options::GetInt(OPTION_NUMBER_OF_EBS);
-}
+		threadNum_(threadNum), running_(true) {}
 
 PacketHandler::~PacketHandler() {
 }
@@ -114,16 +112,21 @@ void PacketHandler::thread() {
 				 * Check if the burst should be flushed else prepare the data to be handled
 				 */
 				if(!BurstIdHandler::flushBurst()) {
-					char* data = new char[hdr.len];
-					memcpy(data, buff, hdr.len);
-					frames.push_back( { data, (uint_fast16_t) hdr.len, true });
-					goToSleep = false;
-					spinsInARow = 0;
+					if (hdr.len > MTU) {
+						LOG_ERROR << "Received packet from network with size " << hdr.len << ". Dropping it";
+					}
+					else {
+						char* data = new char[hdr.len];
+						memcpy(data, buff, hdr.len);
+						frames.push_back( { data, (uint_fast16_t) hdr.len, true });
+						goToSleep = false;
+						spinsInARow = 0;
+					}
 				}
 			} else {
 				//GLM: probably we should remove the timer from here...
-				if(threadNum_ == 0 && NetworkHandler::getNumberOfEnqueuedSendFrames() > 0
-					&& sendTimer.elapsed().wall / 1000 > minUsecBetweenL1Requests) {
+				if(threadNum_ == 0 && NetworkHandler::getNumberOfEnqueuedSendFrames() > 0 ) {
+					//&& sendTimer.elapsed().wall / 1000 > minUsecBetweenL1Requests) {
 
 					/*
 					 * We didn't receive anything for a while -> send enqueued frames
@@ -136,7 +139,7 @@ void PacketHandler::thread() {
 										minUsecBetweenL1Requests : sleepMicros;
 						spinsInARow = 0;
 					}
-					sendTimer.start();
+					//sendTimer.start();
 
 					/*
 					 * Push the aggregated frames to a new task if already tried to send something
@@ -190,7 +193,7 @@ void PacketHandler::thread() {
 			TaskProcessor::TasksQueue_.push(task);
 			int queueSize = TaskProcessor::getSize();
 			if(queueSize >0 && (queueSize%100 == 0)) {
-				LOG_ERROR << "Tasks queue size " << (int) queueSize << ENDL;
+				LOG_ERROR << "type = BusyFarm : Tasks queue size " << (int) queueSize << ENDL;
 			}
 			goToSleep = false;
 			frameHandleTasksSpawned_++;

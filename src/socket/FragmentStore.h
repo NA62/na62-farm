@@ -29,6 +29,7 @@ class FragmentStore {
 
 public:
 	static DataContainer addFragment(DataContainer&& fragment) {
+		LOG_ERROR << "Fragmented packet";
 		UDP_HDR* hdr = (UDP_HDR*) fragment.data;
 		const uint64_t fragID = generateFragmentID(hdr->ip.saddr, hdr->ip.id);
 		const uint fragmentStoreNum = fragID % numberOfFragmentStores_;
