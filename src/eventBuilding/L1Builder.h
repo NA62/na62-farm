@@ -25,14 +25,11 @@ namespace na62 {
 
 class L1Builder {
 private:
-	static std::atomic<uint64_t>* L1Triggers_;
-
-	static std::atomic<uint64_t> L1InputEvents_;
-	static std::atomic<uint64_t> L1InputEventsPerBurst_;
-
-	static std::atomic<uint64_t> L1AcceptedEvents_;
-
-	static std::atomic<uint64_t> L1BypassedEvents_;
+//	static std::atomic<uint64_t>* L1Triggers_;
+//	static std::atomic<uint64_t> L1InputEvents_;
+//	static std::atomic<uint64_t> L1InputEventsPerBurst_;
+//	static std::atomic<uint64_t> L1AcceptedEvents_;
+//	static std::atomic<uint64_t> L1BypassedEvents_;
 
 	static std::atomic<uint64_t> L1Requests_;
 
@@ -47,13 +44,11 @@ private:
 
 	static bool requestZSuppressedLkrData_;
 
-	static uint reductionFactor_;
-
-	static uint downscaleFactor_;
-
+//	static uint reductionFactor_;
+//	static uint downscaleFactor_;
 //	static bool L1_flag_mode_;
-	static uint16_t l1FlagMask_;
-	static uint autoFlagFactor_;
+//	static uint16_t l1FlagMask_;
+//	static uint autoFlagFactor_;
 	/*
 	 * @return <true> if any packet has been sent (time has passed)
 	 */
@@ -68,9 +63,9 @@ public:
 	 */
 	static bool buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID);
 
-	static inline std::atomic<uint64_t>* GetL1TriggerStats() {
-		return L1Triggers_;
-	}
+//	static inline std::atomic<uint64_t>* GetL1TriggerStats() {
+//		return L1Triggers_;
+//	}
 
 	static inline std::atomic<uint64_t>** GetL0BuidingTimeVsEvtNumber() {
 		return L0BuildingTimeVsEvtNumber_;
@@ -96,9 +91,9 @@ public:
 		}
 	}
 
-	static inline uint64_t GetL1InputStats() {
-		return L1InputEvents_;
-	}
+//	static inline uint64_t GetL1InputStats() {
+//		return L1InputEvents_;
+//	}
 
 	static inline uint64_t GetL1Requests() {
 		return L1Requests_;
@@ -120,13 +115,13 @@ public:
 		L0BuildingTimeCumulative_ = 0;
 	}
 
-	static inline uint64_t GetL1InputEventsPerBurst() {
-		return L1InputEventsPerBurst_;
-	}
-
-	static void ResetL1InputEventsPerBurst() {
-		L1InputEventsPerBurst_ = 0;
-	}
+//	static inline uint64_t GetL1InputEventsPerBurst() {
+//		return L1InputEventsPerBurst_;
+//	}
+//
+//	static void ResetL1InputEventsPerBurst() {
+//		L1InputEventsPerBurst_ = 0;
+//	}
 
 	static inline uint64_t GetL1ProcessingTimeMax() {
 		return L1ProcessingTimeMax_;
@@ -144,29 +139,29 @@ public:
 		L0BuildingTimeMax_ = 0;
 	}
 
-	static inline uint64_t GetL1BypassedEvents() {
-		return L1BypassedEvents_;
-	}
-	static inline uint GetL1DownscaleFactor() {
-		return downscaleFactor_;
-	}
-	static inline uint GetL1ReductionFactor() {
-		return reductionFactor_;
-	}
+//	static inline uint64_t GetL1BypassedEvents() {
+//		return L1BypassedEvents_;
+//	}
+//	static inline uint GetL1DownscaleFactor() {
+//		return downscaleFactor_;
+//	}
+//	static inline uint GetL1ReductionFactor() {
+//		return reductionFactor_;
+//	}
 //	static inline bool GetL1FlagMode() {
 //		return L1_flag_mode_;
 //	}
-	static inline uint GetL1AutoFlagFactor() {
-		return autoFlagFactor_;
-	}
-	static inline uint16_t GetL1FlagMask() {
-		return l1FlagMask_;
-	}
+//	static inline uint GetL1AutoFlagFactor() {
+//		return autoFlagFactor_;
+//	}
+//	static inline uint16_t GetL1FlagMask() {
+//		return l1FlagMask_;
+//	}
 
 	static void initialize() {
-		for (int i = 0; i != 0xFF + 1; i++) {
-			L1Triggers_[i] = 0;
-		}
+//		for (int i = 0; i != 0xFF + 1; i++) {
+//			L1Triggers_[i] = 0;
+//		}
 		L0BuildingTimeVsEvtNumber_ = new std::atomic<uint64_t>*[0x64 + 1];
 		L1ProcessingTimeVsEvtNumber_ = new std::atomic<uint64_t>*[0x64 + 1];
 		for (int i = 0; i < 0x64 + 1; i++) {
@@ -181,14 +176,14 @@ public:
 		requestZSuppressedLkrData_ = MyOptions::GetBool(
 		OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG);
 
-		reductionFactor_ = Options::GetInt(OPTION_L1_REDUCTION_FACTOR);
+//		reductionFactor_ = Options::GetInt(OPTION_L1_REDUCTION_FACTOR);
 
-		downscaleFactor_ = Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR);
+//		downscaleFactor_ = Options::GetInt(OPTION_L1_DOWNSCALE_FACTOR);
 
 //		L1_flag_mode_ = MyOptions::GetBool(OPTION_L1_FLAG_MODE);
-		l1FlagMask_ = MyOptions::GetInt(OPTION_L1_FLAG_MASK);
+//		l1FlagMask_ = MyOptions::GetInt(OPTION_L1_FLAG_MASK);
 
-		autoFlagFactor_ = Options::GetInt(OPTION_L1_AUTOFLAG_FACTOR);
+//		autoFlagFactor_ = Options::GetInt(OPTION_L1_AUTOFLAG_FACTOR);
 	}
 };
 

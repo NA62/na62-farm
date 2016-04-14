@@ -31,6 +31,8 @@
 
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
+#include <l1/L1TriggerProcessor.h>
+#include <l2/L2TriggerProcessor.h>
 #include "../socket/HandleFrameTask.h"
 #include "../socket/FragmentStore.h"
 #include "../socket/PacketHandler.h"
@@ -180,11 +182,11 @@ void MonitorConnector::handleUpdate() {
 //	IPCHandler::sendStatistics("MonitoringData", monitoring.str());
 //	LOG_INFO<< monitoring.str() << ENDL;
 
-	uint_fast32_t L1InputEvents = L1Builder::GetL1InputStats();
+	uint_fast32_t L1InputEvents = L1TriggerProcessor::GetL1InputStats();
 	setDifferentialData("L1InputEvents ", L1InputEvents);
 	IPCHandler::sendStatistics("L1InputEvents", std::to_string(L1InputEvents));
 
-	uint_fast32_t L2InputEvents = L2Builder::GetL2InputStats();
+	uint_fast32_t L2InputEvents = L2TriggerProcessor::GetL2InputStats();
 	setDifferentialData("L2InputEvents ", L2InputEvents);
 	IPCHandler::sendStatistics("L2InputEvents", std::to_string(L2InputEvents));
 
@@ -192,7 +194,7 @@ void MonitorConnector::handleUpdate() {
 	setDifferentialData("L1RequestToCreams", L1Requests);
 	IPCHandler::sendStatistics("L1RequestToCreams",std::to_string(L1Requests));
 
-	uint_fast32_t L1BypassedEvents = L1Builder::GetL1BypassedEvents();
+	uint_fast32_t L1BypassedEvents = L1TriggerProcessor::GetL1BypassedEvents();
 	setDifferentialData("L1BypassedEvents ", L1BypassedEvents);
 	IPCHandler::sendStatistics("L1BypassedEvents",
 			std::to_string(L1BypassedEvents));
@@ -206,8 +208,8 @@ void MonitorConnector::handleUpdate() {
 		std::stringstream stream;
 		stream << std::hex << wordNum;
 
-		uint64_t L1Trigs = L1Builder::GetL1TriggerStats()[wordNum];
-		uint64_t L2Trigs = L2Builder::GetL2TriggerStats()[wordNum];
+		uint64_t L1Trigs = L1TriggerProcessor::GetL1TriggerStats()[wordNum];
+		uint64_t L2Trigs = L2TriggerProcessor::GetL2TriggerStats()[wordNum];
 
 		setDifferentialData("L1Triggers" + stream.str(), L1Trigs);
 		setDifferentialData("L2Triggers" + stream.str(), L2Trigs);
@@ -273,13 +275,13 @@ void MonitorConnector::handleUpdate() {
 
 	if (L1Builder::GetL0BuildingTimeCumulative()) {
 //		LOG_INFO<< "***********L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative() << ENDL;
-//		LOG_INFO<< "***********L1InputEventsPerBurst " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
-		L0BuildTimeMean = L1Builder::GetL0BuildingTimeCumulative()/L1Builder::GetL1InputEventsPerBurst();
+//		LOG_INFO<< "***********L1InputEventsPerBurst " << L1TriggerProcessor::GetL1InputEventsPerBurst() << ENDL;
+		L0BuildTimeMean = L1Builder::GetL0BuildingTimeCumulative()/L1TriggerProcessor::GetL1InputEventsPerBurst();
 	}
 	if (L2Builder::GetL1BuildingTimeCumulative()) {
 //		LOG_INFO<< "***********L1BuildingTimeCumulative " << L2Builder::GetL1BuildingTimeCumulative() << ENDL;
-//		LOG_INFO<< "***********L2InputEventsPerBurst " << L2Builder::GetL2InputEventsPerBurst() << ENDL;
-		L1BuildTimeMean = L2Builder::GetL1BuildingTimeCumulative()/L2Builder::GetL2InputEventsPerBurst();
+//		LOG_INFO<< "***********L2InputEventsPerBurst " << L2TriggerProcessor::GetL2InputEventsPerBurst() << ENDL;
+		L1BuildTimeMean = L2Builder::GetL1BuildingTimeCumulative()/L2TriggerProcessor::GetL2InputEventsPerBurst();
 	}
 //	LOG_INFO<< "***********L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax() << ENDL;
 	uint64_t L0BuildTimeMax = L1Builder::GetL0BuildingTimeMax();
@@ -309,14 +311,14 @@ void MonitorConnector::handleUpdate() {
 
 	if (L1Builder::GetL1ProcessingTimeCumulative()) {
 //		LOG_INFO<< "***********L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
-//		LOG_INFO<< "***********L1InputEventsPerBurst " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
-		L1ProcTimeMean = L1Builder::GetL1ProcessingTimeCumulative()/L1Builder::GetL1InputEventsPerBurst();
+//		LOG_INFO<< "***********L1InputEventsPerBurst " << L1TriggerProcessor::GetL1InputEventsPerBurst() << ENDL;
+		L1ProcTimeMean = L1Builder::GetL1ProcessingTimeCumulative()/L1TriggerProcessor::GetL1InputEventsPerBurst();
 	}
 	if (L2Builder::GetL2ProcessingTimeCumulative()) {
 //		LOG_INFO<< "***********L2ProcessingTimeCumulative " << L2Builder::GetL2ProcessingTimeCumulative() << ENDL;
-//		LOG_INFO<< "***********L2InputEventsPerBurst " << L2Builder::GetL2InputEventsPerBurst() << ENDL;
-		if(L2Builder::GetL2InputEventsPerBurst())
-			L2ProcTimeMean = L2Builder::GetL2ProcessingTimeCumulative()/L2Builder::GetL2InputEventsPerBurst();
+//		LOG_INFO<< "***********L2InputEventsPerBurst " << L2TriggerProcessor::GetL2InputEventsPerBurst() << ENDL;
+		if(L2TriggerProcessor::GetL2InputEventsPerBurst())
+			L2ProcTimeMean = L2Builder::GetL2ProcessingTimeCumulative()/L2TriggerProcessor::GetL2InputEventsPerBurst();
 		else
 			L2ProcTimeMean = -1;
 	}

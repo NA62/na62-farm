@@ -25,6 +25,8 @@
 #include "../socket/PacketHandler.h"
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
+#include <l1/L1TriggerProcessor.h>
+#include <l2/L2TriggerProcessor.h>
 #include <socket/NetworkHandler.h>
 
 namespace na62 {
@@ -66,12 +68,12 @@ void CommandConnector::thread() {
 						L1Builder::ResetL0BuildingTimeMax();
 						L1Builder::ResetL1ProcessingTimeCumulative();
 						L1Builder::ResetL1ProcessingTimeMax();
-						L1Builder::ResetL1InputEventsPerBurst();
+						L1TriggerProcessor::ResetL1InputEventsPerBurst();
 						L2Builder::ResetL1BuildingTimeCumulative();
 						L2Builder::ResetL1BuildingTimeMax();
 						L2Builder::ResetL2ProcessingTimeCumulative();
 						L2Builder::ResetL2ProcessingTimeMax();
-						L2Builder::ResetL2InputEventsPerBurst();
+						L2TriggerProcessor::ResetL2InputEventsPerBurst();
 						L1Builder::ResetL0BuidingTimeVsEvtNumber();
 						L2Builder::ResetL1BuidingTimeVsEvtNumber();
 						L1Builder::ResetL1ProcessingTimeVsEvtNumber();
@@ -80,7 +82,7 @@ void CommandConnector::thread() {
 						LOG_INFO<< "Resetting L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax() << ENDL;
 						LOG_INFO<< "Resetting L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
 						LOG_INFO<< "Resetting L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax() << ENDL;
-						LOG_INFO<< "Resetting L1InputEvents " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
+						LOG_INFO<< "Resetting L1InputEvents " << L1TriggerProcessor::GetL1InputEventsPerBurst() << ENDL;
 //					}
 #endif
 					LOG_INFO << "Got EOB time: Incrementing burstID to" << burst << ENDL;
@@ -96,12 +98,12 @@ void CommandConnector::thread() {
 						L1Builder::ResetL0BuildingTimeMax();
 						L1Builder::ResetL1ProcessingTimeCumulative();
 						L1Builder::ResetL1ProcessingTimeMax();
-						L1Builder::ResetL1InputEventsPerBurst();
+						L1TriggerProcessor::ResetL1InputEventsPerBurst();
 						L2Builder::ResetL1BuildingTimeCumulative();
 						L2Builder::ResetL1BuildingTimeMax();
 						L2Builder::ResetL2ProcessingTimeCumulative();
 						L2Builder::ResetL2ProcessingTimeMax();
-						L2Builder::ResetL2InputEventsPerBurst();
+						L2TriggerProcessor::ResetL2InputEventsPerBurst();
 						L1Builder::ResetL0BuidingTimeVsEvtNumber();
 						L2Builder::ResetL1BuidingTimeVsEvtNumber();
 						L1Builder::ResetL1ProcessingTimeVsEvtNumber();
@@ -110,7 +112,7 @@ void CommandConnector::thread() {
 //						LOG_INFO<< "Resetting L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax() << ENDL;
 //						LOG_INFO<< "Resetting L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
 //						LOG_INFO<<"Resetting L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax() << ENDL;
-//						LOG_INFO<< "Resetting L1InputEvents " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
+//						LOG_INFO<< "Resetting L1InputEvents " << L1TriggerProcessor::GetL1InputEventsPerBurst() << ENDL;
 //					}
 #endif
 				}

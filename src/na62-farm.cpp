@@ -155,11 +155,12 @@ int main(int argc, char* argv[]) {
 
 	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
 
-	L1TriggerProcessor::initialize(
-			TriggerOptions::GetDouble(OPTION_L1_BYPASS_PROBABILITY));
-	L2TriggerProcessor::initialize(
-			TriggerOptions::GetDouble(OPTION_L2_BYPASS_PROBABILITY));
-
+//	L1TriggerProcessor::initialize(
+//			TriggerOptions::GetDouble(OPTION_L1_BYPASS_PROBABILITY));
+//	L2TriggerProcessor::initialize(
+//			TriggerOptions::GetDouble(OPTION_L2_BYPASS_PROBABILITY));
+	L1TriggerProcessor::initialize();
+	L2TriggerProcessor::initialize();
 
 	FarmStatistics::init();
 	FarmStatistics farmstats;
