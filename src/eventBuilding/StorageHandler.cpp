@@ -42,8 +42,7 @@ std::vector<std::string> StorageHandler::GetMergerAddresses(
 	boost::split(mergers, mergerList, boost::is_any_of(";,"));
 
 	if (mergers.empty()) {
-		LOG_ERROR<< "List of running mergers is empty => Stopping now!"
-		<< ENDL;
+		LOG_ERROR("List of running mergers is empty => Stopping now!");
 		;
 		exit(1);
 	}
@@ -101,7 +100,7 @@ int StorageHandler::SendEvent(const Event* event) {
 			break;
 		} catch (const zmq::error_t& ex) {
 			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-				LOG_ERROR<< ex.what() << ENDL;
+				LOG_ERROR(ex.what());
 
 				onShutDown();
 				return 0;

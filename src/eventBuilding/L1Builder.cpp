@@ -6,7 +6,7 @@
  */
 
 #include "L1Builder.h"
-#include <exceptions/CommonExceptions.h>
+//#include <exceptions/CommonExceptions.h>
 #include <eventBuilding/Event.h>
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/SourceIDManager.h>
@@ -71,8 +71,8 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 	event = EventPool::getEvent(fragment->getEventNumber());
 
 	if (event == nullptr) {
-		LOG_ERROR << "type = BadEv : Eliminating " << (int)(fragment->getEventNumber()) << " from source " << std::hex << (int)(fragment->getSourceID())
-		                                << ":" << (int)(fragment->getSourceSubID()) << std::dec;
+		LOG_ERROR("type = BadEv : Eliminating " << (int)(fragment->getEventNumber()) << " from source " << std::hex << (int)(fragment->getSourceID())
+		                                << ":" << (int)(fragment->getSourceSubID()) << std::dec);
 
 		delete fragment;
 		return false;

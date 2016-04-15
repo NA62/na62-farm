@@ -121,7 +121,7 @@ void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
 		AAARP << "ARP Response FarmToRouter" << pktLen << " ";
 		for (int i = 0; i < pktLen; i++)
 			AAARP << std::hex << ((char) (*(pbuff + i)) & 0xFF) << " ";
-//		LOG_INFO << AAARP.str() << ENDL;
+//		LOG_INFO(AAARP.str());
 		NetworkHandler::AsyncSendFrame(std::move(responseArp));
 	}
 }
@@ -136,7 +136,7 @@ void HandleFrameTask::execute() {
 	for (DataContainer& container : containers_) {
 		//If we must clean up the burst we just drop data
 		if(BurstIdHandler::flushBurst()) {
-			LOG_INFO <<"Dropping data because we are at EoB";
+			LOG_INFO("Dropping data because we are at EoB");
 			container.free();
 		}
 		else {
@@ -173,7 +173,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				AAARP << "ARP Request FromRouter" << pktLen << " ";
 				for (int i = 0; i < pktLen; i++)
 					AAARP << std::hex << ((char) (*(pbuff + i)) & 0xFF) << " ";
-//				LOG_INFO << AAARP.str() << ENDL;
+//				LOG_INFO(AAARP.str());
 
 				// this will delete the data
 				processARPRequest(reinterpret_cast<ARP_HDR*>(container.data));
@@ -189,7 +189,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check checksum errors
 		 */
 		if (!checkFrame(hdr, container.length)) {
-			LOG_ERROR<< "type = BadPack : Received broken packet from " << EthernetUtils::ipToString(hdr->ip.saddr) << ENDL;
+			LOG_ERROR("type = BadPack : Received broken packet from " << EthernetUtils::ipToString(hdr->ip.saddr));
 			container.free();
 			return;
 		}
@@ -199,7 +199,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 */
 		if (MyIP != dstIP) {
 		//if("10.194.20.37" != EthernetUtils::ipToString(dstIP)) {
-			LOG_ERROR<< "type = BadPack : Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP) << ENDL;
+			LOG_ERROR("type = BadPack : Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP));
 			container.free();
 			return;
 		}
@@ -239,7 +239,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			 */
 			if (mep->getSourceID() == SOURCE_ID_L0TP) {
 				if (SourceIDManager::isL1Active()) {
-					//LOG_INFO << "Invent L1 MEP for event " << mep->getFirstEventNum();
+					//LOG_INFO("Invent L1 MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
 					uint16_t fragmentLength = sizeof(l1::L1_BLOCK) + 8; //event length in bytes
 					const uint32_t L1BlockLength = mep_factor * fragmentLength
@@ -286,7 +286,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					}
 				}
 				if (SourceIDManager::isL2Active()) {
-					//LOG_INFO << "Invent L2 MEP for event " << mep->getFirstEventNum();
+					//LOG_INFO("Invent L2 MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
 					uint32_t L2EventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
 					uint32_t L2BlockLength = mep_factor * L2EventLength + 8; //L2 block length in bytes
@@ -331,7 +331,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					}
 				}
 				if (SourceIDManager::isNSTDActive()) {
-					//LOG_INFO << "Invent NSTD MEP for event " << mep->getFirstEventNum();
+					//LOG_INFO("Invent NSTD MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
 					uint32_t NSTDEventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
 					uint32_t NSTDBlockLength = mep_factor * NSTDEventLength + 8; //L2 block length in bytes
@@ -411,7 +411,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			/*
 			 * Packet with unknown UDP port received
 			 */
-			LOG_ERROR<<"type = BadPack : Packet with unknown UDP port received: " << destPort << ENDL;
+			LOG_ERROR("type = BadPack : Packet with unknown UDP port received: " << destPort);
 			container.free();
 		}
 	} catch (UnknownSourceIDFound const& e) {
@@ -428,7 +428,7 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 	 * Check IP-Header
 	 */
 	//				if (!EthernetUtils::CheckData((char*) &hdr->ip, sizeof(iphdr))) {
-	//					LOG_ERROR << "Packet with broken IP-checksum received");
+	//					LOG_ERROR("Packet with broken IP-checksum received"));
 	//					container.free();
 	//					continue;
 	//				}
@@ -441,9 +441,9 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 		 * Does not need to be equal because of ethernet padding
 		 */
 		if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) > length) {
-			LOG_ERROR<<
+			LOG_ERROR(
 			"type = BadPack : Received IP-Packet with less bytes than ip.tot_len field! " <<
-			(ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length << ENDL;
+			(ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length);
 			return false;
 		}
 	}
@@ -452,7 +452,7 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 	 * Does not need to be equal because of ethernet padding
 	 */
 	if (ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr) > length) {
-		LOG_ERROR<<"type = BadPack : Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length;
+		LOG_ERROR("type = BadPack : Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length);
 		return false;
 	}
 
@@ -460,7 +460,7 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 	//				 * Check UDP checksum
 	//				 */
 	//				if (!EthernetUtils::CheckUDP(hdr, (const char *) (&hdr->udp) + sizeof(udphdr), ntohs(hdr->udp.len) - sizeof(udphdr))) {
-	//					LOG_ERROR << "Packet with broken UDP-checksum received" ) << ENDL;
+	//					LOG_ERROR("Packet with broken UDP-checksum received" );
 	//					container.free();
 	//					continue;
 	//				}

@@ -69,9 +69,9 @@ bool L2Builder::buildEvent(l1::MEPFragment* fragment) {
 			uint crateID = (fragment->getSourceSubID() >> 5) & 0x3f;
 			uint creamID =  fragment->getSourceSubID() & 0x1f;
 
-		LOG_ERROR << "type = BadEv : Eliminating " << std::hex << (int)(fragment->getEventNumber()) << " from source = 0x"
+		LOG_ERROR("type = BadEv : Eliminating " << std::hex << (int)(fragment->getEventNumber()) << " from source = 0x"
 				<< std::hex << (int)(fragment->getSourceID())
-				<< ":0x" << (int)(fragment->getSourceSubID()) << std::dec << " -- "<< crateID << "--" << creamID;
+				<< ":0x" << (int)(fragment->getSourceSubID()) << std::dec << " -- "<< crateID << "--" << creamID);
 		delete fragment;
 		return false;
 	}

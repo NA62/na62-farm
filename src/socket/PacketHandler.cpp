@@ -113,7 +113,7 @@ void PacketHandler::thread() {
 				 */
 				if(!BurstIdHandler::flushBurst()) {
 					if (hdr.len > MTU) {
-						LOG_ERROR << "Received packet from network with size " << hdr.len << ". Dropping it";
+						LOG_ERROR("Received packet from network with size " << hdr.len << ". Dropping it");
 					}
 					else {
 						char* data = new char[hdr.len];
@@ -193,7 +193,7 @@ void PacketHandler::thread() {
 			TaskProcessor::TasksQueue_.push(task);
 			int queueSize = TaskProcessor::getSize();
 			if(queueSize >0 && (queueSize%100 == 0)) {
-				LOG_ERROR << "type = BusyFarm : Tasks queue size " << (int) queueSize << ENDL;
+				LOG_ERROR("type = BusyFarm : Tasks queue size " << (int) queueSize);
 			}
 			goToSleep = false;
 			frameHandleTasksSpawned_++;
@@ -213,7 +213,7 @@ void PacketHandler::thread() {
 		}
 	}
 
-	finish: LOG_INFO<<"Stopping PacketHandler thread " << threadNum_ << ENDL;
+	finish: LOG_INFO("Stopping PacketHandler thread " << threadNum_);
 }
 }
 /* namespace na62 */
