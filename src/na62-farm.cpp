@@ -52,11 +52,10 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 #ifdef USE_GLOG
 	google::ShutdownGoogleLogging();
 #endif
-	LOG_INFO<< "#############################################" << ENDL;
-	LOG_INFO<< "#############################################" << ENDL;
-	LOG_INFO<< "#############################################" << ENDL;
-	LOG_INFO<< "Received signal " << signal_number << " - Shutting down"
-	<< ENDL;
+	LOG_INFO("#############################################");
+	LOG_INFO("#############################################");
+	LOG_INFO("#############################################");
+	LOG_INFO("Received signal " << signal_number << " - Shutting down");
 
 	IPCHandler::updateState(INITIALIZING);
 	usleep(100);
@@ -65,28 +64,28 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 		AExecutable::InterruptAll();
 		FarmStatistics::stopRunning();
 
-		LOG_INFO<< "Stopping packet handlers";
+		LOG_INFO("Stopping packet handlers");
 		for (auto& handler : packetHandlers) {
 			handler->stopRunning();
 		}
 
-		LOG_INFO<< "Stopping storage handler";
+		LOG_INFO("Stopping storage handler");
 		StorageHandler::onShutDown();
 
-		//LOG_INFO<< "Stopping STRAW receiver";
+		//LOG_INFO("Stopping STRAW receiver");
 		//StrawReceiver::onShutDown();
 
 		usleep(1000);
-		LOG_INFO<< "Stopping IPC handler";
+		LOG_INFO("Stopping IPC handler");
 		IPCHandler::shutDown();
 
-		LOG_INFO<< "Stopping ZMQ handler";
+		LOG_INFO("Stopping ZMQ handler");
 		ZMQHandler::shutdown();
 
-		LOG_INFO<< "Stopping Burst handler";
+		LOG_INFO("Stopping Burst handler");
 		BurstIdHandler::shutDown();
 
-		LOG_INFO<< "Cleanly shut down na62-farm";
+		LOG_INFO("Cleanly shut down na62-farm");
 		exit(0);
 	}
 }
@@ -106,9 +105,9 @@ void onBurstFinished() {
 			Event* event = EventPool::getEventByIndex(index);
 			if(event == nullptr) continue;
 			if (event->isUnfinished()) {
-					//LOG_ERROR << "Incomplete event " << (uint)(event->getEventNumber());
+					//LOG_ERROR("Incomplete event " << (uint)(event->getEventNumber()));
 				if(event->isLastEventOfBurst()) {
-					LOG_ERROR << "type = EOB : Handling unfinished EOB event " << event->getEventNumber()<< ENDL;
+					LOG_ERROR("type = EOB : Handling unfinished EOB event " << event->getEventNumber());
 					StorageHandler::SendEvent(event);
 				}
 				++incompleteEvents_;
@@ -129,7 +128,7 @@ void onBurstFinished() {
 #endif
 
 	if(incompleteEvents_ > 0) {
-		LOG_ERROR << "type = EOB : Dropped " << incompleteEvents_ << " events in burst ID = " << (int) BurstIdHandler::getCurrentBurstId() << ".";
+		LOG_ERROR("type = EOB : Dropped " << incompleteEvents_ << " events in burst ID = " << (int) BurstIdHandler::getCurrentBurstId() << ".");
 	}
 }
 
@@ -198,7 +197,7 @@ int main(int argc, char* argv[]) {
             }
     }
     if (logicalNodeID == 0xffffffff) {
-            LOG_ERROR << "You must provide a list of farm nodes IP addresses containing the IP address of this node!";
+            LOG_ERROR("You must provide a list of farm nodes IP addresses containing the IP address of this node!");
             exit(1);
     }
 
@@ -214,13 +213,13 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Burst Handler
 	 */
-	LOG_INFO << "Start burst handler thread.";
+	LOG_INFO("Start burst handler thread.");
 	BurstIdHandler bHandler;
 	bHandler.startThread("BurstHandler");
 	/*
 	 * Monitor
 	 */
-	LOG_INFO<<"Starting Monitoring Services";
+	LOG_INFO("Starting Monitoring Services");
 	monitoring::MonitorConnector monitor;
 	monitoring::MonitorConnector::setState(INITIALIZING);
 	monitor.startThread("MonitorConnector");
@@ -235,8 +234,8 @@ int main(int argc, char* argv[]) {
 	 * Packet Handler
 	 */
 	unsigned int numberOfPacketHandler = NetworkHandler::GetNumberOfQueues();
-	LOG_INFO<< "Starting " << numberOfPacketHandler
-	<< " PacketHandler threads" << ENDL;
+	LOG_INFO("Starting " << numberOfPacketHandler
+	<< " PacketHandler threads");
 
 	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
 		PacketHandler* handler = new PacketHandler(i);

@@ -46,14 +46,14 @@ void CommandConnector::thread() {
 			continue;
 		}
 
-		LOG_INFO<< "Received command: " << message << ENDL;
+		LOG_INFO("Received command: " << message);
 		std::transform(message.begin(), message.end(), message.begin(),
 				::tolower);
 
 		std::vector<std::string> strings;
 		boost::split(strings, message, boost::is_any_of(":"));
 		if (strings.size() != 2) {
-			LOG_INFO<<"Unknown command: " << message << ENDL;
+			LOG_INFO("Unknown command: " << message);
 		} else {
 			std::string command = strings[0];
 			if (command == "eob_timestamp") {
@@ -76,19 +76,19 @@ void CommandConnector::thread() {
 						L2Builder::ResetL1BuidingTimeVsEvtNumber();
 						L1Builder::ResetL1ProcessingTimeVsEvtNumber();
 						L2Builder::ResetL2ProcessingTimeVsEvtNumber();
-						LOG_INFO<< "Resetting L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative() << ENDL;
-						LOG_INFO<< "Resetting L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax() << ENDL;
-						LOG_INFO<< "Resetting L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
-						LOG_INFO<< "Resetting L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax() << ENDL;
-						LOG_INFO<< "Resetting L1InputEvents " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
+						LOG_INFO("Resetting L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative());
+						LOG_INFO("Resetting L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax());
+						LOG_INFO("Resetting L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative());
+						LOG_INFO("Resetting L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax());
+						LOG_INFO("Resetting L1InputEvents " << L1Builder::GetL1InputEventsPerBurst());
 //					}
 #endif
-					LOG_INFO << "Got EOB time: Incrementing burstID to" << burst << ENDL;
+					LOG_INFO("Got EOB time: Incrementing burstID to" << burst);
 				}
 			} else if (command == "updatenextburstid") {
 				if(!MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
 					uint_fast32_t burst = atoi(strings[1].c_str());
-					LOG_INFO << "Received new burstID: " << burst << ENDL;
+					LOG_INFO("Received new burstID: " << burst);
 					BurstIdHandler::setNextBurstID(burst);
 #ifdef MEASURE_TIME
 //					if (BurstIdHandler::getResetCounters()) {
@@ -106,11 +106,11 @@ void CommandConnector::thread() {
 						L2Builder::ResetL1BuidingTimeVsEvtNumber();
 						L1Builder::ResetL1ProcessingTimeVsEvtNumber();
 						L2Builder::ResetL2ProcessingTimeVsEvtNumber();
-//						LOG_INFO<< "Resetting L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative() << ENDL;
-//						LOG_INFO<< "Resetting L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax() << ENDL;
-//						LOG_INFO<< "Resetting L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative() << ENDL;
-//						LOG_INFO<<"Resetting L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax() << ENDL;
-//						LOG_INFO<< "Resetting L1InputEvents " << L1Builder::GetL1InputEventsPerBurst() << ENDL;
+//						LOG_INFO("Resetting L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative());
+//						LOG_INFO("Resetting L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax());
+//						LOG_INFO("Resetting L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative());
+//						LOG_INFO("Resetting L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax());
+//						LOG_INFO("Resetting L1InputEvents " << L1Builder::GetL1InputEventsPerBurst());
 //					}
 #endif
 				}
