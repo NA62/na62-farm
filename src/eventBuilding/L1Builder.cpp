@@ -6,7 +6,9 @@
  */
 
 #include "L1Builder.h"
-//#include <exceptions/CommonExceptions.h>
+#ifdef USE_ERS
+#include <exceptions/CommonExceptions.h>
+#endif
 #include <eventBuilding/Event.h>
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/SourceIDManager.h>
@@ -59,7 +61,7 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 	try {
 		event = EventPool::getEvent(fragment->getEventNumber());
 	}
-	catch (na62::Issue &e) {
+	catch (na62::Message &e) {
 		ers::error(UnexpectedFragment(ERS_HERE, fragment->getEventNumber(), SourceIDManager::sourceIdToDetectorName( fragment->getSourceID()), fragment->getSourceSubID(), e));
 		delete fragment;
 		return false;

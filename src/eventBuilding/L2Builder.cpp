@@ -20,7 +20,9 @@
 #include <structs/Network.h>
 #include <sys/types.h>
 #include <cstdbool>
-
+#ifdef USE_ERS
+#include <exceptions/CommonExceptions.h>
+#endif
 #include "StorageHandler.h"
 
 namespace na62 {
@@ -53,7 +55,7 @@ bool L2Builder::buildEvent(l1::MEPFragment* fragment) {
 	try {
 		event = EventPool::getEvent(fragment->getEventNumber());
 	}
-	catch (na62::Issue &e) {
+	catch (na62::Message &e) {
 		ers::error(UnexpectedFragment(ERS_HERE, fragment->getEventNumber(), SourceIDManager::sourceIdToDetectorName( fragment->getSourceID()), fragment->getSourceSubID(), e));
 		delete fragment;
 		return false;
