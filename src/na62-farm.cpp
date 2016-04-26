@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <csignal>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <l1/L1TriggerProcessor.h>
 #include <l2/L2TriggerProcessor.h>
@@ -130,6 +131,25 @@ void onBurstFinished() {
 	if(incompleteEvents_ > 0) {
 		LOG_ERROR("type = EOB : Dropped " << incompleteEvents_ << " events in burst ID = " << (int) BurstIdHandler::getCurrentBurstId() << ".");
 	}
+    int tSize = 0, resident = 0, share = 0;
+    ifstream buffer("/proc/self/statm");
+    buffer >> tSize >> resident >> share;
+    buffer.close();
+
+    long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // in case x86-64 is configured to use 2MB pages
+    double rss = resident * page_size_kb;
+    LOG_ERROR( "RSS - " + std::to_string(rss) + " kB");
+
+    double shared_mem = share * page_size_kb;
+    LOG_ERROR("Shared Memory - " + std::to_string(shared_mem) + " kB");
+
+    LOG_ERROR( "Private Memory - " + std::to_string(rss - shared_mem) + "kB");
+
+        if (rss > 10000000) {
+                LOG_ERROR("Memory LEAK!!! Terminating process");
+                exit (-1);
+        }
+
 }
 
 int main(int argc, char* argv[]) {
