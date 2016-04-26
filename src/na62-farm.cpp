@@ -138,15 +138,15 @@ void onBurstFinished() {
 
     long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // in case x86-64 is configured to use 2MB pages
     double rss = resident * page_size_kb;
-    LOG_ERROR << "RSS - " << rss << " kB";
+    LOG_ERROR( "RSS - " + std::to_string(rss) + " kB");
 
     double shared_mem = share * page_size_kb;
-    LOG_ERROR << "Shared Memory - " << shared_mem << " kB";
+    LOG_ERROR("Shared Memory - " + std::to_string(shared_mem) + " kB");
 
-    LOG_ERROR << "Private Memory - " << rss - shared_mem << "kB\n";
+    LOG_ERROR( "Private Memory - " + std::to_string(rss - shared_mem) + "kB");
 
         if (rss > 10000000) {
-                LOG_ERROR << "Memory LEAK!!! Terminating process";
+                LOG_ERROR("Memory LEAK!!! Terminating process");
                 exit (-1);
         }
 
