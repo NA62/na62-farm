@@ -25,7 +25,9 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
-
+#ifdef USE_ERS
+#include <exceptions/CommonExceptions.h>
+#endif
 #include <eventBuilding/SourceIDManager.h>
 #include <exceptions/BrokenPacketReceivedError.h>
 #include <exceptions/UnknownSourceIDFound.h>
@@ -136,7 +138,7 @@ void HandleFrameTask::execute() {
 	for (DataContainer& container : containers_) {
 		//If we must clean up the burst we just drop data
 		if(BurstIdHandler::flushBurst()) {
-			LOG_INFO("Dropping data because we are at EoB");
+			LOG_WARNING("Dropping data because we are at EoB");
 			container.free();
 		}
 		else {
@@ -199,7 +201,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 */
 		if (MyIP != dstIP) {
 		//if("10.194.20.37" != EthernetUtils::ipToString(dstIP)) {
-			LOG_ERROR("type = BadPack : Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP));
+			LOG_ERROR("Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP));
 			container.free();
 			return;
 		}
@@ -387,6 +389,11 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				L1Builder::buildEvent(mep->getFragment(i), burstID_);
 			}
 		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// L1 Data //////////////////////////////////////////////////
+			if (UdpDataLength == 0) {
+				LOG_ERROR("Empty L1 fragment from " << EthernetUtils::ipToString(dstIP));
+				container.free();
+				return;
+			}
 			l1::MEP* l1mep = new l1::MEP(UDPPayload, UdpDataLength, container);
 
 			//fragment
@@ -411,9 +418,21 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			/*
 			 * Packet with unknown UDP port received
 			 */
-			LOG_ERROR("type = BadPack : Packet with unknown UDP port received: " << destPort);
+			LOG_WARNING("Packet with unknown UDP port received: " << destPort);
 			container.free();
 		}
+#ifdef USE_ERS
+	} catch (UnknownSourceID const& e) {
+		ers::warning(e);
+		container.free();
+	} catch (CorruptedMEP const&e) {
+		ers::warning(e);
+		container.free();
+	} catch (Message const& e) {
+		ers::warning(e);
+		container.free();
+	}
+#else
 	} catch (UnknownSourceIDFound const& e) {
 		container.free();
 	} catch (BrokenPacketReceivedError const&e) {
@@ -421,6 +440,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 	} catch (NA62Error const& e) {
 		container.free();
 	}
+#endif
 }
 
 bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
@@ -441,8 +461,7 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 		 * Does not need to be equal because of ethernet padding
 		 */
 		if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) > length) {
-			LOG_ERROR(
-			"type = BadPack : Received IP-Packet with less bytes than ip.tot_len field! " <<
+			LOG_ERROR("Received IP-Packet with less bytes than ip.tot_len field! " <<
 			(ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length);
 			return false;
 		}
@@ -452,7 +471,7 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 	 * Does not need to be equal because of ethernet padding
 	 */
 	if (ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr) > length) {
-		LOG_ERROR("type = BadPack : Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length);
+		LOG_ERROR("Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length);
 		return false;
 	}
 

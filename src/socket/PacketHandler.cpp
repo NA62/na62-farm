@@ -123,6 +123,9 @@ void PacketHandler::thread() {
 						spinsInARow = 0;
 					}
 				}
+				else {
+					LOG_WARNING("Dropping data because we are at EoB");
+				}
 			} else {
 				//GLM: probably we should remove the timer from here...
 				if(threadNum_ == 0 && NetworkHandler::getNumberOfEnqueuedSendFrames() > 0 ) {
@@ -193,7 +196,7 @@ void PacketHandler::thread() {
 			TaskProcessor::TasksQueue_.push(task);
 			int queueSize = TaskProcessor::getSize();
 			if(queueSize >0 && (queueSize%100 == 0)) {
-				LOG_ERROR("type = BusyFarm : Tasks queue size " << (int) queueSize);
+				LOG_WARNING("Tasks queue size " << (int) queueSize);
 			}
 			goToSleep = false;
 			frameHandleTasksSpawned_++;
