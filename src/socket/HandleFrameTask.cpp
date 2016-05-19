@@ -155,13 +155,13 @@ void HandleFrameTask::execute() {
 }
 
 void HandleFrameTask::processFrame(DataContainer&& container) {
-	try {
+
 		UDP_HDR* hdr = (UDP_HDR*) container.data;
 		const uint_fast16_t etherType = /*ntohs*/(hdr->eth.ether_type);
 		const uint_fast8_t ipProto = hdr->ip.protocol;
 		uint_fast16_t destPort = ntohs(hdr->udp.dest);
 		const uint_fast32_t dstIP = hdr->ip.daddr;
-
+		try {
 		/*
 		 * Check if we received an ARP request
 		 */
@@ -243,7 +243,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				if (SourceIDManager::isL1Active()) {
 					//LOG_INFO("Invent L1 MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
-					uint16_t fragmentLength = sizeof(l1::L1_BLOCK) + 8; //event length in bytes
+					uint16_t fragmentLength = sizeof(L1_BLOCK) + 8; //event length in bytes
 					const uint32_t L1BlockLength = mep_factor * fragmentLength
 							+ 8; //L1 block length in bytes
 					char * L1Data = new char[L1BlockLength + sizeof(UDP_HDR)]; //include UDP header
@@ -390,11 +390,11 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			}
 		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// L1 Data //////////////////////////////////////////////////
 			if (UdpDataLength == 0) {
-				LOG_ERROR("Empty L1 fragment from " << EthernetUtils::ipToString(dstIP));
+				LOG_ERROR("Empty L1 fragment from " << EthernetUtils::ipToString(hdr->ip.saddr));
 				container.free();
 				return;
 			}
-			l1::MEP* l1mep = new l1::MEP(UDPPayload, UdpDataLength, container);
+			 l1::MEP* l1mep = new l1::MEP(UDPPayload, UdpDataLength, container);
 
 			//fragment
 			uint sourceNum = SourceIDManager::l1SourceIDToNum(l1mep->getSourceID());
@@ -426,7 +426,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		ers::warning(e);
 		container.free();
 	} catch (CorruptedMEP const&e) {
-		ers::warning(e);
+		ers::warning(CorruptedMEP(ERS_HERE, "DataSender=" + EthernetUtils::ipToString(hdr->ip.saddr), e));
 		container.free();
 	} catch (Message const& e) {
 		ers::warning(e);

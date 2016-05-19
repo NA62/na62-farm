@@ -186,8 +186,6 @@ void MonitorConnector::handleUpdate() {
 	}
 
 	IPCHandler::sendStatistics("DetectorData", statistics.str());
-//	IPCHandler::sendStatistics("MonitoringData", monitoring.str());
-//	LOG_INFO(monitoring.str());
 
 	uint_fast32_t L1InputEvents = L1TriggerProcessor::GetL1InputStats();
 	setDifferentialData("L1InputEvents ", L1InputEvents);
@@ -280,23 +278,24 @@ void MonitorConnector::handleUpdate() {
 	 */
 	uint64_t L0BuildTimeMean = 0;
 	uint64_t L1BuildTimeMean = 0;
+	uint64_t L1InputEventsPerBurst =
+			L1TriggerProcessor::GetL1InputEventsPerBurst();
+	uint64_t L2InputEventsPerBurst =
+			L2TriggerProcessor::GetL2InputEventsPerBurst();
 
 	if (L1Builder::GetL0BuildingTimeCumulative()) {
-//		LOG_INFO("***********L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative());
-//		LOG_INFO("***********L1InputEventsPerBurst " << L1TriggerProcessor::GetL1InputEventsPerBurst());
-		L0BuildTimeMean = L1Builder::GetL0BuildingTimeCumulative()
-				/ L1TriggerProcessor::GetL1InputEventsPerBurst();
+		if (L1InputEventsPerBurst) {
+			L0BuildTimeMean = L1Builder::GetL0BuildingTimeCumulative()
+					/ L1InputEventsPerBurst;
+		}
 	}
 	if (L2Builder::GetL1BuildingTimeCumulative()) {
-//		LOG_INFO("***********L1BuildingTimeCumulative " << L2Builder::GetL1BuildingTimeCumulative());
-//		LOG_INFO("***********L2InputEventsPerBurst " << L2TriggerProcessor::GetL2InputEventsPerBurst());
-		L1BuildTimeMean = L2Builder::GetL1BuildingTimeCumulative()
-				/ L2TriggerProcessor::GetL2InputEventsPerBurst();
+		if (L2InputEventsPerBurst) {
+			L1BuildTimeMean = L2Builder::GetL1BuildingTimeCumulative()
+					/ L2InputEventsPerBurst;
+		}
 	}
-//	LOG_INFO("***********L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax());
 	uint64_t L0BuildTimeMax = L1Builder::GetL0BuildingTimeMax();
-
-//	LOG_INFO("***********L1BuildingTimeMax " << L2Builder::GetL1BuildingTimeMax);
 	uint64_t L1BuildTimeMax = L2Builder::GetL1BuildingTimeMax();
 
 	LOG_INFO("***********L0BuildTimeMean (x Run Control) " << L0BuildTimeMean);
@@ -320,25 +319,19 @@ void MonitorConnector::handleUpdate() {
 	uint64_t L2ProcTimeMean = 0;
 
 	if (L1Builder::GetL1ProcessingTimeCumulative()) {
-//		LOG_INFO("***********L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative());
-//		LOG_INFO("***********L1InputEventsPerBurst " << L1TriggerProcessor::GetL1InputEventsPerBurst());
-		L1ProcTimeMean = L1Builder::GetL1ProcessingTimeCumulative()
-				/ L1TriggerProcessor::GetL1InputEventsPerBurst();
+		if (L1InputEventsPerBurst) {
+			L1ProcTimeMean = L1Builder::GetL1ProcessingTimeCumulative()
+					/ L1InputEventsPerBurst;
+		}
 	}
 	if (L2Builder::GetL2ProcessingTimeCumulative()) {
-//		LOG_INFO("***********L2ProcessingTimeCumulative " << L2Builder::GetL2ProcessingTimeCumulative());
-//		LOG_INFO("***********L2InputEventsPerBurst " << L2TriggerProcessor::GetL2InputEventsPerBurst());
-		if (L2TriggerProcessor::GetL2InputEventsPerBurst())
+		if (L2InputEventsPerBurst) {
 			L2ProcTimeMean = L2Builder::GetL2ProcessingTimeCumulative()
-					/ L2TriggerProcessor::GetL2InputEventsPerBurst();
-		else
-			L2ProcTimeMean = -1;
+					/ L2InputEventsPerBurst;
+		}
 	}
 
-//	LOG_INFO("***********L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax());
 	uint64_t L1ProcTimeMax = L1Builder::GetL1ProcessingTimeMax();
-
-//	LOG_INFO("***********L2ProcessingTimeMax " << L2Builder::GetL2ProcessingTimeMax());
 	uint64_t L2ProcTimeMax = L2Builder::GetL2ProcessingTimeMax();
 
 	LOG_INFO("***********L1ProcTimeMean (x Run Control)  " << L1ProcTimeMean);

@@ -14,6 +14,7 @@
 #include <monitoring/IPCHandler.h>
 #include <monitoring/BurstIdHandler.h>
 #include <monitoring/FarmStatistics.h>
+#include <monitoring/DetectorStatistics.h>
 #include <options/Options.h>
 #include <socket/NetworkHandler.h>
 #include <unistd.h>
@@ -95,7 +96,7 @@ void onBurstFinished() {
 	static std::atomic<uint> incompleteEvents_;
 	incompleteEvents_ = 0;
 
-#ifdef HAVE_TCMALLOC
+
 	// Do it with parallel_for using tbb if tcmalloc is linked
 	tbb::parallel_for(
 			tbb::blocked_range<uint_fast32_t>(0,
@@ -107,7 +108,6 @@ void onBurstFinished() {
 					Event* event = EventPool::getEventByIndex(index);
 					if(event == nullptr) continue;
 					if (event->isUnfinished()) {
-						//LOG_ERROR("Incomplete event " << (uint)(event->getEventNumber()));
 						if(event->isLastEventOfBurst()) {
 							LOG_ERROR("type = EOB : Handling unfinished EOB event " << event->getEventNumber());
 							StorageHandler::SendEvent(event);
@@ -118,21 +118,18 @@ void onBurstFinished() {
 					}
 				}
 			});
-#else
-	for (uint idx = 0; idx != EventPool::getLargestTouchedEventnumberIndex() + 1; ++idx) {
-		Event* event = EventPool::getEventByIndex(idx);
-		if (event->isUnfinished()) {
-			++incompleteEvents_;
-			// if EOB send event to merger as in L2Builder.cpp
-			EventPool::freeEvent(event);
-		}
-	}
-#endif
 
 	if (incompleteEvents_ > 0) {
 		LOG_ERROR(
 				"type = EOB : Dropped " << incompleteEvents_ << " events in burst ID = " << (int) BurstIdHandler::getCurrentBurstId() << ".");
 	}
+	IPCHandler::sendStatistics("MonitoringL0Data", DetectorStatistics::L0RCInfo());
+	IPCHandler::sendStatistics("MonitoringL1Data", DetectorStatistics::L1RCInfo());
+	LOG_ERROR (DetectorStatistics::L0RCInfo());
+	LOG_ERROR (DetectorStatistics::L1RCInfo());
+	DetectorStatistics::clearL0DetectorStatistics();
+	DetectorStatistics::clearL1DetectorStatistics();
+
 	int tSize = 0, resident = 0, share = 0;
 	ifstream buffer("/proc/self/statm");
 	buffer >> tSize >> resident >> share;
@@ -140,14 +137,9 @@ void onBurstFinished() {
 
 	long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // in case x86-64 is configured to use 2MB pages
 	double rss = resident * page_size_kb;
-	LOG_ERROR("RSS - " + std::to_string(rss) + " kB");
-
 	double shared_mem = share * page_size_kb;
-	LOG_ERROR("Shared Memory - " + std::to_string(shared_mem) + " kB");
-
-	LOG_ERROR("Private Memory - " + std::to_string(rss - shared_mem) + "kB");
-
-	if (rss > 10000000) {
+	if (rss > 30000000) {
+		LOG_WARNING("type=memstat RSS - " + std::to_string(int(rss/1000)) + " MB. Shared Memory - " + std::to_string(int(shared_mem/1000)) + " MB. Private Memory - " + std::to_string(int((rss - shared_mem)/1000)) + "MB" );
 		LOG_ERROR("Memory LEAK!!! Terminating process");
 		exit(-1);
 	}
@@ -206,6 +198,12 @@ int main(int argc, char* argv[]) {
 	L2Builder::initialize();
 
 	Event::initialize(MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES));
+
+//  Initialize Detector counts. L1=32 because 0=gtk, 1-30 Lkr, 31 MUV
+//  20 should be changed with a proper dynamic definition of the number of L0 sources
+	DetectorStatistics::init(20,32);
+	DetectorStatistics::clearL0DetectorStatistics();
+	DetectorStatistics::clearL1DetectorStatistics();
 
 	// Get the list of farm nodes and find my position
 	vector<std::string> nodes = Options::GetStringList(OPTION_FARM_HOST_NAMES);
