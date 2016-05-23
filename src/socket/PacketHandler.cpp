@@ -65,13 +65,13 @@ void PacketHandler::thread() {
 	int receivedFrame = 0;
 
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
-	const uint pollDelay = Options::GetDouble(OPTION_POLLING_DELAY);
+	//const uint pollDelay = Options::GetDouble(OPTION_POLLING_DELAY);
 
-	const uint maxAggregationMicros = Options::GetInt(
-	OPTION_MAX_AGGREGATION_TIME);
+	//const uint maxAggregationMicros = Options::GetInt(
+	//OPTION_MAX_AGGREGATION_TIME);
 
-	const uint minUsecBetweenL1Requests = Options::GetInt(
-	OPTION_MIN_USEC_BETWEEN_L1_REQUESTS);
+	//const uint minUsecBetweenL1Requests = Options::GetInt(
+	//OPTION_MIN_USEC_BETWEEN_L1_REQUESTS);
 
 	uint sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
 
@@ -90,7 +90,7 @@ void PacketHandler::thread() {
 		buff = nullptr;
 		bool goToSleep = false;
 
-		uint spinsInARow = 0;
+		//uint spinsInARow = 0;
 
 		boost::timer::cpu_timer aggregationTimer;
 
@@ -122,7 +122,7 @@ void PacketHandler::thread() {
 						memcpy(data, buff, hdr.len);
 						frames.push_back( { data, (uint_fast16_t) hdr.len, true });
 						goToSleep = false;
-						spinsInARow = 0;
+						//spinsInARow = 0;
 					}
 				}
 				//else {
