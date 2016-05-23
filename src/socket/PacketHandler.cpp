@@ -77,7 +77,6 @@ void PacketHandler::thread() {
 
 	const uint framesToBeGathered = Options::GetInt(OPTION_MAX_FRAME_AGGREGATION);
 
-	//boost::timer::cpu_timer sendTimer;
 	sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
 	char* buff; // = new char[MTU];
 	while (running_) {
@@ -126,61 +125,14 @@ void PacketHandler::thread() {
 						spinsInARow = 0;
 					}
 				}
-				else {
-					LOG_WARNING("Dropping data because we are at EoB");
-				}
+				//else {
+				//	LOG_WARNING("Dropping data because we are at EoB");
+				//}
 			}
-
-				//GLM: probably we should remove the timer from here...
-				//if(threadNum_ == 0 && NetworkHandler::getNumberOfEnqueuedSendFrames() > 0 ) {
-				while (NetworkHandler::getNumberOfEnqueuedSendFrames() > 0 ) {
-					//&& sendTimer.elapsed().wall / 1000 > minUsecBetweenL1Requests) {
-
-					/*
-					 * We didn't receive anything for a while -> send enqueued frames
-					 */
-
-					// GLM: keep this while loop else performance is a disaster!
-					NetworkHandler::DoSendQueuedFrames(threadNum_);
-//					sleepMicros =sleepMicros > minUsecBetweenL1Requests ?
-//															minUsecBetweenL1Requests : sleepMicros;
-//											spinsInARow = 0;
-					//sendTimer.start();
-
-					/*
-					 * Push the aggregated frames to a new task if already tried to send something
-					 * two times during current frame aggregation
-					 */
-				}
-//				else {
-//					if (!running_) {
-//						goto finish;
-//					}
-//					//if (threadNum_ == 0 && NetworkHandler::getNumberOfEnqueuedSendFrames() != 0) {
-//					//	continue;
-//					//}
-//
-//					/*
-//					 * If we didn't receive anything at the first try or in average for a while go to sleep
-//					 */
-//					if ((stepNum == 0 || spinsInARow++ == 10
-//							|| aggregationTimer.elapsed().wall / 1000
-//							> maxAggregationMicros)
-//							&& (threadNum_ != 0
-//									|| NetworkHandler::getNumberOfEnqueuedSendFrames() == 0)) {
-//						goToSleep = true;
-//						break;
-//					}
-//
-//					/*
-//					 * Spin wait a while. This block is not optimized by the compiler
-//					 */
-//					spins_++;
-//					for (volatile uint i = 0; i < pollDelay; i++) {
-//						asm("");
-//					}
-//
-//				}
+			//GLM: send all pending data requests
+			while (NetworkHandler::getNumberOfEnqueuedSendFrames() > 0 ) {
+				NetworkHandler::DoSendQueuedFrames(threadNum_);
+			}
 
 		}
 		if (!frames.empty()) {

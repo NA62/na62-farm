@@ -164,9 +164,12 @@ int main(int argc, char* argv[]) {
 	 */
 	TriggerOptions::Load(argc, argv);
 	MyOptions::Load(argc, argv);
-
-	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
-
+	try {
+		ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
+	} catch (const zmq::error_t& ex) {
+		LOG_ERROR("Failed to initialize ZMQ because: " << ex.what());
+		exit(1);
+	}
 	HLTStruct HLTConfParams;
 	HLTriggerManager::fillStructFromXMLFile(HLTConfParams);
 	L1TriggerProcessor::initialize(HLTConfParams.l1);

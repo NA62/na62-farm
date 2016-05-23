@@ -77,10 +77,6 @@ void MonitorConnector::handleUpdate() {
 	timer_.expires_from_now(boost::posix_time::milliseconds(1000));
 	timer_.async_wait(boost::bind(&MonitorConnector::handleUpdate, this));
 
-	// GLM TEST: Change burst ID
-	//int bid = BurstIdHandler::getCurrentBurstId()+1;
-	//BurstIdHandler::setNextBurstID(bid);
-
 	updateWatch_.reset();
 
 	IPCHandler::updateState(currentState_);
