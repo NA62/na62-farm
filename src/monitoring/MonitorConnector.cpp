@@ -29,6 +29,8 @@
 #include <options/Logging.h>
 #include <monitoring/BurstIdHandler.h>
 
+#include <l1/L1TriggerProcessor.h>
+#include <l2/L2TriggerProcessor.h>
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
 #include "../socket/HandleFrameTask.h"
@@ -75,17 +77,14 @@ void MonitorConnector::handleUpdate() {
 	timer_.expires_from_now(boost::posix_time::milliseconds(1000));
 	timer_.async_wait(boost::bind(&MonitorConnector::handleUpdate, this));
 
-	// GLM TEST: Change burst ID
-	//int bid = BurstIdHandler::getCurrentBurstId()+1;
-	//BurstIdHandler::setNextBurstID(bid);
-
 	updateWatch_.reset();
 
 	IPCHandler::updateState(currentState_);
 
 	LOG_INFO("Enqueued tasks:\t" << HandleFrameTask::getNumberOfQeuedTasks());
 
-	LOG_INFO("IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames());
+	LOG_INFO(
+			"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames());
 
 	LOG_INFO("BurstID:\t" << BurstIdHandler::getCurrentBurstId());
 	//LOG_INFO<<"NextBurstID:\t" << BurstIdHandler::getNextBurstId();
@@ -125,17 +124,18 @@ void MonitorConnector::handleUpdate() {
 		if (SourceIDManager::getExpectedPacksBySourceID(sourceID) > 0) {
 			setDetectorDifferentialData("MEPsReceived",
 					HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum)
-							/ SourceIDManager::getExpectedPacksBySourceID(sourceID), sourceID);
+							/ SourceIDManager::getExpectedPacksBySourceID(
+									sourceID), sourceID);
 
 			statistics << std::dec
 					<< HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum)
 							/ SourceIDManager::getExpectedPacksBySourceID(
 									sourceID) << ";";
 		}
-        setDetectorDifferentialData("EventsReceived",
-                         Event::getMissingL0EventsBySourceNum(soruceIDNum), sourceID);
-         statistics << std::dec
-                         << Event::getMissingL0EventsBySourceNum(soruceIDNum) << ";";
+		setDetectorDifferentialData("EventsReceived",
+				Event::getMissingL0EventsBySourceNum(soruceIDNum), sourceID);
+		statistics << std::dec
+				<< Event::getMissingL0EventsBySourceNum(soruceIDNum) << ";";
 
 		statistics << std::dec
 				<< HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum)
@@ -147,28 +147,33 @@ void MonitorConnector::handleUpdate() {
 		for (int soruceIDNum = SourceIDManager::NUMBER_OF_L1_DATA_SOURCES - 1;
 				soruceIDNum >= 0; soruceIDNum--) {
 
-			uint_fast8_t sourceID = SourceIDManager::l1SourceNumToID(soruceIDNum);
+			uint_fast8_t sourceID = SourceIDManager::l1SourceNumToID(
+					soruceIDNum);
 			statistics << "0x" << std::hex << (int) sourceID << ";";
 
 			if (SourceIDManager::getExpectedL1PacksBySourceID(sourceID) > 0) {
 				setDetectorDifferentialData("MEPsReceived",
-						HandleFrameTask::GetL1MEPsReceivedBySourceNum(soruceIDNum)
-								/ SourceIDManager::getExpectedL1PacksBySourceID(sourceID), sourceID);
+						HandleFrameTask::GetL1MEPsReceivedBySourceNum(
+								soruceIDNum)
+								/ SourceIDManager::getExpectedL1PacksBySourceID(
+										sourceID), sourceID);
 
 				statistics << std::dec
-						<< HandleFrameTask::GetL1MEPsReceivedBySourceNum(soruceIDNum)
+						<< HandleFrameTask::GetL1MEPsReceivedBySourceNum(
+								soruceIDNum)
 								/ SourceIDManager::getExpectedL1PacksBySourceID(
 										sourceID) << ";";
 			}
 
-            setDetectorDifferentialData("EventsReceived",
-                             Event::getMissingL1EventsBySourceNum(soruceIDNum), sourceID);
-             statistics << std::dec
-                             << Event::getMissingL1EventsBySourceNum(soruceIDNum) << ";";
+			setDetectorDifferentialData("EventsReceived",
+					Event::getMissingL1EventsBySourceNum(soruceIDNum),
+					sourceID);
+			statistics << std::dec
+					<< Event::getMissingL1EventsBySourceNum(soruceIDNum) << ";";
 
 			statistics << std::dec
-					<< HandleFrameTask::GetL1BytesReceivedBySourceNum(soruceIDNum)
-					<< ";";
+					<< HandleFrameTask::GetL1BytesReceivedBySourceNum(
+							soruceIDNum) << ";";
 
 			setDetectorDifferentialData("NonRequested:1Frags",
 					Event::getNumberOfNonRequestedL1Fragments(), sourceID);
@@ -177,22 +182,20 @@ void MonitorConnector::handleUpdate() {
 	}
 
 	IPCHandler::sendStatistics("DetectorData", statistics.str());
-//	IPCHandler::sendStatistics("MonitoringData", monitoring.str());
-//	LOG_INFO(monitoring.str());
 
-	uint_fast32_t L1InputEvents = L1Builder::GetL1InputStats();
+	uint_fast32_t L1InputEvents = L1TriggerProcessor::GetL1InputStats();
 	setDifferentialData("L1InputEvents ", L1InputEvents);
 	IPCHandler::sendStatistics("L1InputEvents", std::to_string(L1InputEvents));
 
-	uint_fast32_t L2InputEvents = L2Builder::GetL2InputStats();
+	uint_fast32_t L2InputEvents = L2TriggerProcessor::GetL2InputStats();
 	setDifferentialData("L2InputEvents ", L2InputEvents);
 	IPCHandler::sendStatistics("L2InputEvents", std::to_string(L2InputEvents));
 
 	uint_fast32_t L1Requests = L1Builder::GetL1Requests();
 	setDifferentialData("L1RequestToCreams", L1Requests);
-	IPCHandler::sendStatistics("L1RequestToCreams",std::to_string(L1Requests));
+	IPCHandler::sendStatistics("L1RequestToCreams", std::to_string(L1Requests));
 
-	uint_fast32_t L1BypassedEvents = L1Builder::GetL1BypassedEvents();
+	uint_fast32_t L1BypassedEvents = L1TriggerProcessor::GetL1BypassedEvents();
 	setDifferentialData("L1BypassedEvents ", L1BypassedEvents);
 	IPCHandler::sendStatistics("L1BypassedEvents",
 			std::to_string(L1BypassedEvents));
@@ -206,8 +209,8 @@ void MonitorConnector::handleUpdate() {
 		std::stringstream stream;
 		stream << std::hex << wordNum;
 
-		uint64_t L1Trigs = L1Builder::GetL1TriggerStats()[wordNum];
-		uint64_t L2Trigs = L2Builder::GetL2TriggerStats()[wordNum];
+		uint64_t L1Trigs = L1TriggerProcessor::GetL1TriggerStats()[wordNum];
+		uint64_t L2Trigs = L2TriggerProcessor::GetL2TriggerStats()[wordNum];
 
 		setDifferentialData("L1Triggers" + stream.str(), L1Trigs);
 		setDifferentialData("L2Triggers" + stream.str(), L2Trigs);
@@ -261,7 +264,8 @@ void MonitorConnector::handleUpdate() {
 	setContinuousData("OutFramesQueued",
 			NetworkHandler::getNumberOfEnqueuedSendFrames());
 
-	LOG_INFO("IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames());
+	LOG_INFO(
+			"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames());
 	LOG_INFO("=======================================");
 
 	/*
@@ -270,21 +274,24 @@ void MonitorConnector::handleUpdate() {
 	 */
 	uint64_t L0BuildTimeMean = 0;
 	uint64_t L1BuildTimeMean = 0;
+	uint64_t L1InputEventsPerBurst =
+			L1TriggerProcessor::GetL1InputEventsPerBurst();
+	uint64_t L2InputEventsPerBurst =
+			L2TriggerProcessor::GetL2InputEventsPerBurst();
 
 	if (L1Builder::GetL0BuildingTimeCumulative()) {
-//		LOG_INFO("***********L0BuildingTimeCumulative " << L1Builder::GetL0BuildingTimeCumulative());
-//		LOG_INFO("***********L1InputEventsPerBurst " << L1Builder::GetL1InputEventsPerBurst());
-		L0BuildTimeMean = L1Builder::GetL0BuildingTimeCumulative()/L1Builder::GetL1InputEventsPerBurst();
+		if (L1InputEventsPerBurst) {
+			L0BuildTimeMean = L1Builder::GetL0BuildingTimeCumulative()
+					/ L1InputEventsPerBurst;
+		}
 	}
 	if (L2Builder::GetL1BuildingTimeCumulative()) {
-//		LOG_INFO("***********L1BuildingTimeCumulative " << L2Builder::GetL1BuildingTimeCumulative());
-//		LOG_INFO("***********L2InputEventsPerBurst " << L2Builder::GetL2InputEventsPerBurst());
-		L1BuildTimeMean = L2Builder::GetL1BuildingTimeCumulative()/L2Builder::GetL2InputEventsPerBurst();
+		if (L2InputEventsPerBurst) {
+			L1BuildTimeMean = L2Builder::GetL1BuildingTimeCumulative()
+					/ L2InputEventsPerBurst;
+		}
 	}
-//	LOG_INFO("***********L0BuildingTimeMax " << L1Builder::GetL0BuildingTimeMax());
 	uint64_t L0BuildTimeMax = L1Builder::GetL0BuildingTimeMax();
-
-//	LOG_INFO("***********L1BuildingTimeMax " << L2Builder::GetL1BuildingTimeMax);
 	uint64_t L1BuildTimeMax = L2Builder::GetL1BuildingTimeMax();
 
 	LOG_INFO("***********L0BuildTimeMean (x Run Control) " << L0BuildTimeMean);
@@ -308,23 +315,19 @@ void MonitorConnector::handleUpdate() {
 	uint64_t L2ProcTimeMean = 0;
 
 	if (L1Builder::GetL1ProcessingTimeCumulative()) {
-//		LOG_INFO("***********L1ProcessingTimeCumulative " << L1Builder::GetL1ProcessingTimeCumulative());
-//		LOG_INFO("***********L1InputEventsPerBurst " << L1Builder::GetL1InputEventsPerBurst());
-		L1ProcTimeMean = L1Builder::GetL1ProcessingTimeCumulative()/L1Builder::GetL1InputEventsPerBurst();
+		if (L1InputEventsPerBurst) {
+			L1ProcTimeMean = L1Builder::GetL1ProcessingTimeCumulative()
+					/ L1InputEventsPerBurst;
+		}
 	}
 	if (L2Builder::GetL2ProcessingTimeCumulative()) {
-//		LOG_INFO("***********L2ProcessingTimeCumulative " << L2Builder::GetL2ProcessingTimeCumulative());
-//		LOG_INFO("***********L2InputEventsPerBurst " << L2Builder::GetL2InputEventsPerBurst());
-		if(L2Builder::GetL2InputEventsPerBurst())
-			L2ProcTimeMean = L2Builder::GetL2ProcessingTimeCumulative()/L2Builder::GetL2InputEventsPerBurst();
-		else
-			L2ProcTimeMean = -1;
+		if (L2InputEventsPerBurst) {
+			L2ProcTimeMean = L2Builder::GetL2ProcessingTimeCumulative()
+					/ L2InputEventsPerBurst;
+		}
 	}
 
-//	LOG_INFO("***********L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax());
 	uint64_t L1ProcTimeMax = L1Builder::GetL1ProcessingTimeMax();
-
-//	LOG_INFO("***********L2ProcessingTimeMax " << L2Builder::GetL2ProcessingTimeMax());
 	uint64_t L2ProcTimeMax = L2Builder::GetL2ProcessingTimeMax();
 
 	LOG_INFO("***********L1ProcTimeMean (x Run Control)  " << L1ProcTimeMean);
@@ -385,10 +388,14 @@ void MonitorConnector::handleUpdate() {
 //	LOG_INFO("########################" << L1ProcTimeVsEvtNumStats.str());
 //	LOG_INFO("########################" << L2ProcTimeVsEvtNumStats.str());
 
-	IPCHandler::sendStatistics("L0BuildingTimeVsEvtNumber",L0BuildTimeVsEvtNumStats.str());
-	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber",L1BuildTimeVsEvtNumStats.str());
-	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber",L1ProcTimeVsEvtNumStats.str());
-	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber",L2ProcTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L0BuildingTimeVsEvtNumber",
+			L0BuildTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber",
+			L1BuildTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber",
+			L1ProcTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber",
+			L2ProcTimeVsEvtNumStats.str());
 
 	IPCHandler::sendStatistics("UnfinishedEventsData",
 			UnfinishedEventsCollector::toJson());
@@ -405,9 +412,11 @@ uint64_t MonitorConnector::setDifferentialData(std::string key,
 
 	if (value != 0) {
 		if (key == "BytesReceived") {
-			LOG_INFO(key << ":\t" << Utils::FormatSize(value - differentialInts_[key]) << " (" << Utils::FormatSize(value) <<")");
+			LOG_INFO(
+					key << ":\t" << Utils::FormatSize(value - differentialInts_[key]) << " (" << Utils::FormatSize(value) <<")");
 		} else {
-			LOG_INFO(key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")");
+			LOG_INFO(
+					key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")");
 		}
 
 	}
@@ -437,7 +446,8 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 	}
 	lastValue = detectorDifferentialInts_[detectorID][key];
 
-	LOG_INFO(key << SourceIDManager::sourceIdToDetectorName(detectorID) << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")");
+	LOG_INFO(
+			key << SourceIDManager::sourceIdToDetectorName(detectorID) << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")");
 
 	detectorDifferentialInts_[detectorID][key + LAST_VALUE_SUFFIX] =
 			detectorDifferentialInts_[detectorID][key];

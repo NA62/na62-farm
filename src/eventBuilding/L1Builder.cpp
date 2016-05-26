@@ -25,16 +25,6 @@
 
 namespace na62 {
 
-std::atomic<uint64_t>* L1Builder::L1Triggers_ = new std::atomic<uint64_t>[0xFF
-		+ 1];
-
-std::atomic<uint64_t> L1Builder::L1InputEvents_(0);
-std::atomic<uint64_t> L1Builder::L1InputEventsPerBurst_(0);
-
-std::atomic<uint64_t> L1Builder::L1AcceptedEvents_(0);
-
-std::atomic<uint64_t> L1Builder::L1BypassedEvents_(0);
-
 std::atomic<uint64_t> L1Builder::L1Requests_(0);
 
 std::atomic<uint64_t> L1Builder::L0BuildingTimeCumulative_(0);
@@ -45,17 +35,8 @@ std::atomic<uint64_t>** L1Builder::L0BuildingTimeVsEvtNumber_;
 std::atomic<uint64_t>** L1Builder::L1ProcessingTimeVsEvtNumber_;
 bool L1Builder::requestZSuppressedLkrData_;
 
-uint L1Builder::reductionFactor_ = 0;
-
-uint L1Builder::downscaleFactor_ = 0;
-
-uint L1Builder::autoFlagFactor_ = 0;
-
-//bool L1Builder::L1_flag_mode_ = 0;
-uint16_t L1Builder::l1FlagMask_ = 0;
-
-bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
-	Event * event=nullptr;
+void L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
+	Event * event = nullptr;
 
 #ifdef USE_ERS
 	try {
@@ -64,7 +45,7 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 	catch (na62::Message &e) {
 		ers::error(UnexpectedFragment(ERS_HERE, fragment->getEventNumber(), SourceIDManager::sourceIdToDetectorName( fragment->getSourceID()), fragment->getSourceSubID(), e));
 		delete fragment;
-		return false;
+		return;
 	}
 #else
 	/*
@@ -73,19 +54,13 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 	event = EventPool::getEvent(fragment->getEventNumber());
 
 	if (event == nullptr) {
-		LOG_ERROR("type = BadEv : Eliminating " << (int)(fragment->getEventNumber()) << " from source " << std::hex << (int)(fragment->getSourceID())
-		                                << ":" << (int)(fragment->getSourceSubID()) << std::dec);
+		LOG_ERROR(
+				"type = BadEv : Eliminating " << (int)(fragment->getEventNumber()) << " from source " << std::hex << (int)(fragment->getSourceID()) << ":" << (int)(fragment->getSourceSubID()) << std::dec);
 
 		delete fragment;
-		return false;
+		return;
 	}
 #endif
-	// L1 Input reduction
-//	if (fragment->getEventNumber() % reductionFactor_ != 0
-//			&& (!event->isSpecialTriggerEvent() && !event->isL1Bypassed())) {
-//		delete fragment;
-//		return false;
-//	}
 
 	/*
 	 * Add new packet to Event
@@ -99,6 +74,7 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 				SourceIDManager::TS_SOURCEID_NUM)->getFragment(0);
 		event->setTimestamp(tsFragment->getTimestamp());
 
+#ifdef MEASURE_TIME
 		uint L0BuildingTimeIndex = (uint) event->getL0BuildingTime() / 5000.;
 		if (L0BuildingTimeIndex >= 0x64)
 			L0BuildingTimeIndex = 0x64;
@@ -112,57 +88,30 @@ bool L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 				std::memory_order_relaxed);
 		if (event->getL0BuildingTime() >= L0BuildingTimeMax_)
 			L0BuildingTimeMax_ = event->getL0BuildingTime();
-
+#endif
 		event->readTriggerTypeWordAndFineTime();
-		L1InputEvents_.fetch_add(1, std::memory_order_relaxed);
-		L1InputEventsPerBurst_.fetch_add(1, std::memory_order_relaxed);
-
 		/*
 		 * This event is complete -> process it
 		 */
-
-		//L1 Input Reduction
-		if ((L1InputEvents_ % reductionFactor_ != 0)
-				&& (!event->isSpecialTriggerEvent() && (!event->isLastEventOfBurst()))) {
-			EventPool::freeEvent(event);
-		} else {
-			processL1(event);
-			return true;
-		}
+		processL1(event);
 	}
-	return false;
+	return;
 }
 
 void L1Builder::processL1(Event *event) {
 
 	uint_fast8_t l0TriggerTypeWord = event->getL0TriggerTypeWord();
-	uint_fast16_t l0TriggerFlags = event->getTriggerFlags();
-
-	/*
-	 * Store the global event timestamp taken from the reverence detector
-	 */
-	l0::MEPFragment* tsFragment = event->getL0SubeventBySourceIDNum(SourceIDManager::TS_SOURCEID_NUM)->getFragment(0);
-	event->setTimestamp(tsFragment->getTimestamp());
 
 	/*
 	 * Process Level 1 trigger
 	 */
-	uint_fast8_t l1FlagTrigger = 0;
-
-	if (!event->isSpecialTriggerEvent()) {
-		if ((l1FlagMask_ & l0TriggerFlags) || (L1InputEvents_ % autoFlagFactor_ == 0)) {
-			l1FlagTrigger = 1;
-		} else {
-			l1FlagTrigger = 0;
-		}
-	}
 	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event);
-	l1TriggerTypeWord = (l1FlagTrigger << 7) | l1TriggerTypeWord;
-
 	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
 
-	L1Triggers_[l1TriggerTypeWord].fetch_add(1, std::memory_order_relaxed); // The second 8 bits are the L1 trigger type word
 	event->setL1Processed(L0L1Trigger);
+
+
+#ifdef MEASURE_TIME
 	uint L1ProcessingTimeIndex = (uint) event->getL1ProcessingTime() / 10.;
 	if (L1ProcessingTimeIndex >= 0x64)
 		L1ProcessingTimeIndex = 0x64;
@@ -175,31 +124,14 @@ void L1Builder::processL1(Event *event) {
 			std::memory_order_relaxed);
 	if (event->getL1ProcessingTime() >= L1ProcessingTimeMax_)
 		L1ProcessingTimeMax_ = event->getL1ProcessingTime();
+#endif
+	if (l1TriggerTypeWord != 0) {
 
+		if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
 
-	// KTAG special
-	uint_fast8_t l1KTAGtrigger_mask = 4;
-	if (l1FlagTrigger || (l1TriggerTypeWord & l1KTAGtrigger_mask)) {
-
-		if (!event->isSpecialTriggerEvent()) {
-			L1AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
-
-			if (event->isL1Bypassed()) {
-				L1BypassedEvents_.fetch_add(1, std::memory_order_relaxed);
-			}
-		}
-		//Global L1 downscaling
-		if (((uint) L1AcceptedEvents_ % downscaleFactor_ != 0
-				&& (!event->isSpecialTriggerEvent() && !event->isL1Bypassed()))) {
-			EventPool::freeEvent(event);
-		} else {  // Downscaled event
-
-			// Request L1 data
-			if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
-				sendL1Request(event);
-			} else {
-				L2Builder::processL2(event);
-			}
+			sendL1Request(event);
+		} else {
+			L2Builder::processL2(event);
 		}
 	} else { // Event not accepted
 		/*

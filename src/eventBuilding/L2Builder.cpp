@@ -27,13 +27,6 @@
 
 namespace na62 {
 
-std::atomic<uint64_t>* L2Builder::L2Triggers_ = new std::atomic<uint64_t>[0xFF
-		+ 1];
-std::atomic<uint64_t> L2Builder::L2InputEvents_(0);
-std::atomic<uint64_t> L2Builder::L2InputEventsPerBurst_(0);
-
-std::atomic<uint64_t> L2Builder::L2AcceptedEvents_(0);
-
 std::atomic<uint64_t> L2Builder::L1BuildingTimeCumulative_(0);
 std::atomic<uint64_t> L2Builder::L1BuildingTimeMax_(0);
 std::atomic<uint64_t> L2Builder::L2ProcessingTimeCumulative_(0);
@@ -44,12 +37,9 @@ std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
 
 std::atomic<uint64_t>** L2Builder::L1BuildingTimeVsEvtNumber_;
 std::atomic<uint64_t>** L2Builder::L2ProcessingTimeVsEvtNumber_;
-uint L2Builder::reductionFactor_ = 0;
 
-uint L2Builder::downscaleFactor_ = 0;
-
-bool L2Builder::buildEvent(l1::MEPFragment* fragment) {
-	Event * event=nullptr;
+void L2Builder::buildEvent(l1::MEPFragment* fragment) {
+	Event * event = nullptr;
 
 #ifdef USE_ERS
 	try {
@@ -58,7 +48,7 @@ bool L2Builder::buildEvent(l1::MEPFragment* fragment) {
 	catch (na62::Message &e) {
 		ers::error(UnexpectedFragment(ERS_HERE, fragment->getEventNumber(), SourceIDManager::sourceIdToDetectorName( fragment->getSourceID()), fragment->getSourceSubID(), e));
 		delete fragment;
-		return false;
+		return;
 	}
 #else
 	event = EventPool::getEvent(fragment->getEventNumber());
@@ -68,14 +58,13 @@ bool L2Builder::buildEvent(l1::MEPFragment* fragment) {
 	 */
 	if (event == nullptr) {
 
-			uint crateID = (fragment->getSourceSubID() >> 5) & 0x3f;
-			uint creamID =  fragment->getSourceSubID() & 0x1f;
+		uint crateID = (fragment->getSourceSubID() >> 5) & 0x3f;
+		uint creamID = fragment->getSourceSubID() & 0x1f;
 
-		LOG_ERROR("type = BadEv : Eliminating " << std::hex << (int)(fragment->getEventNumber()) << " from source = 0x"
-				<< std::hex << (int)(fragment->getSourceID())
-				<< ":0x" << (int)(fragment->getSourceSubID()) << std::dec << " -- "<< crateID << "--" << creamID);
+		LOG_ERROR(
+				"type = BadEv : Eliminating " << std::hex << (int)(fragment->getEventNumber()) << " from source = 0x" << std::hex << (int)(fragment->getSourceID()) << ":0x" << (int)(fragment->getSourceSubID()) << std::dec << " -- "<< crateID << "--" << creamID);
 		delete fragment;
-		return false;
+		return;
 	}
 #endif
 
@@ -99,22 +88,13 @@ bool L2Builder::buildEvent(l1::MEPFragment* fragment) {
 			L1BuildingTimeMax_ = event->getL1BuildingTime();
 #endif
 
-		L2InputEvents_.fetch_add(1, std::memory_order_relaxed);
-		L2InputEventsPerBurst_.fetch_add(1, std::memory_order_relaxed);
-
 		/*
 		 * This event is complete -> process it
 		 */
 
-		if ((L2InputEvents_ % reductionFactor_ != 0)
-				&& !event->isSpecialTriggerEvent()) {
-			EventPool::freeEvent(event);
-		} else {
-			processL2(event);
-			return true;
-		}
+		processL2(event);
 	}
-	return false;
+	return;
 }
 
 void L2Builder::processL2(Event *event) {
@@ -148,29 +128,13 @@ void L2Builder::processL2(Event *event) {
 		 */
 		if (!event->isWaitingForNonZSuppressedLKrData()) {
 			if (event->isL2Accepted()) {
-				if (!event->isSpecialTriggerEvent()) {
-					L2AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
-				}
 				/*
-				 * Global L2 downscaling
+				 * Send Event to merger
 				 */
-				if ((uint) L2AcceptedEvents_ % downscaleFactor_ != 0
-						&& (!event->isSpecialTriggerEvent()
-								&& !event->isL2Bypassed())) {
-				} else {
-
-					/*
-					 * Send Event to merger
-					 */
-					BytesSentToStorage_.fetch_add(
-							StorageHandler::SendEvent(event),
-							std::memory_order_relaxed);
-					EventsSentToStorage_.fetch_add(1,
-							std::memory_order_relaxed);
-				}
-				EventPool::freeEvent(event);
+				BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
+						std::memory_order_relaxed);
+				EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 			}
-			L2Triggers_[L2Trigger].fetch_add(1, std::memory_order_relaxed);
 		}
 	} else { // Process non zero-suppressed data (not used at the moment!
 		// When the implementation will be completed, we need to propagate the L2 downscaling
@@ -185,17 +149,13 @@ void L2Builder::processL2(Event *event) {
 			L2ProcessingTimeMax_ = event->getL2ProcessingTime();
 #endif
 		if (event->isL2Accepted()) {
-			if (!event->isSpecialTriggerEvent()) {
-				L2AcceptedEvents_.fetch_add(1, std::memory_order_relaxed);
-			}
 			BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
 					std::memory_order_relaxed);
 			EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 		}
-//		l2Block->triggerword = L2Trigger;
-		L2Triggers_[L2Trigger].fetch_add(1, std::memory_order_relaxed);
-		EventPool::freeEvent(event);
 	}
+	EventPool::freeEvent(event);
 }
+
 }
 /* namespace na62 */

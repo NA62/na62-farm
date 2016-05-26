@@ -36,7 +36,6 @@
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.1515787549" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_GLOG"/>
-									<listOptionValue builtIn="false" value="HAVE_TCMALLOC"/>
 									<listOptionValue builtIn="false" value="USE_PFRING"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.dialect.std.677020798" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
@@ -72,6 +71,7 @@
 									<listOptionValue builtIn="false" value="pthread"/>
 									<listOptionValue builtIn="false" value="zmq"/>
 									<listOptionValue builtIn="false" value="tbb"/>
+									<listOptionValue builtIn="false" value="xmlpreprocessor"/>
 								</option>
 								<option id="gnu.cpp.link.option.paths.1371079621" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib-networking/Debug}&quot;"/>
@@ -85,6 +85,7 @@
 									<listOptionValue builtIn="false" value="/mnt/sw/LCG/Python/2.7.9-bc0c0/x86_64-slc6-gcc49-opt/lib/"/>
 									<listOptionValue builtIn="false" value="/mnt/sw/LCG/gcc/4.9.1/x86_64-slc6-gcc49-opt/lib64"/>
 									<listOptionValue builtIn="false" value="/mnt/sw/LCG/ers/x86_64-slc6-gcc49-opt/lib"/>
+									<listOptionValue builtIn="false" value="/workspace/XMLPreProcessor/XMLConf/"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.948156127" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -167,8 +168,7 @@
 									<listOptionValue builtIn="false" value="/mnt/sw/LCG/include"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.2130032759" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="USE_GLOG"/>
-									<listOptionValue builtIn="false" value="HAVE_TCMALLOC"/>
+									<listOptionValue builtIn="false" value="USE_ERS"/>
 									<listOptionValue builtIn="false" value="USE_PFRING"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1562294760" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
@@ -187,9 +187,9 @@
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.release.1781574116" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.release"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.release.1777715133" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.release">
 								<option id="gnu.cpp.link.option.libs.206661208" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="na62-farm-lib-networking"/>
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="na62-farm-lib"/>
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="na62-trigger-algorithms"/>
+									<listOptionValue builtIn="false" value="na62-farm-lib-networking"/>
+									<listOptionValue builtIn="false" value="na62-farm-lib"/>
+									<listOptionValue builtIn="false" value="na62-trigger-algorithms"/>
 									<listOptionValue builtIn="false" value="boost_chrono${tag}"/>
 									<listOptionValue builtIn="false" value="boost_filesystem${tag}"/>
 									<listOptionValue builtIn="false" value="boost_thread${tag}"/>
@@ -197,12 +197,14 @@
 									<listOptionValue builtIn="false" value="boost_program_options${tag}"/>
 									<listOptionValue builtIn="false" value="boost_system${tag}"/>
 									<listOptionValue builtIn="false" value="glog"/>
+									<listOptionValue builtIn="false" value="ers"/>
 									<listOptionValue builtIn="false" value="pcap"/>
 									<listOptionValue builtIn="false" value="tcmalloc"/>
 									<listOptionValue builtIn="false" value="pfring"/>
 									<listOptionValue builtIn="false" value="pthread"/>
 									<listOptionValue builtIn="false" value="zmq"/>
 									<listOptionValue builtIn="false" value="tbb"/>
+									<listOptionValue builtIn="false" value="xmlpreprocessor"/>
 								</option>
 								<option id="gnu.cpp.link.option.paths.2075848158" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib-networking/Debug}&quot;"/>
@@ -216,6 +218,8 @@
 									<listOptionValue builtIn="false" value="/mnt/sw/LCG/Python/2.7.9-bc0c0/x86_64-slc6-gcc49-opt/lib/"/>
 									<listOptionValue builtIn="false" value="/mnt/sw/LCG/gcc/4.9.1/x86_64-slc6-gcc49-opt/lib64"/>
 									<listOptionValue builtIn="false" value="/mnt/sw/LCG/Boost/1.59.0_python2.7-cfca9/x86_64-slc6-gcc49-opt/lib/"/>
+									<listOptionValue builtIn="false" value="/mnt/sw/LCG/ers/x86_64-slc6-gcc49-opt/lib"/>
+									<listOptionValue builtIn="false" value="/workspace/XMLPreProcessor/XMLConf/"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1226558725" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -301,7 +305,6 @@
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.320209643" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_ERS"/>
-									<listOptionValue builtIn="false" value="HAVE_TCMALLOC"/>
 									<listOptionValue builtIn="false" value="USE_PFRING"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.dialect.std.429685836" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
@@ -332,12 +335,12 @@
 									<listOptionValue builtIn="false" value="boost_system${tag}"/>
 									<listOptionValue builtIn="false" value="glog"/>
 									<listOptionValue builtIn="false" value="pcap"/>
-									<listOptionValue builtIn="false" value="tcmalloc"/>
 									<listOptionValue builtIn="false" value="pfring"/>
 									<listOptionValue builtIn="false" value="pthread"/>
 									<listOptionValue builtIn="false" value="zmq"/>
 									<listOptionValue builtIn="false" value="tbb"/>
 									<listOptionValue builtIn="false" value="ers"/>
+									<listOptionValue builtIn="false" value="xmlpreprocessor"/>
 								</option>
 								<option id="gnu.cpp.link.option.paths.236954903" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib-networking/Debug_ERS}&quot;"/>
@@ -351,6 +354,7 @@
 									<listOptionValue builtIn="false" value="/mnt/sw/LCG/Python/2.7.9-bc0c0/x86_64-slc6-gcc49-opt/lib/"/>
 									<listOptionValue builtIn="false" value="/mnt/sw/LCG/gcc/4.9.1/x86_64-slc6-gcc49-opt/lib64"/>
 									<listOptionValue builtIn="false" value="/mnt/sw/LCG/ers/x86_64-slc6-gcc49-opt/lib"/>
+									<listOptionValue builtIn="false" value="/workspace/XMLPreProcessor/XMLConf"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.2020689134" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>

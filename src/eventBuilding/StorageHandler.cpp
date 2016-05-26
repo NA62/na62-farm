@@ -64,9 +64,13 @@ void StorageHandler::setMergers(std::string mergerList) {
 	mergerSockets_.clear();
 
 	for (std::string address : GetMergerAddresses(mergerList)) {
+		try {
 		zmq::socket_t* socket = ZMQHandler::GenerateSocket("StorageHandler", ZMQ_PUSH);
 		socket->connect(address.c_str());
 		mergerSockets_.push_back(socket);
+		} catch (const zmq::error_t& ex) {
+			LOG_ERROR("Failed to initialize ZMQ for merger " << address << " because: " << ex.what());
+		}
 	}
 }
 
@@ -86,27 +90,34 @@ int StorageHandler::SendEvent(const Event* event) {
 	 * TODO: Use multimessage instead of creating a separate buffer and copying the MEP data into it
 	 */
 	const EVENT_HDR* data = EventSerializer::SerializeEvent(event);
+	//	LOG_ERROR ("Send event  "<<event->getEventNumber());
 
 	/*
 	 * Send the event to the merger with a zero copy message
 	 */
-	zmq::message_t zmqMessage((void*) data, data->length * 4,
-			(zmq::free_fn*) ZMQHandler::freeZmqMessage);
+	try {
+		zmq::message_t zmqMessage((void*) data, data->length * 4,
+				(zmq::free_fn*) ZMQHandler::freeZmqMessage);
 
-	while (ZMQHandler::IsRunning()) {
-		tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
-		try {
-			mergerSockets_[event->getBurstID() % mergerSockets_.size()]->send(zmqMessage);
-			break;
-		} catch (const zmq::error_t& ex) {
-			if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-				LOG_ERROR(ex.what());
+		//	LOG_ERROR ("Send to merger burst "<<event->getBurstID() << " number of mergers " << mergerSockets_.size());
+		while (ZMQHandler::IsRunning()) {
+			tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
+			try {
+				mergerSockets_[event->getBurstID() % mergerSockets_.size()]->send(zmqMessage);
+				break;
+			} catch (const zmq::error_t& ex) {
+				if (ex.num() != EINTR) { // try again if EINTR (signal caught)
+					LOG_ERROR(ex.what());
 
-				onShutDown();
-				return 0;
+					onShutDown();
+					return 0;
+				}
 			}
 		}
+	} catch (const zmq::error_t& e) {
+		LOG_ERROR("Failed to create ZMQ message, because: " << e.what());
 	}
+
 
 	return data->length * 4;
 }

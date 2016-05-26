@@ -65,20 +65,19 @@ void PacketHandler::thread() {
 	int receivedFrame = 0;
 
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
-	const uint pollDelay = Options::GetDouble(OPTION_POLLING_DELAY);
+	//const uint pollDelay = Options::GetDouble(OPTION_POLLING_DELAY);
 
-	const uint maxAggregationMicros = Options::GetInt(
-	OPTION_MAX_AGGREGATION_TIME);
+	//const uint maxAggregationMicros = Options::GetInt(
+	//OPTION_MAX_AGGREGATION_TIME);
 
-	const uint minUsecBetweenL1Requests = Options::GetInt(
-	OPTION_MIN_USEC_BETWEEN_L1_REQUESTS);
+	//const uint minUsecBetweenL1Requests = Options::GetInt(
+	//OPTION_MIN_USEC_BETWEEN_L1_REQUESTS);
 
 	uint sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
 
 	const uint framesToBeGathered = Options::GetInt(OPTION_MAX_FRAME_AGGREGATION);
 
-	//boost::timer::cpu_timer sendTimer;
-
+	sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
 	char* buff; // = new char[MTU];
 	while (running_) {
 		/*
@@ -91,7 +90,7 @@ void PacketHandler::thread() {
 		buff = nullptr;
 		bool goToSleep = false;
 
-		uint spinsInARow = 0;
+		//uint spinsInARow = 0;
 
 		boost::timer::cpu_timer aggregationTimer;
 
@@ -99,6 +98,9 @@ void PacketHandler::thread() {
 		 * Try to receive [framesToBeCollected] frames
 		 */
 		for (uint stepNum = 0; stepNum != framesToBeGathered; stepNum++) {
+			if (!running_) {
+				goto finish;
+			}
 			/*
 			 * The actual  polling!
 			 * Do not wait for incoming packets as this will block the ring and make sending impossible
@@ -120,63 +122,18 @@ void PacketHandler::thread() {
 						memcpy(data, buff, hdr.len);
 						frames.push_back( { data, (uint_fast16_t) hdr.len, true });
 						goToSleep = false;
-						spinsInARow = 0;
+						//spinsInARow = 0;
 					}
 				}
-			} else {
-				//GLM: probably we should remove the timer from here...
-				if(threadNum_ == 0 && NetworkHandler::getNumberOfEnqueuedSendFrames() > 0 ) {
-					//&& sendTimer.elapsed().wall / 1000 > minUsecBetweenL1Requests) {
-
-					/*
-					 * We didn't receive anything for a while -> send enqueued frames
-					 */
-					sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
-					// GLM: keep this while loop else performance is a disaster!
-					while (NetworkHandler::DoSendQueuedFrames(threadNum_)) {
-						sleepMicros =
-								sleepMicros > minUsecBetweenL1Requests ?
-										minUsecBetweenL1Requests : sleepMicros;
-						spinsInARow = 0;
-					}
-					//sendTimer.start();
-
-					/*
-					 * Push the aggregated frames to a new task if already tried to send something
-					 * two times during current frame aggregation
-					 */
-				}
-
-				else {
-					if (!running_) {
-						goto finish;
-					}
-					//if (threadNum_ == 0 && NetworkHandler::getNumberOfEnqueuedSendFrames() != 0) {
-					//	continue;
-					//}
-
-					/*
-					 * If we didn't receive anything at the first try or in average for a while go to sleep
-					 */
-					if ((stepNum == 0 || spinsInARow++ == 10
-							|| aggregationTimer.elapsed().wall / 1000
-							> maxAggregationMicros)
-							&& (threadNum_ != 0
-									|| NetworkHandler::getNumberOfEnqueuedSendFrames() == 0)) {
-						goToSleep = true;
-						break;
-					}
-
-					/*
-					 * Spin wait a while. This block is not optimized by the compiler
-					 */
-					spins_++;
-					for (volatile uint i = 0; i < pollDelay; i++) {
-						asm("");
-					}
-
-				}
+				//else {
+				//	LOG_WARNING("Dropping data because we are at EoB");
+				//}
 			}
+			//GLM: send all pending data requests
+			while (NetworkHandler::getNumberOfEnqueuedSendFrames() > 0 ) {
+				NetworkHandler::DoSendQueuedFrames(threadNum_);
+			}
+
 		}
 		if (!frames.empty()) {
 
@@ -193,7 +150,7 @@ void PacketHandler::thread() {
 			TaskProcessor::TasksQueue_.push(task);
 			int queueSize = TaskProcessor::getSize();
 			if(queueSize >0 && (queueSize%100 == 0)) {
-				LOG_ERROR("type = BusyFarm : Tasks queue size " << (int) queueSize);
+				LOG_WARNING("Tasks queue size " << (int) queueSize);
 			}
 			goToSleep = false;
 			frameHandleTasksSpawned_++;
