@@ -11,7 +11,6 @@
 #include <asm-generic/errno-base.h>
 #include <eventBuilding/Event.h>
 #include <eventBuilding/SourceIDManager.h>
-#include <tbb/spin_mutex.h>
 #include <sstream>
 
 //#include <structs/Event.h>
@@ -33,8 +32,9 @@
 namespace na62 {
 
 std::vector<zmq::socket_t*> StorageHandler::mergerSockets_;
+tbb::concurrent_queue<const EVENT_HDR*> StorageHandler::DataQueue_;
 
-tbb::spin_mutex StorageHandler::sendMutex_;
+std::recursive_mutex StorageHandler::sendMutex_;
 
 std::vector<std::string> StorageHandler::GetMergerAddresses(
 		std::string mergerList) {
@@ -57,7 +57,7 @@ std::vector<std::string> StorageHandler::GetMergerAddresses(
 }
 
 void StorageHandler::setMergers(std::string mergerList) {
-	tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
+	std::lock_guard<std::recursive_mutex> my_lock(sendMutex_);
 	for (auto socket : mergerSockets_) {
 		ZMQHandler::DestroySocket(socket);
 	}
@@ -65,11 +65,13 @@ void StorageHandler::setMergers(std::string mergerList) {
 
 	for (std::string address : GetMergerAddresses(mergerList)) {
 		try {
-		zmq::socket_t* socket = ZMQHandler::GenerateSocket("StorageHandler", ZMQ_PUSH);
-		socket->connect(address.c_str());
-		mergerSockets_.push_back(socket);
+			//std::cerr << "Connecting via ZMQ to merger " << address << std::endl;
+			zmq::socket_t* socket = ZMQHandler::GenerateSocket("StorageHandler", ZMQ_PUSH);
+			socket->connect(address.c_str());
+			mergerSockets_.push_back(socket);
 		} catch (const zmq::error_t& ex) {
 			LOG_ERROR("Failed to initialize ZMQ for merger " << address << " because: " << ex.what());
+			throw ex;
 		}
 	}
 }
@@ -79,6 +81,7 @@ void StorageHandler::initialize() {
 }
 
 void StorageHandler::onShutDown() {
+	std::lock_guard<std::recursive_mutex> my_lock(sendMutex_);
 	for (auto socket : mergerSockets_) {
 		ZMQHandler::DestroySocket(socket);
 	}
@@ -90,35 +93,48 @@ int StorageHandler::SendEvent(const Event* event) {
 	 * TODO: Use multimessage instead of creating a separate buffer and copying the MEP data into it
 	 */
 	const EVENT_HDR* data = EventSerializer::SerializeEvent(event);
-	//	LOG_ERROR ("Send event  "<<event->getEventNumber());
+	int dataLength = data->length * 4;
 
-	/*
-	 * Send the event to the merger with a zero copy message
-	 */
-	try {
-		zmq::message_t zmqMessage((void*) data, data->length * 4,
-				(zmq::free_fn*) ZMQHandler::freeZmqMessage);
+	StorageHandler::DataQueue_.push(data);
+	return dataLength;
+}
 
-		//	LOG_ERROR ("Send to merger burst "<<event->getBurstID() << " number of mergers " << mergerSockets_.size());
-		while (ZMQHandler::IsRunning()) {
-			tbb::spin_mutex::scoped_lock my_lock(sendMutex_);
+void StorageHandler::thread() {
+	while (running_) {
+		const EVENT_HDR* data;
+		if (StorageHandler::DataQueue_.try_pop(data)) {
 			try {
-				mergerSockets_[event->getBurstID() % mergerSockets_.size()]->send(zmqMessage);
-				break;
-			} catch (const zmq::error_t& ex) {
-				if (ex.num() != EINTR) { // try again if EINTR (signal caught)
-					LOG_ERROR(ex.what());
+				zmq::message_t zmqMessage((void*) data, data->length * 4,
+						(zmq::free_fn*) ZMQHandler::freeZmqMessage);
 
-					onShutDown();
-					return 0;
+
+				//	LOG_ERROR ("Send to merger burst "<<event->getBurstID() << " number of mergers " << mergerSockets_.size());
+				while (ZMQHandler::IsRunning()) {
+					std::lock_guard<std::recursive_mutex> my_lock(sendMutex_);
+					try {
+						mergerSockets_[data->burstID % mergerSockets_.size()]->send(zmqMessage);
+						break;
+					} catch (const zmq::error_t& ex) {
+						if (ex.num() != EINTR) { // try again if EINTR (signal caught)
+							LOG_ERROR(ex.what());
+							try {
+								initialize(); //try to re-initialize mergers
+							} catch (const zmq::error_t& exx) {
+								LOG_ERROR(exx.what());
+							}
+						}
+					}
 				}
+			} catch (const zmq::error_t& e) {
+				LOG_ERROR("Failed to create ZMQ message, because: " << e.what());
 			}
 		}
-	} catch (const zmq::error_t& e) {
-		LOG_ERROR("Failed to create ZMQ message, because: " << e.what());
+		else {
+			boost::this_thread::sleep(boost::posix_time::microsec(50));
+		}
 	}
-
-
-	return data->length * 4;
 }
+void StorageHandler::onInterruption() {
+		running_ = false;
+		}
 } /* namespace na62 */

@@ -13,26 +13,27 @@
 #include <atomic>
 #include <string>
 #include <vector>
-
-namespace tbb {
-class spin_mutex;
-} /* namespace tbb */
+#include <mutex>
+#include <utils/AExecutable.h>
+#include <tbb/concurrent_queue.h>
+#include <storage/EventSerializer.h>
 
 namespace zmq {
 class socket_t;
+class message_t;
 } /* namespace zmq */
 
 namespace na62 {
 class Event;
 
-class StorageHandler {
+class StorageHandler: public AExecutable {
+
 public:
+	StorageHandler() {running_ = true;}
 	static void initialize();
 	static void onShutDown();
 
 	static int SendEvent(const Event* event);
-
-	static std::string GetMergerAddress();
 
 	/**
 	 * Change the list of mergers to be used for sending data to
@@ -41,13 +42,17 @@ public:
 	static void setMergers(std::string mergerList);
 
 private:
-	static std::vector<std::string> GetMergerAddresses(std::string mergerList);
+	virtual void thread() override;
+	virtual void onInterruption() override;
+	std::atomic<bool> running_;
 
+	static std::vector<std::string> GetMergerAddresses(std::string mergerList);
+	static tbb::concurrent_queue<const EVENT_HDR*> DataQueue_;
 	/*
 	 * One Socket for every EventBuilder
 	 */
 	static std::vector<zmq::socket_t*> mergerSockets_;
-	static tbb::spin_mutex sendMutex_;
+	static std::recursive_mutex sendMutex_;
 };
 
 } /* namespace na62 */
