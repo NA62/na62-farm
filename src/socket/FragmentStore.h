@@ -33,7 +33,7 @@ public:
 		UDP_HDR* hdr = (UDP_HDR*) fragment.data;
 		const uint64_t fragID = generateFragmentID(hdr->ip.saddr, hdr->ip.id);
 		const uint fragmentStoreNum = fragID % numberOfFragmentStores_;
-		LOG_ERROR("Fragmented packet from " << EthernetUtils::ipToString(hdr->ip.saddr));
+		LOG_INFO("Fragmented packet from " << EthernetUtils::ipToString(hdr->ip.saddr));
 		numberOfFragmentsReceived_++;
 
 		/*

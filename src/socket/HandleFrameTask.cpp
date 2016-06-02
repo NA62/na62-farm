@@ -423,13 +423,16 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		}
 #ifdef USE_ERS
 	} catch (UnknownSourceID const& e) {
-		ers::warning(e);
+		LOG_ERROR("Unknown source ID received from " + EthernetUtils::ipToString(hdr->ip.saddr) + ": " + e.message() );
+		//ers::warning(e);
 		container.free();
 	} catch (CorruptedMEP const&e) {
-		ers::warning(CorruptedMEP(ERS_HERE, "DataSender=" + EthernetUtils::ipToString(hdr->ip.saddr), e));
+		LOG_ERROR("Corrupted data received from " + EthernetUtils::ipToString(hdr->ip.saddr) + ": " + e.message() );
+		//ers::warning(CorruptedMEP(ERS_HERE, "DataSender=" + EthernetUtils::ipToString(hdr->ip.saddr), e));
 		container.free();
 	} catch (Message const& e) {
-		ers::warning(e);
+		LOG_ERROR("Bad data received from " + EthernetUtils::ipToString(hdr->ip.saddr) + ": " + e.message() );
+		//ers::warning(e);
 		container.free();
 	}
 #else
