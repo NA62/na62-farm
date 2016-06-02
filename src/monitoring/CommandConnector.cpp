@@ -55,7 +55,7 @@ void CommandConnector::thread() {
 		std::vector<std::string> strings;
 		boost::split(strings, message, boost::is_any_of(":"));
 		if (strings.size() != 2) {
-			LOG_INFO("Unknown command: " << message);
+			LOG_ERROR("Unknown command received: " << message);
 		} else {
 			std::string command = strings[0];
 			if (command == "eob_timestamp") {
@@ -122,9 +122,13 @@ void CommandConnector::thread() {
 //					}
 #endif
 				}
-			} else if (command == "runningmergers") {
+			}
+			/*else if (command == "runningmergers") {
 				std::string mergerList = strings[1];
 				StorageHandler::setMergers(mergerList);
+			}*/
+			else {
+				LOG_INFO("Ignore command received: " << message);
 			}
 		}
 	}

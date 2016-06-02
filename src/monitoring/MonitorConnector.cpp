@@ -195,10 +195,10 @@ void MonitorConnector::handleUpdate() {
 	setDifferentialData("L1RequestToCreams", L1Requests);
 	IPCHandler::sendStatistics("L1RequestToCreams", std::to_string(L1Requests));
 
-	uint_fast32_t L1BypassedEvents = L1TriggerProcessor::GetL1BypassedEvents();
-	setDifferentialData("L1BypassedEvents ", L1BypassedEvents);
-	IPCHandler::sendStatistics("L1BypassedEvents",
-			std::to_string(L1BypassedEvents));
+//	uint_fast32_t L1BypassedEvents = L1TriggerProcessor::GetL1BypassedEvents();
+//	setDifferentialData("L1BypassedEvents ", L1BypassedEvents);
+//	IPCHandler::sendStatistics("L1BypassedEvents",
+//			std::to_string(L1BypassedEvents));
 
 	/*
 	 * Trigger word statistics
