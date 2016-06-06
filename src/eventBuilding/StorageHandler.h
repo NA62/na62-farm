@@ -39,14 +39,14 @@ public:
 	 * Change the list of mergers to be used for sending data to
 	 * @param mergerList comma or semicolon separated list of hostnames or IPs of the mergers to be used
 	 */
-	static void setMergers(std::string mergerList);
+	static void setMergers(std::vector<std::string> mergerList);
 
 private:
 	virtual void thread() override;
 	virtual void onInterruption() override;
 	std::atomic<bool> running_;
 
-	static std::vector<std::string> GetMergerAddresses(std::string mergerList);
+//	static std::vector<std::string> GetMergerAddresses(std::string mergerList);
 	static tbb::concurrent_queue<const EVENT_HDR*> DataQueue_;
 	/*
 	 * One Socket for every EventBuilder

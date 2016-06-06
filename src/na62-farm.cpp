@@ -120,13 +120,13 @@ void onBurstFinished() {
 			});
 
 	if (incompleteEvents_ > 0) {
-		LOG_ERROR(
-				"type = EOB : Dropped " << incompleteEvents_ << " events in burst ID = " << (int) BurstIdHandler::getCurrentBurstId() << ".");
+		LOG_ERROR("type = EOB : Dropped " << incompleteEvents_ << " events in burst ID = " << (int) BurstIdHandler::getCurrentBurstId() << ".");
+		LOG_ERROR (DetectorStatistics::L0RCInfo());
+		LOG_ERROR (DetectorStatistics::L1RCInfo());
+
 	}
 	IPCHandler::sendStatistics("MonitoringL0Data", DetectorStatistics::L0RCInfo());
 	IPCHandler::sendStatistics("MonitoringL1Data", DetectorStatistics::L1RCInfo());
-	LOG_ERROR (DetectorStatistics::L0RCInfo());
-	LOG_ERROR (DetectorStatistics::L1RCInfo());
 	DetectorStatistics::clearL0DetectorStatistics();
 	DetectorStatistics::clearL1DetectorStatistics();
 
@@ -194,8 +194,17 @@ int main(int argc, char* argv[]) {
 	HandleFrameTask::initialize();
 
 	EventSerializer::initialize();
-	StorageHandler::initialize();
-	//StrawReceiver::initialize();
+	try {
+		StorageHandler::initialize();
+	}
+	catch(const zmq::error_t& ex) {
+		LOG_ERROR("Failed to initialize StorageHandler because: " << ex.what());
+		exit(1);
+	}
+	StorageHandler sh;
+	sh.startThread("StorageHandler");
+
+		//StrawReceiver::initialize();
 
 	L1Builder::initialize();
 	L2Builder::initialize();

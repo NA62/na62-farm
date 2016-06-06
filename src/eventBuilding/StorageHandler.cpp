@@ -36,48 +36,29 @@ tbb::concurrent_queue<const EVENT_HDR*> StorageHandler::DataQueue_;
 
 std::recursive_mutex StorageHandler::sendMutex_;
 
-std::vector<std::string> StorageHandler::GetMergerAddresses(
-		std::string mergerList) {
-	std::vector<std::string> mergers;
-	boost::split(mergers, mergerList, boost::is_any_of(";,"));
-
-	if (mergers.empty()) {
-		LOG_ERROR("List of running mergers is empty => Stopping now!");
-		;
-		exit(1);
-	}
-
-	std::vector<std::string> addresses;
-	for (std::string host : mergers) {
-		std::stringstream address;
-		address << "tcp://" << host << ":" << Options::GetInt(OPTION_MERGER_PORT);
-		addresses.push_back(address.str());
-	}
-	return addresses;
-}
-
-void StorageHandler::setMergers(std::string mergerList) {
+void StorageHandler::setMergers(std::vector<std::string> mergerList) {
 	std::lock_guard<std::recursive_mutex> my_lock(sendMutex_);
 	for (auto socket : mergerSockets_) {
 		ZMQHandler::DestroySocket(socket);
 	}
 	mergerSockets_.clear();
 
-	for (std::string address : GetMergerAddresses(mergerList)) {
+	for (auto host : mergerList) {
 		try {
-			//std::cerr << "Connecting via ZMQ to merger " << address << std::endl;
+			std::stringstream address;
+			address << "tcp://"<< host << ":" << Options::GetInt(OPTION_MERGER_PORT);
 			zmq::socket_t* socket = ZMQHandler::GenerateSocket("StorageHandler", ZMQ_PUSH);
-			socket->connect(address.c_str());
+			socket->connect(address.str().c_str());
 			mergerSockets_.push_back(socket);
 		} catch (const zmq::error_t& ex) {
-			LOG_ERROR("Failed to initialize ZMQ for merger " << address << " because: " << ex.what());
+			LOG_ERROR("Failed to initialize ZMQ for merger " << host << " because: " << ex.what());
 			throw ex;
 		}
 	}
 }
 
 void StorageHandler::initialize() {
-	setMergers(Options::GetString(OPTION_MERGER_HOST_NAMES));
+	setMergers(Options::GetStringList(OPTION_MERGER_HOST_NAMES));
 }
 
 void StorageHandler::onShutDown() {
