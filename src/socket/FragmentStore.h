@@ -77,7 +77,7 @@ public:
 			}
 		}
 
-		return {nullptr, 0, false};
+		return {nullptr, 0, false, 0, 0};
 	}
 
 	static uint getNumberOfReceivedFragments() {
@@ -132,6 +132,8 @@ private:
 		char* newFrameBuff = new char[totalBytes];
 
 		uint_fast16_t currentOffset = sizeof(ether_header) + sizeof(iphdr);
+		in_port_t newUdpPort = 0;
+		in_addr_t newAddr = 0;
 		for (DataContainer& fragment : fragments) {
 			UDP_HDR* currentData = (UDP_HDR*) fragment.data;
 
@@ -148,7 +150,7 @@ private:
 					}
 				}
 
-				return {nullptr, 0, false};
+				return {nullptr, 0, false, 0, 0};
 			}
 
 			/*
@@ -170,7 +172,7 @@ private:
 			}
 			delete[] fragment.data;
 		}
-		return {newFrameBuff, currentOffset, true};
+		return {newFrameBuff, currentOffset, true, newUdpPort, newAddr};
 	}
 };
 

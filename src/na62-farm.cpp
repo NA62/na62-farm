@@ -5,6 +5,9 @@
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
+#include <boost/asio/io_service.hpp>
+
+
 #include <eventBuilding/SourceIDManager.h>
 #include <tbb/task.h>
 #include <tbb/tbb.h>
@@ -153,8 +156,9 @@ int main(int argc, char* argv[]) {
 	boost::asio::io_service signalService;
 	boost::asio::signal_set signals(signalService, SIGINT, SIGTERM, SIGQUIT);
 	signals.async_wait(handle_stop);
-	boost::thread signalThread(
-			boost::bind(&boost::asio::io_service::run, &signalService));
+	//boost::thread signalThread(boost::bind(&boost::asio::io_service::run, &signalService));
+
+	std::thread signalThread([&signalService](){signalService.run();});
 
 	L1TriggerProcessor::registerDownscalingAlgorithms();
 
@@ -164,6 +168,7 @@ int main(int argc, char* argv[]) {
 	 */
 	TriggerOptions::Load(argc, argv);
 	MyOptions::Load(argc, argv);
+
 	try {
 		ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
 	} catch (const zmq::error_t& ex) {
@@ -181,18 +186,21 @@ int main(int argc, char* argv[]) {
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread
 	 */
-	NetworkHandler NetworkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME));
+
+	NetworkHandler NetworkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME), Options::GetInt(OPTION_L0_RECEIVER_PORT),
+			                      Options::GetInt(OPTION_CREAM_RECEIVER_PORT), Options::GetInt(OPTION_CREAM_MULTICAST_PORT));
 	NetworkHandler.startThread("ArpSender");
+
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
 			Options::GetIntPairList(OPTION_L1_DATA_SOURCE_IDS));
 
-	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID),
-			&onBurstFinished);
+
+	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID), &onBurstFinished, Options::GetInt(OPTION_AUTO_INCREMENT_ID),
+			Options::GetInt(SECONDS_BETWEEN_INCREMENT_ID), Options::GetIntPairList(OPTION_DATA_SOURCE_IDS), Options::GetString(OPTION_ETH_DEVICE_NAME));
 
 	HandleFrameTask::initialize();
-
 	EventSerializer::initialize();
 	StorageHandler::initialize();
 	//StrawReceiver::initialize();
@@ -237,6 +245,7 @@ int main(int argc, char* argv[]) {
 			Options::GetStringList(OPTION_CREAM_MULTICAST_GROUP),
 			Options::GetInt(OPTION_CREAM_RECEIVER_PORT),
 			Options::GetInt(OPTION_CREAM_MULTICAST_PORT));
+
 
 	/*
 	 * Burst Handler
@@ -289,6 +298,7 @@ int main(int argc, char* argv[]) {
 	CommandConnector c;
 	c.startThread(0, "Commandconnector", -1, 1);
 	monitoring::MonitorConnector::setState(RUNNING);
+
 
 	/*
 	 * Join PacketHandler and other threads

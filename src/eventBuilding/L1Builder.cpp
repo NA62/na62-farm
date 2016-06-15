@@ -12,6 +12,8 @@
 #include <eventBuilding/Event.h>
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/SourceIDManager.h>
+#include <monitoring/IPCHandler.h>
+#include <socket/ZMQHandler.h>
 #include <l0/MEP.h>
 #include <l0/MEPFragment.h>
 #include <l0/Subevent.h>

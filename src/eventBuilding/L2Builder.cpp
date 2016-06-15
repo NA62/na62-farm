@@ -51,6 +51,7 @@ void L2Builder::buildEvent(l1::MEPFragment* fragment) {
 		return;
 	}
 #else
+
 	event = EventPool::getEvent(fragment->getEventNumber());
 
 	/*

@@ -18,6 +18,9 @@
  */
 #define OPTION_ETH_DEVICE_NAME (char*)"ethDeviceName"
 
+#define OPTION_L1_BYPASS_PROBABILITY (char*)"L1BypassProbability"
+#define OPTION_L2_BYPASS_PROBABILITY (char*)"L2BypassProbability"
+
 #define OPTION_L0_RECEIVER_PORT (char*)"L0Port"
 #define OPTION_CREAM_RECEIVER_PORT (char*)"CREAMPort"
 
@@ -44,6 +47,8 @@
 #define OPTION_INCREMENT_BURST_AT_EOB (char*)"incrementBurstAtEOB"
 
 #define OPTION_MIN_USEC_BETWEEN_L1_REQUESTS (char*)"minUsecsBetweenL1Requests"
+#define OPTION_AUTO_INCREMENT_ID  (char*)"AutoIncrementBurstID"
+#define SECONDS_BETWEEN_INCREMENT_ID  (char*)"NumberOfSecondsToChangeBurstID"
 
 /*
  * Merger
@@ -164,6 +169,13 @@ public:
 		(OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG,
 				po::value<int>()->default_value(0),
 				"Set to true if only zero-suppressed data from LKr should be requested after L1")
+
+		(OPTION_L1_BYPASS_PROBABILITY, po::value<int>()->default_value(0),
+				 "")
+
+		(OPTION_L2_BYPASS_PROBABILITY, po::value<int>()->default_value(0),
+				 				"")
+
 
 
 		(OPTION_ZMQ_IO_THREADS, po::value<int>()->default_value(1),

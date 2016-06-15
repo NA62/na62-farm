@@ -110,6 +110,7 @@ void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
 	/*
 	 * Look for ARP requests asking for my IP
 	 */
+
 	if (arp->targetIPAddr == NetworkHandler::GetMyIP()) { // This is asking for me
 		DataContainer responseArp = EthernetUtils::GenerateARPv4(
 				NetworkHandler::GetMyMac().data(), arp->sourceHardwAddr,
@@ -156,73 +157,17 @@ void HandleFrameTask::execute() {
 
 void HandleFrameTask::processFrame(DataContainer&& container) {
 
-		UDP_HDR* hdr = (UDP_HDR*) container.data;
-		const uint_fast16_t etherType = /*ntohs*/(hdr->eth.ether_type);
-		const uint_fast8_t ipProto = hdr->ip.protocol;
-		uint_fast16_t destPort = ntohs(hdr->udp.dest);
-		const uint_fast32_t dstIP = hdr->ip.daddr;
-		try {
-		/*
-		 * Check if we received an ARP request
-		 */
-		if (etherType != 0x0008/*ETHERTYPE_IP*/|| ipProto != IPPROTO_UDP) {
-			if (etherType == 0x0608/*ETHERTYPE_ARP*/) {
-				u_int16_t pktLen = container.length;
-				char buff[64];
-				char* pbuff = buff;
-				memcpy(pbuff, container.data, pktLen);
-				std::stringstream AAARP;
-				AAARP << "ARP Request FromRouter" << pktLen << " ";
-				for (int i = 0; i < pktLen; i++)
-					AAARP << std::hex << ((char) (*(pbuff + i)) & 0xFF) << " ";
-//				LOG_INFO(AAARP.str());
+	try {
 
-				// this will delete the data
-				processARPRequest(reinterpret_cast<ARP_HDR*>(container.data));
-				return;
-			} else {
-				// Just ignore this frame as it's neither IP nor ARP
-				container.free();
-				return;
-			}
-		}
-
-		/*
-		 * Check checksum errors
-		 */
-		if (!checkFrame(hdr, container.length)) {
-			LOG_ERROR("type = BadPack : Received broken packet from " << EthernetUtils::ipToString(hdr->ip.saddr));
-			container.free();
-			return;
-		}
-
-		/*
-		 * Check if we are really the destination of the IP datagram
-		 */
-		if (MyIP != dstIP) {
-		//if("10.194.20.37" != EthernetUtils::ipToString(dstIP)) {
-			LOG_ERROR("Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP));
-			container.free();
-			return;
-		}
-
-		if (hdr->isFragment()) {
-			container = FragmentStore::addFragment(std::move(container));
-			if (container.data == nullptr) {
-				return;
-			}
-			hdr = reinterpret_cast<UDP_HDR*>(container.data);
-			destPort = ntohs(hdr->udp.dest);
-		}
-
-		const char * UDPPayload = container.data + sizeof(UDP_HDR);
-		const uint_fast16_t & UdpDataLength = ntohs(hdr->udp.len)
-				- sizeof(udphdr);
+		in_port_t srcPort = container.UDPPort;
+		in_addr_t srcIP = container.UDPAddr;//hdr->ip.daddr;
+		const char * UDPPayload = container.data;// + sizeof(UDP_HDR);
+		const uint_fast16_t & UdpDataLength = container.length;//sizeof(container.data);//ntohs(hdr->udp.len)- sizeof(udphdr);
 
 		/*
 		 *  Now let's see what's insight the packet
 		 */
-		if (destPort == L0_Port) { ////////////////////////////////////////////////// L0 Data //////////////////////////////////////////////////
+		if (srcPort == L0_Port) { ////////////////////////////////////////////////// L0 Data //////////////////////////////////////////////////
 			/*
 			 * L0 Data
 			 * Length is hdr->ip.tot_len-sizeof(udphdr) and not container.length because of ethernet padding bytes!
@@ -233,6 +178,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 
 			MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
 					std::memory_order_relaxed);
+
 			BytesReceivedBySourceNum_[sourceNum].fetch_add(container.length,
 					std::memory_order_relaxed);
 
@@ -241,6 +187,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			 */
 			if (mep->getSourceID() == SOURCE_ID_L0TP) {
 				if (SourceIDManager::isL1Active()) {
+
 					//LOG_INFO("Invent L1 MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
 					uint16_t fragmentLength = sizeof(L1_BLOCK) + 8; //event length in bytes
@@ -273,7 +220,9 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					}
 
 					l0::MEP* mep_L1 = new l0::MEP(L1Data + sizeof(UDP_HDR),
-							L1BlockLength, { L1Data, L1BlockLength, true });
+					//************************Ojo*****************************///
+							L1BlockLength, { L1Data, L1BlockLength, true, MyOptions::GetInt(OPTION_CREAM_MULTICAST_PORT), srcIP });
+
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_L1->getSourceID());
 
@@ -282,11 +231,12 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					BytesReceivedBySourceNum_[sourceNum].fetch_add(
 							L1BlockLength + sizeof(UDP_HDR),
 							std::memory_order_relaxed);
-					for (uint i = 0; i != mep_factor; i++) {
+					//for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
-						L1Builder::buildEvent(mep_L1->getFragment(i), burstID_);
-					}
+					//	L1Builder::buildEvent(mep_L1->getFragment(i), burstID_);
+					//}
 				}
+				//Is this part used somewhere?
 				if (SourceIDManager::isL2Active()) {
 					//LOG_INFO("Invent L2 MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
@@ -317,7 +267,8 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					const uint_fast16_t & L2DataLength = L2BlockLength;
 
 					l0::MEP* mep_L2 = new l0::MEP(L2Data + sizeof(UDP_HDR),
-							L2DataLength, { L2Data, L2DataLength, true });
+							//************************Ojo*****************************///
+							L2DataLength, { L2Data, L2DataLength, true, 0, 0 });
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_L2->getSourceID());
 
@@ -327,12 +278,13 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 							L2BlockLength + sizeof(UDP_HDR),
 							std::memory_order_relaxed);
 
-					for (uint i = 0; i != mep_factor; i++) {
+					//for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
-						L1Builder::buildEvent(mep_L2->getFragment(i), burstID_);
-					}
+					//	L1Builder::buildEvent(mep_L2->getFragment(i), burstID_);
+					//}
 				}
 				if (SourceIDManager::isNSTDActive()) {
+					//Is this part used somewhere?
 					//LOG_INFO("Invent NSTD MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
 					uint32_t NSTDEventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
@@ -364,7 +316,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					const uint_fast16_t & NSTDDataLength = NSTDBlockLength;
 
 					l0::MEP* mep_NSTD = new l0::MEP(NSTDData + sizeof(UDP_HDR),
-							NSTDDataLength, { NSTDData, NSTDDataLength, true });
+							NSTDDataLength, { NSTDData, NSTDDataLength, true, 0, 0 });
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_NSTD->getSourceID());
 
@@ -374,11 +326,10 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 							NSTDBlockLength + sizeof(UDP_HDR),
 							std::memory_order_relaxed);
 
-					for (uint i = 0; i != mep_factor; i++) {
+					//for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
-						L1Builder::buildEvent(mep_NSTD->getFragment(i),
-								burstID_);
-					}
+					//	L1Builder::buildEvent(mep_NSTD->getFragment(i), burstID_);
+					//}
 				}
 			}
 
@@ -388,13 +339,9 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				// Add every fragment
 				L1Builder::buildEvent(mep->getFragment(i), burstID_);
 			}
-		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// L1 Data //////////////////////////////////////////////////
-			if (UdpDataLength == 0) {
-				LOG_ERROR("Empty L1 fragment from " << EthernetUtils::ipToString(hdr->ip.saddr));
-				container.free();
-				return;
-			}
-			 l1::MEP* l1mep = new l1::MEP(UDPPayload, UdpDataLength, container);
+		} else if (srcPort == CREAM_Port) { ////////////////////////////////////////////////// L1 Data //////////////////////////////////////////////////
+			//std::cout<<"proceso L1"<<std::endl;
+			l1::MEP* l1mep = new l1::MEP(UDPPayload, UdpDataLength, container);
 
 			//fragment
 			uint sourceNum = SourceIDManager::l1SourceIDToNum(l1mep->getSourceID());
@@ -418,7 +365,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			/*
 			 * Packet with unknown UDP port received
 			 */
-			LOG_WARNING("Packet with unknown UDP port received: " << destPort);
+			LOG_ERROR("type = BadPack : Packet with unknown UDP port received: " << srcPort);
 			container.free();
 		}
 #ifdef USE_ERS

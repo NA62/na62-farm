@@ -43,6 +43,7 @@ void CommandConnector::thread() {
 		/*
 		 * Synchronious receive:
 		 */
+
 		message = IPCHandler::getNextCommand();
 		if (message == "") {
 			continue;
@@ -62,6 +63,7 @@ void CommandConnector::thread() {
 				if (MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
 					uint_fast32_t burst = BurstIdHandler::getCurrentBurstId()
 							+ 1;
+
 					BurstIdHandler::setNextBurstID(burst);
 #ifdef MEASURE_TIME
 //					if (BurstIdHandler::getResetCounters()) {

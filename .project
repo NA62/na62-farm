@@ -4,8 +4,9 @@
 	<comment></comment>
 	<projects>
 		<project>na62-farm-lib</project>
-		<project>na62-trigger-algorithms</project>
 		<project>na62-farm-lib-networking</project>
+		<project>na62-farm-telsim</project>
+		<project>na62-trigger-algorithms</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

@@ -305,7 +305,7 @@
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.320209643" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_ERS"/>
-									<listOptionValue builtIn="false" value="USE_PFRING"/>
+									<listOptionValue builtIn="false" value="USE_UDP"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.dialect.std.429685836" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1015467020" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
@@ -333,9 +333,6 @@
 									<listOptionValue builtIn="false" value="boost_timer${tag}"/>
 									<listOptionValue builtIn="false" value="boost_program_options${tag}"/>
 									<listOptionValue builtIn="false" value="boost_system${tag}"/>
-									<listOptionValue builtIn="false" value="glog"/>
-									<listOptionValue builtIn="false" value="pcap"/>
-									<listOptionValue builtIn="false" value="pfring"/>
 									<listOptionValue builtIn="false" value="pthread"/>
 									<listOptionValue builtIn="false" value="zmq"/>
 									<listOptionValue builtIn="false" value="tbb"/>
