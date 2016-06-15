@@ -373,7 +373,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		ers::warning(e);
 		container.free();
 	} catch (CorruptedMEP const&e) {
-		ers::warning(CorruptedMEP(ERS_HERE, "DataSender=" + EthernetUtils::ipToString(hdr->ip.saddr), e));
+		//ers::warning(CorruptedMEP(ERS_HERE, "DataSender=" + EthernetUtils::ipToString(hdr->ip.saddr), e));
 		container.free();
 	} catch (Message const& e) {
 		ers::warning(e);
