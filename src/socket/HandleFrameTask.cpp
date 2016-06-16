@@ -13,6 +13,7 @@
 #include <l1/MEP.h>
 #include <l1/MEPFragment.h>
 #include <l1/L1Fragment.h>
+#include <l1/L1TriggerProcessor.h>
 #include <l2/L2Fragment.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
@@ -243,7 +244,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				if (SourceIDManager::isL1Active()) {
 					//LOG_INFO("Invent L1 MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
-					uint16_t fragmentLength = sizeof(L1_BLOCK) + 8; //event length in bytes
+					uint16_t fragmentLength = L1TriggerProcessor::GetL1DataPacketSize() + 8; //event length in bytes
 					const uint32_t L1BlockLength = mep_factor * fragmentLength
 							+ 8; //L1 block length in bytes
 					char * L1Data = new char[L1BlockLength + sizeof(UDP_HDR)]; //include UDP header
