@@ -18,9 +18,6 @@
  */
 #define OPTION_ETH_DEVICE_NAME (char*)"ethDeviceName"
 
-#define OPTION_L1_BYPASS_PROBABILITY (char*)"L1BypassProbability"
-#define OPTION_L2_BYPASS_PROBABILITY (char*)"L2BypassProbability"
-
 #define OPTION_L0_RECEIVER_PORT (char*)"L0Port"
 #define OPTION_CREAM_RECEIVER_PORT (char*)"CREAMPort"
 
@@ -102,7 +99,7 @@ public:
 		desc.add_options()
 
 		(OPTION_CONFIG_FILE,
-				po::value<std::string>()->default_value("/etc/na62-farm.cfg"),
+				po::value<std::string>()->default_value("/performance/udptest/na62-farm.cfg"),
 				"Config file for the options shown here")
 
 		(OPTION_ETH_DEVICE_NAME,
@@ -146,6 +143,14 @@ public:
 		(OPTION_FIRST_BURST_ID, po::value<int>()->required(),
 				"The current or first burst ID. This must be set if a PC starts during a run.")
 
+
+         (OPTION_AUTO_INCREMENT_ID, po::value<int>()->default_value(0),
+				        "Auto change Burst ID every N seconds ")
+
+		 (SECONDS_BETWEEN_INCREMENT_ID, po::value<int>()->default_value(10),
+				          "When Auto_Inc is set, it must be specified a number of seconds here, default is 10 (in order to avoid constant AUTO_INC) in case of no specification")
+
+
 		(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS,
 				po::value<int>()->default_value(1000),
 				"Minimum time between two MRPs sent to the L1")
@@ -169,13 +174,6 @@ public:
 		(OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG,
 				po::value<int>()->default_value(0),
 				"Set to true if only zero-suppressed data from LKr should be requested after L1")
-
-		(OPTION_L1_BYPASS_PROBABILITY, po::value<int>()->default_value(0),
-				 "")
-
-		(OPTION_L2_BYPASS_PROBABILITY, po::value<int>()->default_value(0),
-				 				"")
-
 
 
 		(OPTION_ZMQ_IO_THREADS, po::value<int>()->default_value(1),
