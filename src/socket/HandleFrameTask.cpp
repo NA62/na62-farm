@@ -14,6 +14,7 @@
 #include <l1/MEPFragment.h>
 #include <l1/L1Fragment.h>
 #include <l1/L1TriggerProcessor.h>
+#include <l2/L2TriggerProcessor.h>
 #include <l2/L2Fragment.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
@@ -291,11 +292,10 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				if (SourceIDManager::isL2Active()) {
 					//LOG_INFO("Invent L2 MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
-					uint32_t L2EventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
+					uint32_t L2EventLength = L2TriggerProcessor::GetL2DataPacketSize() + 8; //event length in bytes
 					uint32_t L2BlockLength = mep_factor * L2EventLength + 8; //L2 block length in bytes
 					char * L2Data = new char[L2BlockLength + sizeof(UDP_HDR)]; //include UDP header
-					l0::MEP_HDR * L2Hdr = (l0::MEP_HDR *) (L2Data
-							+ sizeof(UDP_HDR));
+					l0::MEP_HDR * L2Hdr = (l0::MEP_HDR *) (L2Data + sizeof(UDP_HDR));
 
 					L2Hdr->firstEventNum = mep->getFirstEventNum();
 					L2Hdr->sourceID = SOURCE_ID_L2;
@@ -336,7 +336,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				if (SourceIDManager::isNSTDActive()) {
 					//LOG_INFO("Invent NSTD MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
-					uint32_t NSTDEventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
+					uint32_t NSTDEventLength = sizeof(uint32_t) + 8; //dummy length that will be corrected in mergers
 					uint32_t NSTDBlockLength = mep_factor * NSTDEventLength + 8; //L2 block length in bytes
 					char * NSTDData =
 							new char[NSTDBlockLength + sizeof(UDP_HDR)]; //include UDP header
