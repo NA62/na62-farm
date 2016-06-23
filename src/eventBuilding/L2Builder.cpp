@@ -99,61 +99,72 @@ void L2Builder::buildEvent(l1::MEPFragment* fragment) {
 
 void L2Builder::processL2(Event *event) {
 
-	if (!event->isWaitingForNonZSuppressedLKrData()) {
-		/*
-		 * L1 already passed but non zero suppressed LKr data not yet requested -> Process Level 2 trigger
-		 */
-		uint_fast8_t L2Trigger = L2TriggerProcessor::compute(event);
+	// If L2 is disabled just write out the event
+	if (!SourceIDManager::isL2Active()) {
+		event->setL2Processed(0);
+		BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
+				std::memory_order_relaxed);
+		EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
+	}
+	else {
+		if (!event->isWaitingForNonZSuppressedLKrData()) {
+			/*
+			 * L1 already passed but non zero suppressed LKr data not yet requested -> Process Level 2 trigger
+			 */
+			uint_fast8_t L2Trigger = L2TriggerProcessor::compute(event);
 
 #ifdef MEASURE_TIME
-		uint L2ProcessingTimeIndex = (uint) event->getL2ProcessingTime() / 1.;
-		if (L2ProcessingTimeIndex >= 0x64)
-			L2ProcessingTimeIndex = 0x64;
-		uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-08) / 2);
-		if (EventTimestampIndex >= 0x64)
-			EventTimestampIndex = 0x64;
-		L2ProcessingTimeVsEvtNumber_[L2ProcessingTimeIndex][EventTimestampIndex].fetch_add(
-				1, std::memory_order_relaxed);
+			uint L2ProcessingTimeIndex = (uint) event->getL2ProcessingTime() / 1.;
+			if (L2ProcessingTimeIndex >= 0x64)
+				L2ProcessingTimeIndex = 0x64;
+			uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-08) / 2);
+			if (EventTimestampIndex >= 0x64)
+				EventTimestampIndex = 0x64;
+			L2ProcessingTimeVsEvtNumber_[L2ProcessingTimeIndex][EventTimestampIndex].fetch_add(
+					1, std::memory_order_relaxed);
 #endif
-		event->setL2Processed(L2Trigger);
+			event->setL2Processed(L2Trigger);
 #ifdef MEASURE_TIME
-		L2ProcessingTimeCumulative_.fetch_add(event->getL2ProcessingTime(),
-				std::memory_order_relaxed);
-		if (event->getL2ProcessingTime() >= L2ProcessingTimeMax_)
-			L2ProcessingTimeMax_ = event->getL2ProcessingTime();
+			L2ProcessingTimeCumulative_.fetch_add(event->getL2ProcessingTime(),
+					std::memory_order_relaxed);
+			if (event->getL2ProcessingTime() >= L2ProcessingTimeMax_)
+				L2ProcessingTimeMax_ = event->getL2ProcessingTime();
 #endif
-		/*
-		 * Event has been processed and saved or rejected -> destroy, don't delete so that it can be reused if
-		 * during L2 no non zero suppressed LKr data has been requested
-		 */
-		if (!event->isWaitingForNonZSuppressedLKrData()) {
+			/*
+			 * Event has been processed and saved or rejected -> destroy, don't delete so that it can be reused if
+			 * during L2 no non zero suppressed LKr data has been requested
+			 */
+			if (!event->isWaitingForNonZSuppressedLKrData()) {
+				if (event->isL2Accepted()) {
+					/*
+					 * Send Event to merger
+					 */
+					BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
+							std::memory_order_relaxed);
+					EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
+				}
+			}
+		} else { // Process non zero-suppressed data (not used at the moment!
+			// When the implementation will be completed, we need to propagate the L2 downscaling
+			uint_fast8_t L2Trigger =
+					L2TriggerProcessor::onNonZSuppressedLKrDataReceived(event);
+
+			event->setL2Processed(L2Trigger);
+#ifdef MEASURE_TIME
+			L2ProcessingTimeCumulative_.fetch_add(event->getL2ProcessingTime(),
+					std::memory_order_relaxed);
+			if (event->getL2ProcessingTime() >= L2ProcessingTimeMax_)
+				L2ProcessingTimeMax_ = event->getL2ProcessingTime();
+#endif
 			if (event->isL2Accepted()) {
-				/*
-				 * Send Event to merger
-				 */
 				BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
 						std::memory_order_relaxed);
 				EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 			}
 		}
-	} else { // Process non zero-suppressed data (not used at the moment!
-		// When the implementation will be completed, we need to propagate the L2 downscaling
-		uint_fast8_t L2Trigger =
-				L2TriggerProcessor::onNonZSuppressedLKrDataReceived(event);
-
-		event->setL2Processed(L2Trigger);
-#ifdef MEASURE_TIME
-		L2ProcessingTimeCumulative_.fetch_add(event->getL2ProcessingTime(),
-				std::memory_order_relaxed);
-		if (event->getL2ProcessingTime() >= L2ProcessingTimeMax_)
-			L2ProcessingTimeMax_ = event->getL2ProcessingTime();
-#endif
-		if (event->isL2Accepted()) {
-			BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
-					std::memory_order_relaxed);
-			EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
-		}
 	}
+
+	// Whater this event was... it's time to eliminate it
 	EventPool::freeEvent(event);
 }
 

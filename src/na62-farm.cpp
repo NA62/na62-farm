@@ -156,9 +156,6 @@ int main(int argc, char* argv[]) {
 	boost::thread signalThread(
 			boost::bind(&boost::asio::io_service::run, &signalService));
 
-	L1TriggerProcessor::registerDownscalingAlgorithms();
-
-	L1TriggerProcessor::registerReductionAlgorithms();
 	/*
 	 * Static Class initializations
 	 */
