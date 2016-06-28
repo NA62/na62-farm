@@ -83,25 +83,28 @@ void MonitorConnector::handleUpdate() {
 
 	LOG_INFO("Enqueued tasks:\t" << HandleFrameTask::getNumberOfQeuedTasks());
 
-	LOG_INFO(
-			"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames());
+	LOG_INFO("IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()
+			<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames());
 
 	LOG_INFO("BurstID:\t" << BurstIdHandler::getCurrentBurstId());
 	//LOG_INFO<<"NextBurstID:\t" << BurstIdHandler::getNextBurstId();
 
 	LOG_INFO("State:\t" << currentState_);
 
+#ifdef USE_REDUCED_STATS
+	NetworkHandler::PrintStatsL0();
+	NetworkHandler::PrintStatsL1();
+
+}
+#else
 	setDifferentialData("Sleeps", PacketHandler::sleeps_);
 	setDifferentialData("Spins", PacketHandler::spins_);
-	setContinuousData("SendTimer",
-			PacketHandler::sendTimer.elapsed().wall / 1000);
-	setDifferentialData("SpawnedTasks",
-			PacketHandler::frameHandleTasksSpawned_);
+	setContinuousData("SendTimer",PacketHandler::sendTimer.elapsed().wall / 1000);
+	setDifferentialData("SpawnedTasks",PacketHandler::frameHandleTasksSpawned_);
 	setContinuousData("AggregationSize",
 			NetworkHandler::GetFramesReceived()
 					/ (float) PacketHandler::frameHandleTasksSpawned_);
 
-	NetworkHandler::PrintStats();
 
 	IPCHandler::sendStatistics("PF_BytesReceived",
 			std::to_string(NetworkHandler::GetBytesReceived()));
@@ -111,9 +114,9 @@ void MonitorConnector::handleUpdate() {
 			std::to_string(NetworkHandler::GetFramesDropped()));
 
 	LOG_INFO("########################");
-	/*
-	 * Number of Events and data rate from all detectors
-	 */
+
+	 // Number of Events and data rate from all detectors
+
 	std::stringstream statistics;
 
 	for (int soruceIDNum = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES - 1;
@@ -195,9 +198,9 @@ void MonitorConnector::handleUpdate() {
 	setDifferentialData("L1RequestToCreams", L1Requests);
 	IPCHandler::sendStatistics("L1RequestToCreams", std::to_string(L1Requests));
 
-	/*
-	 * Trigger word statistics
-	 */
+
+	 // Trigger word statistics
+
 	std::stringstream L1Stats;
 	std::stringstream L2Stats;
 	for (int wordNum = 0x00; wordNum <= 0xFF; wordNum++) {
@@ -255,7 +258,7 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("L1TriggersSent",
 			std::to_string(l1::L1DistributionHandler::GetL1TriggersSent()));
 
-	setDifferentialData("FramesSent", NetworkHandler::GetFramesSent());
+	setDifferentialData("FramesSent", NetworkHandler::GetFramesRequestSent());
 	setContinuousData("OutFramesQueued",
 			NetworkHandler::getNumberOfEnqueuedSendFrames());
 
@@ -263,10 +266,10 @@ void MonitorConnector::handleUpdate() {
 			"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames());
 	LOG_INFO("=======================================");
 
-	/*
-	 * Building Time L0-L1 statistics
-	 *
-	 */
+
+	 // Building Time L0-L1 statistics
+
+
 	uint64_t L0BuildTimeMean = 0;
 	uint64_t L1BuildTimeMean = 0;
 	uint64_t L1InputEventsPerBurst =
@@ -302,10 +305,10 @@ void MonitorConnector::handleUpdate() {
 			std::to_string(L0BuildTimeMax));
 	IPCHandler::sendStatistics("L1BuildingTimeMax",
 			std::to_string(L1BuildTimeMax));
-	/*
-	 * Timing L1-L2 statistics
-	 *
-	 */
+
+	 //Timing L1-L2 statistics
+
+
 	uint64_t L1ProcTimeMean = 0;
 	uint64_t L2ProcTimeMean = 0;
 
@@ -339,9 +342,9 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("L2ProcessingTimeMax",
 			std::to_string(L2ProcTimeMax));
 
-	/*
-	 * Timing statistics for histograms
-	 */
+
+	 // Timing statistics for histograms
+
 	std::stringstream L0BuildTimeVsEvtNumStats;
 	std::stringstream L1BuildTimeVsEvtNumStats;
 	std::stringstream L1ProcTimeVsEvtNumStats;
@@ -394,6 +397,7 @@ void MonitorConnector::handleUpdate() {
 
 	IPCHandler::sendStatistics("UnfinishedEventsData",
 			UnfinishedEventsCollector::toJson());
+
 }
 
 uint64_t MonitorConnector::setDifferentialData(std::string key,
@@ -475,7 +479,7 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 void MonitorConnector::setContinuousData(std::string key, uint64_t value) {
 	LOG_INFO(key << ":\t" << std::to_string(value));
 }
-
+#endif
 }
 /* namespace monitoring */
 } /* namespace na62 */

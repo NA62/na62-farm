@@ -41,17 +41,22 @@
 #include "monitoring/MonitorConnector.h"
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
+#include "socket/PacketHandlerL1.h"
 #include "socket/TaskProcessor.h"
+#include "socket/TaskProcessorL1.h"
 #include "socket/ZMQHandler.h"
 #include "socket/HandleFrameTask.h"
+#include "socket/HandleFrameTaskL1.h"
 #include "monitoring/CommandConnector.h"
 //#include "straws/StrawReceiver.h"
 
 using namespace std;
 using namespace na62;
 
+std::vector<PacketHandlerL1*> packetHandlersL1;
 std::vector<PacketHandler*> packetHandlers;
 std::vector<TaskProcessor*> taskProcessors;
+std::vector<TaskProcessorL1*> taskProcessorsL1;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
 #ifdef USE_GLOG
@@ -105,22 +110,22 @@ void onBurstFinished() {
 			tbb::blocked_range<uint_fast32_t>(0,
 					EventPool::getLargestTouchedEventnumberIndex() + 1,
 					EventPool::getLargestTouchedEventnumberIndex()
-							/ std::thread::hardware_concurrency()),
-			[](const tbb::blocked_range<uint_fast32_t>& r) {
-				for(size_t index=r.begin();index!=r.end(); index++) {
-					Event* event = EventPool::getEventByIndex(index);
-					if(event == nullptr) continue;
-					if (event->isUnfinished()) {
-						if(event->isLastEventOfBurst()) {
-							LOG_ERROR("type = EOB : Handling unfinished EOB event " << event->getEventNumber());
-							StorageHandler::SendEvent(event);
-						}
-						++incompleteEvents_;
-						event->updateMissingEventsStats();
-						EventPool::freeEvent(event);
-					}
+	/ std::thread::hardware_concurrency()),
+	[](const tbb::blocked_range<uint_fast32_t>& r) {
+		for(size_t index=r.begin();index!=r.end(); index++) {
+			Event* event = EventPool::getEventByIndex(index);
+			if(event == nullptr) continue;
+			if (event->isUnfinished()) {
+				if(event->isLastEventOfBurst()) {
+					LOG_ERROR("type = EOB : Handling unfinished EOB event " << event->getEventNumber());
+					StorageHandler::SendEvent(event);
 				}
-			});
+				++incompleteEvents_;
+				event->updateMissingEventsStats();
+				EventPool::freeEvent(event);
+			}
+		}
+	});
 
 	if (incompleteEvents_ > 0) {
 		LOG_ERROR(
@@ -188,19 +193,22 @@ int main(int argc, char* argv[]) {
 	 */
 
 	NetworkHandler NetworkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME), Options::GetInt(OPTION_L0_RECEIVER_PORT),
-			                      Options::GetInt(OPTION_CREAM_RECEIVER_PORT), Options::GetInt(OPTION_CREAM_MULTICAST_PORT));
-	NetworkHandler.startThread("ArpSender");
+			Options::GetInt(OPTION_CREAM_RECEIVER_PORT), Options::GetInt(OPTION_CREAM_MULTICAST_PORT));
+	//NetworkHandler.startThread("ArpSender");
 
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
 			Options::GetIntPairList(OPTION_L1_DATA_SOURCE_IDS));
 
-
+#ifdef USE_SIMU
 	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID), &onBurstFinished, Options::GetInt(OPTION_AUTO_INCREMENT_ID),
 			Options::GetInt(SECONDS_BETWEEN_INCREMENT_ID), Options::GetIntPairList(OPTION_DATA_SOURCE_IDS), Options::GetString(OPTION_ETH_DEVICE_NAME));
-
+#else
+	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID),&onBurstFinished);
+#endif
 	HandleFrameTask::initialize();
+	HandleFrameTaskL1::initialize();
 	EventSerializer::initialize();
 	StorageHandler::initialize();
 	//StrawReceiver::initialize();
@@ -210,8 +218,8 @@ int main(int argc, char* argv[]) {
 
 	Event::initialize(MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES));
 
-//  Initialize Detector counts. L1=32 because 0=gtk, 1-30 Lkr, 31 MUV
-//  20 should be changed with a proper dynamic definition of the number of L0 sources
+	//  Initialize Detector counts. L1=32 because 0=gtk, 1-30 Lkr, 31 MUV
+	//  20 should be changed with a proper dynamic definition of the number of L0 sources
 	DetectorStatistics::init(20,32);
 	DetectorStatistics::clearL0DetectorStatistics();
 	DetectorStatistics::clearL1DetectorStatistics();
@@ -274,24 +282,30 @@ int main(int argc, char* argv[]) {
 	LOG_INFO("Starting " << numberOfPacketHandler << " PacketHandler threads");
 
 	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
+
 		PacketHandler* handler = new PacketHandler(i);
 		packetHandlers.push_back(handler);
+		///Level 1 data
+		PacketHandlerL1* handlerL1 = new PacketHandlerL1(i);
+		packetHandlersL1.push_back(handlerL1);
 
-		uint coresPerSocket = std::thread::hardware_concurrency()
-				/ 2/*hyperthreading*/;
-		uint cpuMask = i % 2 == 0 ? i / 2 : coresPerSocket + i / 2;
-		handler->startThread(i, "PacketHandler", cpuMask, 25,
-				MyOptions::GetInt(OPTION_PH_SCHEDULER));
+		uint coresPerSocket = std::thread::hardware_concurrency()/ 2/*hyperthreading*/;
+		LOG_INFO(coresPerSocket << " concurrent threads are supported for sockets.\n");
+		uint cpuMask = i + 1;//% 2 == 0 ? i / 2 : coresPerSocket + i / 2;
+		LOG_INFO(cpuMask << " CpuMask.\n");
+		handler->startThread(i, "PacketHandler", cpuMask, 25,MyOptions::GetInt(OPTION_PH_SCHEDULER));
+		///Level 1 data
+		handlerL1->startThread(i, "PacketHandlerL1", cpuMask, 25,MyOptions::GetInt(OPTION_PH_SCHEDULER));
+
 
 	}
 
 	//for (unsigned int i = 0; i < 4; i++) {
-	for (unsigned int i = 0;
-			i < std::thread::hardware_concurrency() - numberOfPacketHandler;
-			i++) {
+	for (unsigned int i = 0; i < std::thread::hardware_concurrency() - numberOfPacketHandler; i++) {
 		TaskProcessor* tp = new TaskProcessor();
 		taskProcessors.push_back(tp);
 		tp->startThread(i, "TaskProcessor");
+
 
 	}
 

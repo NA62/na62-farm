@@ -1,12 +1,12 @@
 /*
- * HandleFrameTask.h
+ * HandleFrameTaskL1.h
  *
- *  Created on: Jun 27, 2014
- *      Author: Jonas Kunze (kunze.jonas@gmail.com)
+ *  Created on: Jun 23, 2016
+ *      Author: Julio Calvo
  */
 
-#ifndef HANDLEFRAMETASK_H_
-#define HANDLEFRAMETASK_H_
+#ifndef SOCKET_HANDLEFRAMETASKL1_H_
+#define SOCKET_HANDLEFRAMETASKL1_H_
 
 //#include <tbb/task.h>
 #include <cstdint>
@@ -17,7 +17,7 @@
 
 namespace na62 {
 
-class HandleFrameTask {
+class HandleFrameTaskL1 {
 private:
 
 	std::vector<DataContainer> containers_;
@@ -48,8 +48,8 @@ private:
 	void processFrame(DataContainer&& container);
 
 public:
-	HandleFrameTask(std::vector<DataContainer>&& _containers, uint burstID);
-	virtual ~HandleFrameTask();
+	HandleFrameTaskL1(std::vector<DataContainer>&& _containers, uint burstID);
+	virtual ~HandleFrameTaskL1();
 
 	//tbb::task* execute();
 	void execute();
@@ -77,4 +77,7 @@ public:
 
 } /* namespace na62 */
 
-#endif /* HANDLEFRAMETASK_H_ */
+
+
+
+#endif /* SOCKET_HANDLEFRAMETASKL1_H_ */

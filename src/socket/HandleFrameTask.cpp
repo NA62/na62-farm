@@ -106,28 +106,7 @@ void HandleFrameTask::initialize() {
 
 }
 
-void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
-	/*
-	 * Look for ARP requests asking for my IP
-	 */
 
-	if (arp->targetIPAddr == NetworkHandler::GetMyIP()) { // This is asking for me
-		DataContainer responseArp = EthernetUtils::GenerateARPv4(
-				NetworkHandler::GetMyMac().data(), arp->sourceHardwAddr,
-				NetworkHandler::GetMyIP(), arp->sourceIPAddr,
-				ARPOP_REPLY);
-		u_int16_t pktLen = responseArp.length;
-		char buff[64];
-		char* pbuff = buff;
-		memcpy(pbuff, responseArp.data, pktLen);
-		std::stringstream AAARP;
-		AAARP << "ARP Response FarmToRouter" << pktLen << " ";
-		for (int i = 0; i < pktLen; i++)
-			AAARP << std::hex << ((char) (*(pbuff + i)) & 0xFF) << " ";
-//		LOG_INFO(AAARP.str());
-		NetworkHandler::AsyncSendFrame(std::move(responseArp));
-	}
-}
 
 void HandleFrameTask::execute() {
 
@@ -157,17 +136,17 @@ void HandleFrameTask::execute() {
 
 void HandleFrameTask::processFrame(DataContainer&& container) {
 
-	try {
+	in_port_t destPort = container.UDPPort;
+	in_addr_t srcAddr = container.UDPAddr;//hdr->ip.daddr;
+	const char * UDPPayload = container.data;// + sizeof(UDP_HDR);
+	const uint_fast16_t & UdpDataLength = container.length;//sizeof(container.data);//ntohs(hdr->udp.len)- sizeof(udphdr);
 
-		in_port_t srcPort = container.UDPPort;
-		in_addr_t srcIP = container.UDPAddr;//hdr->ip.daddr;
-		const char * UDPPayload = container.data;// + sizeof(UDP_HDR);
-		const uint_fast16_t & UdpDataLength = container.length;//sizeof(container.data);//ntohs(hdr->udp.len)- sizeof(udphdr);
+	try {
 
 		/*
 		 *  Now let's see what's insight the packet
 		 */
-		if (srcPort == L0_Port) { ////////////////////////////////////////////////// L0 Data //////////////////////////////////////////////////
+		//if (destPort == L0_Port) { ////////////////////////////////////////////////// L0 Data //////////////////////////////////////////////////
 			/*
 			 * L0 Data
 			 * Length is hdr->ip.tot_len-sizeof(udphdr) and not container.length because of ethernet padding bytes!
@@ -182,6 +161,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			BytesReceivedBySourceNum_[sourceNum].fetch_add(container.length,
 					std::memory_order_relaxed);
 
+
 			/*
 			 * Setup L1 block if L1 is active copying informations from L0TP MEps
 			 */
@@ -191,11 +171,10 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					//LOG_INFO("Invent L1 MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
 					uint16_t fragmentLength = sizeof(L1_BLOCK) + 8; //event length in bytes
-					const uint32_t L1BlockLength = mep_factor * fragmentLength
-							+ 8; //L1 block length in bytes
-					char * L1Data = new char[L1BlockLength + sizeof(UDP_HDR)]; //include UDP header
-					l0::MEP_HDR * L1Hdr = (l0::MEP_HDR *) (L1Data
-							+ sizeof(UDP_HDR));
+
+					const uint32_t L1BlockLength = mep_factor * fragmentLength + 8; //L1 block length in bytes
+					char * L1Data = new char[L1BlockLength]; //include UDP header
+					l0::MEP_HDR * L1Hdr = (l0::MEP_HDR *) (L1Data + sizeof(UDP_HDR));
 
 					// set MEP header
 					L1Hdr->firstEventNum = mep->getFirstEventNum();
@@ -204,8 +183,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					L1Hdr->eventCount = mep_factor;
 					L1Hdr->sourceSubID = 0;
 
-					char * virtualFragment = L1Data + sizeof(UDP_HDR)
-							+ 8 /* mep header */;
+					char * virtualFragment = L1Data + 8 /* mep header */;
 					l0::MEPFragment * L1Fragment;
 					for (uint i = 0; i != mep_factor; i++) {
 						L1Fragment = mep->getFragment(i);
@@ -219,9 +197,8 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 						virtualFragment += fragmentLength;
 					}
 
-					l0::MEP* mep_L1 = new l0::MEP(L1Data + sizeof(UDP_HDR),
-					//************************Ojo*****************************///
-							L1BlockLength, { L1Data, L1BlockLength, true, MyOptions::GetInt(OPTION_CREAM_MULTICAST_PORT), srcIP });
+					l0::MEP* mep_L1 = new l0::MEP(L1Data,
+								    L1BlockLength, { L1Data, L1BlockLength, true, 0 , 0 });
 
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_L1->getSourceID());
@@ -229,12 +206,14 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
 							std::memory_order_relaxed);
 					BytesReceivedBySourceNum_[sourceNum].fetch_add(
-							L1BlockLength + sizeof(UDP_HDR),
+							L1BlockLength,
 							std::memory_order_relaxed);
-					//for (uint i = 0; i != mep_factor; i++) {
-						// Add every fragment
-					//	L1Builder::buildEvent(mep_L1->getFragment(i), burstID_);
-					//}
+#ifndef SIMU
+					for (uint i = 0; i != mep_factor; i++) {
+						 //Add every fragment
+						L1Builder::buildEvent(mep_L1->getFragment(i), burstID_);
+					}
+#endif
 				}
 				//Is this part used somewhere?
 				if (SourceIDManager::isL2Active()) {
@@ -242,9 +221,9 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					uint16_t mep_factor = mep->getNumberOfFragments();
 					uint32_t L2EventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
 					uint32_t L2BlockLength = mep_factor * L2EventLength + 8; //L2 block length in bytes
-					char * L2Data = new char[L2BlockLength + sizeof(UDP_HDR)]; //include UDP header
-					l0::MEP_HDR * L2Hdr = (l0::MEP_HDR *) (L2Data
-							+ sizeof(UDP_HDR));
+
+					char * L2Data = new char[L2BlockLength];
+					l0::MEP_HDR * L2Hdr = (l0::MEP_HDR *) (L2Data);
 
 					L2Hdr->firstEventNum = mep->getFirstEventNum();
 					L2Hdr->sourceID = SOURCE_ID_L2;
@@ -252,7 +231,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					L2Hdr->eventCount = mep_factor;
 					L2Hdr->sourceSubID = 0;
 
-					char * L2Event = L2Data + sizeof(UDP_HDR) + 8;
+					char * L2Event = L2Data + 8;
 					l0::MEPFragment * L2Fragment;
 					for (uint i = 0; i != mep_factor; i++) {
 						L2Fragment = mep->getFragment(i);
@@ -266,22 +245,21 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 
 					const uint_fast16_t & L2DataLength = L2BlockLength;
 
-					l0::MEP* mep_L2 = new l0::MEP(L2Data + sizeof(UDP_HDR),
-							//************************Ojo*****************************///
-							L2DataLength, { L2Data, L2DataLength, true, 0, 0 });
+					l0::MEP* mep_L2 = new l0::MEP(L2Data,
+							        L2DataLength, { L2Data, L2DataLength, true, 0, 0 });
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_L2->getSourceID());
 
 					MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
 							std::memory_order_relaxed);
 					BytesReceivedBySourceNum_[sourceNum].fetch_add(
-							L2BlockLength + sizeof(UDP_HDR),
-							std::memory_order_relaxed);
-
-					//for (uint i = 0; i != mep_factor; i++) {
+							L2BlockLength, std::memory_order_relaxed);
+#ifndef SIMU
+					for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
-					//	L1Builder::buildEvent(mep_L2->getFragment(i), burstID_);
-					//}
+						L1Builder::buildEvent(mep_L2->getFragment(i), burstID_);
+					}
+#endif
 				}
 				if (SourceIDManager::isNSTDActive()) {
 					//Is this part used somewhere?
@@ -290,9 +268,8 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					uint32_t NSTDEventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
 					uint32_t NSTDBlockLength = mep_factor * NSTDEventLength + 8; //L2 block length in bytes
 					char * NSTDData =
-							new char[NSTDBlockLength + sizeof(UDP_HDR)]; //include UDP header
-					l0::MEP_HDR * NSTDHdr = (l0::MEP_HDR *) (NSTDData
-							+ sizeof(UDP_HDR));
+							new char[NSTDBlockLength];
+					l0::MEP_HDR * NSTDHdr = (l0::MEP_HDR *) (NSTDData);
 
 					NSTDHdr->firstEventNum = mep->getFirstEventNum();
 					NSTDHdr->sourceID = SOURCE_ID_NSTD;
@@ -300,7 +277,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					NSTDHdr->eventCount = mep_factor;
 					NSTDHdr->sourceSubID = 0;
 
-					char * NSTDEvent = NSTDData + sizeof(UDP_HDR) + 8;
+					char * NSTDEvent = NSTDData + 8;
 					l0::MEPFragment * NSTDFragment;
 					for (uint i = 0; i != mep_factor; i++) {
 						NSTDFragment = mep->getFragment(i);
@@ -315,7 +292,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 
 					const uint_fast16_t & NSTDDataLength = NSTDBlockLength;
 
-					l0::MEP* mep_NSTD = new l0::MEP(NSTDData + sizeof(UDP_HDR),
+					l0::MEP* mep_NSTD = new l0::MEP(NSTDData,
 							NSTDDataLength, { NSTDData, NSTDDataLength, true, 0, 0 });
 					uint sourceNum = SourceIDManager::sourceIDToNum(
 							mep_NSTD->getSourceID());
@@ -323,115 +300,56 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
 							std::memory_order_relaxed);
 					BytesReceivedBySourceNum_[sourceNum].fetch_add(
-							NSTDBlockLength + sizeof(UDP_HDR),
+							NSTDBlockLength,
 							std::memory_order_relaxed);
-
-					//for (uint i = 0; i != mep_factor; i++) {
+#ifndef SIMU
+					for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
-					//	L1Builder::buildEvent(mep_NSTD->getFragment(i), burstID_);
-					//}
+						L1Builder::buildEvent(mep_NSTD->getFragment(i), burstID_);
+					}
+#endif
 				}
 			}
 
 
 			uint maxFrags =  mep->getNumberOfFragments();
+
 			for (uint i = 0; i != maxFrags; i++) {
 				// Add every fragment
 				L1Builder::buildEvent(mep->getFragment(i), burstID_);
 			}
-		} else if (srcPort == CREAM_Port) { ////////////////////////////////////////////////// L1 Data //////////////////////////////////////////////////
-			//std::cout<<"proceso L1"<<std::endl;
-			l1::MEP* l1mep = new l1::MEP(UDPPayload, UdpDataLength, container);
 
-			//fragment
-			uint sourceNum = SourceIDManager::l1SourceIDToNum(l1mep->getSourceID());
-
-			L1MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
-					std::memory_order_relaxed);
-			L1BytesReceivedBySourceNum_[sourceNum].fetch_add(container.length,
-					std::memory_order_relaxed);
-
-//			if (EventPool::getPoolSize() > fragment->getEventNumber()) {
-//				EventPool::getCREAMPacketCounter()[fragment->getEventNumber()].fetch_add(
-//						1, std::memory_order_relaxed);
-//			}
-			uint nfrags = l1mep->getNumberOfEvents();
-			for (uint i=0; i!= nfrags ; ++i) {
-				L2Builder::buildEvent(l1mep->getEvent(i));
-			}
-		//} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
-		//	StrawReceiver::processFrame(std::move(container), burstID_);
-		} else {
+	//	} else {
 			/*
 			 * Packet with unknown UDP port received
 			 */
-			LOG_ERROR("type = BadPack : Packet with unknown UDP port received: " << srcPort);
-			container.free();
-		}
+		//	LOG_WARNING("type = BadPack : Packet with unknown UDP port received: " << destPort);
+		//	container.free();
+		//}
 #ifdef USE_ERS
 	} catch (UnknownSourceID const& e) {
-		ers::warning(e);
+		//ers::warning(e);
+		LOG_ERROR("Unknown source ID received from " + EthernetUtils::ipToString(srcAddr) + ": " + e.message() );
 		container.free();
 	} catch (CorruptedMEP const&e) {
-		//ers::warning(CorruptedMEP(ERS_HERE, "DataSender=" + EthernetUtils::ipToString(hdr->ip.saddr), e));
+		//ers::warning(CorruptedMEP(ERS_HERE, "DataSender=" + EthernetUtils::ipToString(srcAddr), e));
+		LOG_ERROR("Corruptep received from " + EthernetUtils::ipToString(srcAddr) + ": " + e.message() );
 		container.free();
 	} catch (Message const& e) {
-		ers::warning(e);
+		//ers::warning(e);
+		LOG_ERROR("Bad data received from " + EthernetUtils::ipToString(srcAddr) + ": " + e.message() );
 		container.free();
 	}
 #else
-	} catch (UnknownSourceIDFound const& e) {
+} catch (UnknownSourceIDFound const& e) {
 		container.free();
-	} catch (BrokenPacketReceivedError const&e) {
+} catch (BrokenPacketReceivedError const&e) {
 		container.free();
-	} catch (NA62Error const& e) {
+} catch (NA62Error const& e) {
 		container.free();
-	}
+}
 #endif
 }
-
-bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
-	/*
-	 * Check IP-Header
-	 */
-	//				if (!EthernetUtils::CheckData((char*) &hdr->ip, sizeof(iphdr))) {
-	//					LOG_ERROR("Packet with broken IP-checksum received"));
-	//					container.free();
-	//					continue;
-	//				}
-	if (hdr->isFragment()) {
-		return true;
-	}
-
-	if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) != length) {
-		/*
-		 * Does not need to be equal because of ethernet padding
-		 */
-		if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) > length) {
-			LOG_ERROR("Received IP-Packet with less bytes than ip.tot_len field! " <<
-			(ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length);
-			return false;
-		}
-	}
-
-	/*
-	 * Does not need to be equal because of ethernet padding
-	 */
-	if (ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr) > length) {
-		LOG_ERROR("Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length);
-		return false;
-	}
-
-	//				/*
-	//				 * Check UDP checksum
-	//				 */
-	//				if (!EthernetUtils::CheckUDP(hdr, (const char *) (&hdr->udp) + sizeof(udphdr), ntohs(hdr->udp.len) - sizeof(udphdr))) {
-	//					LOG_ERROR("Packet with broken UDP-checksum received" );
-	//					container.free();
-	//					continue;
-	//				}
-	return true;
 }
 
-}
 /* namespace na62 */

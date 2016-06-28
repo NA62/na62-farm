@@ -1,11 +1,11 @@
 /*
- * PacketHandler.cpp
+ * PacketHandlerL1.cpp
  *
- *  Created on: Feb 7, 2012
- *      Author: Jonas Kunze (kunze.jonas@gmail.com)
+ *  Created on: Jun 23, 2016
+ *      Author: Julio Calvo
  */
 
-#include "PacketHandler.h"
+#include "PacketHandlerL1.h"
 
 #include <tbb/task.h>
 #include <tbb/tick_count.h>
@@ -40,26 +40,26 @@
 #include <options/Logging.h>
 #include <monitoring/BurstIdHandler.h>
 
-#include "HandleFrameTask.h"
+#include "HandleFrameTaskL1.h"
 #include "TaskProcessor.h"
 
 namespace na62 {
 
-std::atomic<uint> PacketHandler::spins_;
-std::atomic<uint> PacketHandler::sleeps_;
+std::atomic<uint> PacketHandlerL1::spins_;
+std::atomic<uint> PacketHandlerL1::sleeps_;
 
-boost::timer::cpu_timer PacketHandler::sendTimer;
+boost::timer::cpu_timer PacketHandlerL1::sendTimer;
 
 
-std::atomic<uint> PacketHandler::frameHandleTasksSpawned_(0);
+std::atomic<uint> PacketHandlerL1::frameHandleTasksSpawned_(0);
 
-PacketHandler::PacketHandler(int threadNum) :
+PacketHandlerL1::PacketHandlerL1(int threadNum) :
 		threadNum_(threadNum), running_(true) {}
 
-PacketHandler::~PacketHandler() {
+PacketHandlerL1::~PacketHandlerL1() {
 }
 
-void PacketHandler::thread() {
+void PacketHandlerL1::thread() {
 	//pfring_pkthdr hdr;
 	//memset(&hdr, 0, sizeof(hdr));
 
@@ -67,9 +67,7 @@ void PacketHandler::thread() {
 	char* buff; // = new char[MTU];
 	in_port_t sourcePort = 0;
 	in_addr_t sourceAddr = 0;
-	int fd;
-
-
+	int fdl1;
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
 	//const uint pollDelay = Options::GetDouble(OPTION_POLLING_DELAY);
 
@@ -84,11 +82,9 @@ void PacketHandler::thread() {
 	const uint framesToBeGathered = Options::GetInt(OPTION_MAX_FRAME_AGGREGATION);
 
 	std::string device = Options::GetString(OPTION_ETH_DEVICE_NAME);
-	fd = NetworkHandler::net_bind_udp();
-	//NetworkHandler::net_bind_udpl1(device);
+	//NetworkHandler::net_bind_udp(device);
+	fdl1 = NetworkHandler::net_bind_udpl1();
 	//boost::timer::cpu_timer sendTimer;
-
-
 
 
     //mmsghdr msg;
@@ -123,13 +119,12 @@ void PacketHandler::thread() {
 
 			//receivedFrame = NetworkHandler::GetNextFrame(&hdr, &buff, 0, false, threadNum_);
 
-			receivedFrame = NetworkHandler::GetNextFrame(&buff, sourcePort, sourceAddr, false, threadNum_, fd);
-
-
-
+			receivedFrame = NetworkHandler::GetNextFrameL1(&buff, sourcePort, sourceAddr, false, threadNum_, fdl1);
+			//LOG_INFO("Size received: " << receivedFrame);
 
 			if (receivedFrame > 0) {
 
+				//LOG_INFO("Size received: " << receivedFrame);
 				/*
 				 * Check if the burst should be flushed else prepare the data to be handled
 				 */
@@ -143,19 +138,23 @@ void PacketHandler::thread() {
 						frames.push_back( { data, (uint_fast16_t) receivedFrame, true, sourcePort, sourceAddr });
 						goToSleep = false;
 						//spinsInARow = 0;
-					}
+			//		}
 				}
 				//else {
 				//	LOG_WARNING("Dropping data because we are at EoB");
-				//}
-			}
+				}
+
 			//GLM: send all pending data requests
 			//while (NetworkHandler::getNumberOfEnqueuedSendFrames() > 0 ) {
 			//	NetworkHandler::DoSendQueuedFrames(threadNum_);
-			//}
+
+			}
 
 		}
+
+		//}
 		if (!frames.empty()) {
+
 
 			/*
 			 * Start a new task which will check the frame
@@ -166,8 +165,8 @@ void PacketHandler::thread() {
 			//				std::move(frames), BurstIdHandler::getCurrentBurstId());
 			//tbb::task::enqueue(*task, tbb::priority_t::priority_normal);
 
-			HandleFrameTask* task = new HandleFrameTask(std::move(frames), BurstIdHandler::getCurrentBurstId());
-			TaskProcessor::TasksQueue_.push(task);
+			HandleFrameTaskL1* task = new HandleFrameTaskL1(std::move(frames), BurstIdHandler::getCurrentBurstId());
+			TaskProcessor::TasksQueueL1_.push(task);
 			int queueSize = TaskProcessor::getSize();
 			if(queueSize >0 && (queueSize%100 == 0)) {
 				LOG_WARNING("Tasks queue size " << (int) queueSize);
@@ -178,20 +177,26 @@ void PacketHandler::thread() {
 			goToSleep = true;
 		}
 
-		if (goToSleep) {
+	if (goToSleep) {
 			sleeps_++;
 			if (!activePolling) {
 				/*
 				 * Allow other threads to run
 				 */
-				boost::this_thread::sleep(
-						boost::posix_time::microsec(sleepMicros));
+	 	boost::this_thread::sleep(
+					boost::posix_time::microsec(sleepMicros));
 			}
-		}
+	//	}
 	}
 
-	finish: LOG_INFO("Stopping PacketHandler thread " << threadNum_);
-	close(fd);
+	}
+	finish: LOG_INFO("Stopping PacketHandlerL1 thread " << threadNum_);
+	close(fdl1);
+
+
 }
 }
 /* namespace na62 */
+
+
+
