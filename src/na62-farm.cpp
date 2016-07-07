@@ -121,8 +121,8 @@ void onBurstFinished() {
 
 	if (incompleteEvents_ > 0) {
 		LOG_ERROR("type = EOB : Dropped " << incompleteEvents_ << " events in burst ID = " << (int) BurstIdHandler::getCurrentBurstId() << ".");
-		LOG_ERROR (DetectorStatistics::L0RCInfo());
-		LOG_ERROR (DetectorStatistics::L1RCInfo());
+	//	LOG_ERROR (DetectorStatistics::L0RCInfo());
+	//	LOG_ERROR (DetectorStatistics::L1RCInfo());
 
 	}
 	IPCHandler::sendStatistics("MonitoringL0Data", DetectorStatistics::L0RCInfo());
