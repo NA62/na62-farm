@@ -15,6 +15,8 @@
 #include <l1/MEPFragment.h>
 #include <l1/L1Fragment.h>
 #include <l2/L2Fragment.h>
+#include <l1/L1TriggerProcessor.h>
+#include <l2/L2TriggerProcessor.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
@@ -138,17 +140,12 @@ void HandleFrameTaskL1::processFrame(DataContainer&& container) {
 
 	try {
 
-		// if (destPort == CREAM_Port) { ////////////////////////////////////////////////// L1 Data //////////////////////////////////////////////////
-				if (UdpDataLength == 0){
-					    LOG_ERROR("Empty L1 fragment from " << EthernetUtils::ipToString(srcAddr));
-					    container.free();
-					    return;
-
-				}
 			l1::MEP* l1mep = new l1::MEP(UDPPayload, UdpDataLength, container);
 			//fragment
 			uint sourceNum = SourceIDManager::l1SourceIDToNum(l1mep->getSourceID());
+
 			L1MEPsReceivedBySourceNum_[sourceNum].fetch_add(1, std::memory_order_relaxed);
+
 			L1BytesReceivedBySourceNum_[sourceNum].fetch_add(container.length, std::memory_order_relaxed);
 
 //			if (EventPool::getPoolSize() > fragment->getEventNumber()) {
@@ -175,7 +172,7 @@ void HandleFrameTaskL1::processFrame(DataContainer&& container) {
 		container.free();
 	} catch (CorruptedMEP const&e) {
 		//ers::warning(CorruptedMEP(ERS_HERE, "DataSender=" + EthernetUtils::ipToString(srcAddr), e));
-		LOG_ERROR("Corruptep received from " + EthernetUtils::ipToString(srcAddr) + ": " + e.message() );
+		LOG_ERROR("Corrupted received from " + EthernetUtils::ipToString(srcAddr) + ": " + e.message() );
 		container.free();
 	} catch (Message const& e) {
 		//ers::warning(e);

@@ -51,7 +51,7 @@ std::atomic<uint> PacketHandlerL1::sleeps_;
 boost::timer::cpu_timer PacketHandlerL1::sendTimer;
 
 
-std::atomic<uint> PacketHandlerL1::frameHandleTasksSpawned_(0);
+std::atomic<uint> PacketHandlerL1::frameHandleTasksSpawnedL1_(0);
 
 PacketHandlerL1::PacketHandlerL1(int threadNum) :
 		threadNum_(threadNum), running_(true) {}
@@ -68,6 +68,7 @@ void PacketHandlerL1::thread() {
 	in_port_t sourcePort = 0;
 	in_addr_t sourceAddr = 0;
 	int fdl1;
+	bool timel1 = false;
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
 	//const uint pollDelay = Options::GetDouble(OPTION_POLLING_DELAY);
 
@@ -95,14 +96,13 @@ void PacketHandlerL1::thread() {
 		 */
 		std::vector<DataContainer> frames;
 		frames.reserve(framesToBeGathered);
-
 		receivedFrame = 0;
 		buff = nullptr;
-		bool goToSleep = false;
+		//bool goToSleep = false;
 
 		//uint spinsInARow = 0;
 
-		boost::timer::cpu_timer aggregationTimer;
+		//boost::timer::cpu_timer aggregationTimer;
 
 		/*
 		 * Try to receive [framesToBeCollected] frames
@@ -119,27 +119,28 @@ void PacketHandlerL1::thread() {
 
 			//receivedFrame = NetworkHandler::GetNextFrame(&hdr, &buff, 0, false, threadNum_);
 
-			receivedFrame = NetworkHandler::GetNextFrameL1(&buff, sourcePort, sourceAddr, false, threadNum_, fdl1);
+			receivedFrame = NetworkHandler::GetNextFrameL1(&buff, sourcePort, sourceAddr, false, threadNum_, fdl1, timel1);
+			if(timel1) {break;}
 			//LOG_INFO("Size received: " << receivedFrame);
 
-			if (receivedFrame > 0) {
+			//if (receivedFrame > 0) {
 
 				//LOG_INFO("Size received: " << receivedFrame);
 				/*
 				 * Check if the burst should be flushed else prepare the data to be handled
 				 */
 				if(!BurstIdHandler::flushBurst()) {
-					if (receivedFrame > MTU) {
-						LOG_ERROR("Received packet from network with size " << receivedFrame << ". Dropping it");
-					}
-					else {
+					//if (receivedFrame > MTU) {
+					//	LOG_ERROR("Received packet from network with size " << receivedFrame << ". Dropping it");
+					//}
+					//else {
 						char* data = new char[receivedFrame];
 						memcpy(data, buff, receivedFrame);
 						frames.push_back( { data, (uint_fast16_t) receivedFrame, true, sourcePort, sourceAddr });
-						goToSleep = false;
+						//goToSleep = false;
 						//spinsInARow = 0;
 			//		}
-				}
+				//}
 				//else {
 				//	LOG_WARNING("Dropping data because we are at EoB");
 				}
@@ -148,9 +149,10 @@ void PacketHandlerL1::thread() {
 			//while (NetworkHandler::getNumberOfEnqueuedSendFrames() > 0 ) {
 			//	NetworkHandler::DoSendQueuedFrames(threadNum_);
 
-			}
+			//}
 
 		}
+		timel1 = false;
 
 		//}
 		if (!frames.empty()) {
@@ -171,23 +173,23 @@ void PacketHandlerL1::thread() {
 			if(queueSize >0 && (queueSize%100 == 0)) {
 				LOG_WARNING("Tasks queue size " << (int) queueSize);
 			}
-			goToSleep = false;
-			frameHandleTasksSpawned_++;
-		} else {
-			goToSleep = true;
-		}
+			//goToSleep = false;
+			frameHandleTasksSpawnedL1_++;
+		} //else {
+			//goToSleep = true;
+		//}
 
-	if (goToSleep) {
-			sleeps_++;
-			if (!activePolling) {
+	//if (goToSleep) {
+		//	sleeps_++;
+		//	if (!activePolling) {
 				/*
 				 * Allow other threads to run
 				 */
-	 	boost::this_thread::sleep(
-					boost::posix_time::microsec(sleepMicros));
-			}
-	//	}
-	}
+	 	//boost::this_thread::sleep(
+		//			boost::posix_time::microsec(sleepMicros));
+		//	}
+		//}
+	//}
 
 	}
 	finish: LOG_INFO("Stopping PacketHandlerL1 thread " << threadNum_);

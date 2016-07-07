@@ -44,6 +44,7 @@
 #define OPTION_INCREMENT_BURST_AT_EOB (char*)"incrementBurstAtEOB"
 
 #define OPTION_MIN_USEC_BETWEEN_L1_REQUESTS (char*)"minUsecsBetweenL1Requests"
+
 #define OPTION_AUTO_INCREMENT_ID  (char*)"AutoIncrementBurstID"
 #define SECONDS_BETWEEN_INCREMENT_ID  (char*)"NumberOfSecondsToChangeBurstID"
 
@@ -99,7 +100,11 @@ public:
 		desc.add_options()
 
 		(OPTION_CONFIG_FILE,
+#ifndef USE_SIMU
+				po::value<std::string>()->default_value("/etc/na62-farm.cfg"),
+#else
 				po::value<std::string>()->default_value("/performance/udptest/na62-farm.cfg"),
+#endif
 				"Config file for the options shown here")
 
 		(OPTION_ETH_DEVICE_NAME,
@@ -144,12 +149,11 @@ public:
 				"The current or first burst ID. This must be set if a PC starts during a run.")
 
 
-         (OPTION_AUTO_INCREMENT_ID, po::value<int>()->default_value(0),
+        (OPTION_AUTO_INCREMENT_ID, po::value<int>()->default_value(0),
 				        "Auto change Burst ID every N seconds ")
 
-		 (SECONDS_BETWEEN_INCREMENT_ID, po::value<int>()->default_value(10),
-				          "When Auto_Inc is set, it must be specified a number of seconds here, default is 10 (in order to avoid constant AUTO_INC) in case of no specification")
-
+	    (SECONDS_BETWEEN_INCREMENT_ID, po::value<int>()->default_value(10),
+				        "When Auto_Inc is set, it must be specified a number of seconds here, default is 10 (in order to avoid constant AUTO_INC) in case of no specification")
 
 		(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS,
 				po::value<int>()->default_value(1000),

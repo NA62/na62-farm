@@ -14,6 +14,8 @@
 #include <l1/MEPFragment.h>
 #include <l1/L1Fragment.h>
 #include <l2/L2Fragment.h>
+#include <l1/L1TriggerProcessor.h>
+#include <l2/L2TriggerProcessor.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
 #include <netinet/in.h>
@@ -146,11 +148,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		/*
 		 *  Now let's see what's insight the packet
 		 */
-		//if (destPort == L0_Port) { ////////////////////////////////////////////////// L0 Data //////////////////////////////////////////////////
-			/*
-			 * L0 Data
-			 * Length is hdr->ip.tot_len-sizeof(udphdr) and not container.length because of ethernet padding bytes!
-			 */
+
 			l0::MEP* mep = new l0::MEP(UDPPayload, UdpDataLength, container);
 
 			uint sourceNum = SourceIDManager::sourceIDToNum(mep->getSourceID());
@@ -168,13 +166,14 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			if (mep->getSourceID() == SOURCE_ID_L0TP) {
 				if (SourceIDManager::isL1Active()) {
 
+
 					//LOG_INFO("Invent L1 MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
-					uint16_t fragmentLength = sizeof(L1_BLOCK) + 8; //event length in bytes
+					uint16_t fragmentLength = L1TriggerProcessor::GetL1DataPacketSize() + 8; //event length in bytes
 
 					const uint32_t L1BlockLength = mep_factor * fragmentLength + 8; //L1 block length in bytes
-					char * L1Data = new char[L1BlockLength]; //include UDP header
-					l0::MEP_HDR * L1Hdr = (l0::MEP_HDR *) (L1Data + sizeof(UDP_HDR));
+					char * L1Data = new char[L1BlockLength];
+					l0::MEP_HDR * L1Hdr = (l0::MEP_HDR *) (L1Data);
 
 					// set MEP header
 					L1Hdr->firstEventNum = mep->getFirstEventNum();
@@ -208,18 +207,20 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					BytesReceivedBySourceNum_[sourceNum].fetch_add(
 							L1BlockLength,
 							std::memory_order_relaxed);
-#ifndef SIMU
+
+
+
 					for (uint i = 0; i != mep_factor; i++) {
 						 //Add every fragment
 						L1Builder::buildEvent(mep_L1->getFragment(i), burstID_);
 					}
-#endif
+
 				}
-				//Is this part used somewhere?
+
 				if (SourceIDManager::isL2Active()) {
 					//LOG_INFO("Invent L2 MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
-					uint32_t L2EventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
+					uint32_t L2EventLength = L2TriggerProcessor::GetL2DataPacketSize() + 8; //event length in bytes
 					uint32_t L2BlockLength = mep_factor * L2EventLength + 8; //L2 block length in bytes
 
 					char * L2Data = new char[L2BlockLength];
@@ -254,12 +255,12 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 							std::memory_order_relaxed);
 					BytesReceivedBySourceNum_[sourceNum].fetch_add(
 							L2BlockLength, std::memory_order_relaxed);
-#ifndef SIMU
+
 					for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
 						L1Builder::buildEvent(mep_L2->getFragment(i), burstID_);
 					}
-#endif
+
 				}
 				if (SourceIDManager::isNSTDActive()) {
 					//Is this part used somewhere?
@@ -302,12 +303,12 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					BytesReceivedBySourceNum_[sourceNum].fetch_add(
 							NSTDBlockLength,
 							std::memory_order_relaxed);
-#ifndef SIMU
+
 					for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
 						L1Builder::buildEvent(mep_NSTD->getFragment(i), burstID_);
 					}
-#endif
+
 				}
 			}
 
@@ -319,13 +320,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				L1Builder::buildEvent(mep->getFragment(i), burstID_);
 			}
 
-	//	} else {
-			/*
-			 * Packet with unknown UDP port received
-			 */
-		//	LOG_WARNING("type = BadPack : Packet with unknown UDP port received: " << destPort);
-		//	container.free();
-		//}
+
 #ifdef USE_ERS
 	} catch (UnknownSourceID const& e) {
 		//ers::warning(e);

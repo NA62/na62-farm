@@ -37,7 +37,7 @@ public:
 	/*
 	 * Number of times a HandleFrameTask object has been created and enqueued
 	 */
-	static std::atomic<uint> frameHandleTasksSpawned_;
+	static std::atomic<uint> frameHandleTasksSpawnedL1_;
 
 private:
 	int threadNum_;

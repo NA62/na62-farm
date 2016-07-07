@@ -158,6 +158,7 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Signals
 	 */
+
 	boost::asio::io_service signalService;
 	boost::asio::signal_set signals(signalService, SIGINT, SIGTERM, SIGQUIT);
 	signals.async_wait(handle_stop);
@@ -165,9 +166,9 @@ int main(int argc, char* argv[]) {
 
 	std::thread signalThread([&signalService](){signalService.run();});
 
-	L1TriggerProcessor::registerDownscalingAlgorithms();
+	//L1TriggerProcessor::registerDownscalingAlgorithms();
 
-	L1TriggerProcessor::registerReductionAlgorithms();
+	//L1TriggerProcessor::registerReductionAlgorithms();
 	/*
 	 * Static Class initializations
 	 */
@@ -201,9 +202,12 @@ int main(int argc, char* argv[]) {
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
 			Options::GetIntPairList(OPTION_L1_DATA_SOURCE_IDS));
 
+
 #ifdef USE_SIMU
 	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID), &onBurstFinished, Options::GetInt(OPTION_AUTO_INCREMENT_ID),
-			Options::GetInt(SECONDS_BETWEEN_INCREMENT_ID), Options::GetIntPairList(OPTION_DATA_SOURCE_IDS), Options::GetString(OPTION_ETH_DEVICE_NAME));
+			Options::GetInt(SECONDS_BETWEEN_INCREMENT_ID), Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
+			Options::GetString(OPTION_ETH_DEVICE_NAME), Options::GetStringList(OPTION_CREAM_MULTICAST_GROUP));
+			/****Multicast group is the same list of IPs to send STOP signal for burst change***/
 #else
 	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID),&onBurstFinished);
 #endif
@@ -258,13 +262,13 @@ int main(int argc, char* argv[]) {
 	/*
 	 * Burst Handler
 	 */
-	LOG_INFO("Start burst handler thread.");
+
 	BurstIdHandler bHandler;
 	bHandler.startThread("BurstHandler");
 	/*
 	 * Monitor
 	 */
-	LOG_INFO("Starting Monitoring Services");
+
 	monitoring::MonitorConnector monitor;
 	monitoring::MonitorConnector::setState(INITIALIZING);
 	monitor.startThread("MonitorConnector");

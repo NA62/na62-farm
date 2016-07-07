@@ -373,6 +373,24 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.exe.release.1053689769.1276837172.1258345522.398705929" name="HandleFrameTask.cpp" rcbsApplicability="disable" resourcePath="src/socket/HandleFrameTask.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.875473836.191571124">
+						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.875473836.191571124" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.875473836">
+							<option id="gnu.cpp.compiler.option.preprocessor.def.331711303" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
+								<listOptionValue builtIn="false" value="USE_ERS"/>
+								<listOptionValue builtIn="false" value="USE_REDUCED_STATS"/>
+								<listOptionValue builtIn="false" value="__GXX_EXPERIMENTAL_CXX0X__"/>
+								<listOptionValue builtIn="false" value="USE_SIMU"/>
+								<listOptionValue builtIn="false" value="USE_UDP"/>
+							</option>
+							<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1742572750" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+						</tool>
+						<tool customBuildStep="true" id="org.eclipse.cdt.managedbuilder.ui.rcbs.1455568600" name="Resource Custom Build Step">
+							<inputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.inputtype.801655669" name="Resource Custom Build Step Input Type">
+								<additionalInput kind="additionalinputdependency" paths=""/>
+							</inputType>
+							<outputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.outputtype.987915063" name="Resource Custom Build Step Output Type"/>
+						</tool>
+					</fileInfo>
 					<sourceEntries>
 						<entry excluding="straws" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
 					</sourceEntries>

@@ -16,6 +16,7 @@
 #include <sstream>
 
 #include "../socket/HandleFrameTask.h"
+#include "../socket/HandleFrameTaskL1.h"
 
 #include <iostream>
 
@@ -33,10 +34,10 @@
 #include <l2/L2TriggerProcessor.h>
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
-#include "../socket/HandleFrameTask.h"
 #include "../socket/FragmentStore.h"
 #include "../socket/PacketHandler.h"
-#include <socket/NetworkHandler.h>
+#include "../socket/PacketHandlerL1.h"
+
 
 using namespace boost::interprocess;
 
@@ -87,7 +88,7 @@ void MonitorConnector::handleUpdate() {
 			<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames());
 
 	LOG_INFO("BurstID:\t" << BurstIdHandler::getCurrentBurstId());
-	//LOG_INFO<<"NextBurstID:\t" << BurstIdHandler::getNextBurstId();
+	///LOG_INFO<<"NextBurstID:\t" << BurstIdHandler::getNextBurstId();
 
 	LOG_INFO("State:\t" << currentState_);
 
@@ -156,13 +157,13 @@ void MonitorConnector::handleUpdate() {
 
 			if (SourceIDManager::getExpectedL1PacksBySourceID(sourceID) > 0) {
 				setDetectorDifferentialData("MEPsReceived",
-						HandleFrameTask::GetL1MEPsReceivedBySourceNum(
+						HandleFrameTaskL1::GetL1MEPsReceivedBySourceNum(
 								soruceIDNum)
 								/ SourceIDManager::getExpectedL1PacksBySourceID(
 										sourceID), sourceID);
 
 				statistics << std::dec
-						<< HandleFrameTask::GetL1MEPsReceivedBySourceNum(
+						<< HandleFrameTaskL1::GetL1MEPsReceivedBySourceNum(
 								soruceIDNum)
 								/ SourceIDManager::getExpectedL1PacksBySourceID(
 										sourceID) << ";";
@@ -175,7 +176,7 @@ void MonitorConnector::handleUpdate() {
 					<< Event::getMissingL1EventsBySourceNum(soruceIDNum) << ";";
 
 			statistics << std::dec
-					<< HandleFrameTask::GetL1BytesReceivedBySourceNum(
+					<< HandleFrameTaskL1::GetL1BytesReceivedBySourceNum(
 							soruceIDNum) << ";";
 
 			setDetectorDifferentialData("NonRequested:1Frags",

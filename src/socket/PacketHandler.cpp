@@ -69,7 +69,7 @@ void PacketHandler::thread() {
 	in_addr_t sourceAddr = 0;
 	int fd;
 
-
+	bool timel0 = false;
 	const bool activePolling = Options::GetBool(OPTION_ACTIVE_POLLING);
 	//const uint pollDelay = Options::GetDouble(OPTION_POLLING_DELAY);
 
@@ -85,13 +85,7 @@ void PacketHandler::thread() {
 
 	std::string device = Options::GetString(OPTION_ETH_DEVICE_NAME);
 	fd = NetworkHandler::net_bind_udp();
-	//NetworkHandler::net_bind_udpl1(device);
-	//boost::timer::cpu_timer sendTimer;
 
-
-
-
-    //mmsghdr msg;
 	while (running_) {
 
 		/*
@@ -99,14 +93,13 @@ void PacketHandler::thread() {
 		 */
 		std::vector<DataContainer> frames;
 		frames.reserve(framesToBeGathered);
-
 		receivedFrame = 0;
 		buff = nullptr;
-		bool goToSleep = false;
+		//bool goToSleep = false;
 
 		//uint spinsInARow = 0;
 
-		boost::timer::cpu_timer aggregationTimer;
+		//boost::timer::cpu_timer aggregationTimer;
 
 		/*
 		 * Try to receive [framesToBeCollected] frames
@@ -123,38 +116,37 @@ void PacketHandler::thread() {
 
 			//receivedFrame = NetworkHandler::GetNextFrame(&hdr, &buff, 0, false, threadNum_);
 
-			receivedFrame = NetworkHandler::GetNextFrame(&buff, sourcePort, sourceAddr, false, threadNum_, fd);
+			receivedFrame = NetworkHandler::GetNextFrame(&buff, sourcePort, sourceAddr, false, threadNum_, fd, timel0);
+			if(timel0) {break;}
 
-
-
-
-			if (receivedFrame > 0) {
+			//if (receivedFrame > 0) {
 
 				/*
 				 * Check if the burst should be flushed else prepare the data to be handled
 				 */
 				if(!BurstIdHandler::flushBurst()) {
-					if (receivedFrame > MTU) {
-						LOG_ERROR("Received packet from network with size " << receivedFrame << ". Dropping it");
-					}
-					else {
+					//if (receivedFrame > MTU) {
+					//	LOG_ERROR("Received packet from network with size " << receivedFrame << ". Dropping it");
+					//}
+				//	else {
 						char* data = new char[receivedFrame];
 						memcpy(data, buff, receivedFrame);
 						frames.push_back( { data, (uint_fast16_t) receivedFrame, true, sourcePort, sourceAddr });
-						goToSleep = false;
+						//goToSleep = false;
 						//spinsInARow = 0;
-					}
+				//	}
 				}
 				//else {
 				//	LOG_WARNING("Dropping data because we are at EoB");
 				//}
-			}
+			//}
 			//GLM: send all pending data requests
 			//while (NetworkHandler::getNumberOfEnqueuedSendFrames() > 0 ) {
 			//	NetworkHandler::DoSendQueuedFrames(threadNum_);
 			//}
 
 		}
+		timel0 = false;
 		if (!frames.empty()) {
 
 			/*
@@ -172,22 +164,22 @@ void PacketHandler::thread() {
 			if(queueSize >0 && (queueSize%100 == 0)) {
 				LOG_WARNING("Tasks queue size " << (int) queueSize);
 			}
-			goToSleep = false;
+			//goToSleep = false;
 			frameHandleTasksSpawned_++;
-		} else {
-			goToSleep = true;
-		}
+		} //else {
+			//goToSleep = true;
+		//}
 
-		if (goToSleep) {
-			sleeps_++;
-			if (!activePolling) {
+		//if (goToSleep) {
+			//sleeps_++;
+			//if (!activePolling) {
 				/*
 				 * Allow other threads to run
 				 */
-				boost::this_thread::sleep(
-						boost::posix_time::microsec(sleepMicros));
-			}
-		}
+				//boost::this_thread::sleep(
+				//		boost::posix_time::microsec(sleepMicros));
+			//}
+		//}
 	}
 
 	finish: LOG_INFO("Stopping PacketHandler thread " << threadNum_);
