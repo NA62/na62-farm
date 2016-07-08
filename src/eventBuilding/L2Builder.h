@@ -14,8 +14,8 @@
 #include "../options/MyOptions.h"
 namespace na62 {
 class Event;
-namespace cream {
-class LkrFragment;
+namespace l1 {
+class MEPFragment;
 } /* namespace cream */
 } /* namespace na62 */
 
@@ -23,13 +23,6 @@ namespace na62 {
 
 class L2Builder {
 private:
-	static std::atomic<uint64_t>* L2Triggers_;
-
-	static std::atomic<uint64_t> L2InputEvents_;
-	static std::atomic<uint64_t> L2InputEventsPerBurst_;
-
-	static std::atomic<uint64_t> L2AcceptedEvents_;
-
 	static std::atomic<uint64_t> L1BuildingTimeCumulative_;
 	static std::atomic<uint64_t> L1BuildingTimeMax_;
 	static std::atomic<uint64_t> L2ProcessingTimeCumulative_;
@@ -40,9 +33,7 @@ private:
 
 	static std::atomic<uint64_t>** L1BuildingTimeVsEvtNumber_;
 	static std::atomic<uint64_t>** L2ProcessingTimeVsEvtNumber_;
-	static uint reductionFactor_;
 
-	static uint downscaleFactor_;
 public:
 	/**
 	 * Adds the fragment to the corresponding event and processes the L2 trigger
@@ -50,17 +41,9 @@ public:
 	 *
 	 * @return true if the event is complete and therefore L2 has been processed, false otherwise
 	 */
-	static bool buildEvent(cream::LkrFragment* lkrFragment);
+	static void buildEvent(l1::MEPFragment* Fragment);
 
 	static void processL2(Event *event);
-
-	static inline std::atomic<uint64_t>* GetL2TriggerStats() {
-		return L2Triggers_;
-	}
-
-	static inline uint64_t GetL2InputStats() {
-		return L2InputEvents_;
-	}
 
 	static inline std::atomic<uint64_t>** GetL1BuidingTimeVsEvtNumber() {
 		return L1BuildingTimeVsEvtNumber_;
@@ -102,14 +85,6 @@ public:
 		L1BuildingTimeCumulative_ = 0;
 	}
 
-	static inline uint64_t GetL2InputEventsPerBurst() {
-		return L2InputEventsPerBurst_;
-	}
-
-	static void ResetL2InputEventsPerBurst() {
-		L2InputEventsPerBurst_ = 0;
-	}
-
 	static inline uint64_t GetL2ProcessingTimeMax() {
 		return L2ProcessingTimeMax_;
 	}
@@ -133,16 +108,8 @@ public:
 	static inline uint64_t GetEventsSentToStorage() {
 		return EventsSentToStorage_;
 	}
-	static inline uint64_t GetL2DownscaleFactor() {
-		return downscaleFactor_;
-	}
-	static inline uint64_t GetL2ReductionFactor() {
-		return reductionFactor_;
-	}
+
 	static void initialize() {
-		for (int i = 0; i != 0xFF + 1; i++) {
-			L2Triggers_[i] = 0;
-		}
 
 		L1BuildingTimeVsEvtNumber_ = new std::atomic<uint64_t>*[0x64 + 1];
 		L2ProcessingTimeVsEvtNumber_ = new std::atomic<uint64_t>*[0x64 + 1];
@@ -154,9 +121,6 @@ public:
 		}
 		L2Builder::ResetL1BuidingTimeVsEvtNumber();
 		L2Builder::ResetL2ProcessingTimeVsEvtNumber();
-		reductionFactor_ = Options::GetInt(OPTION_L2_REDUCTION_FACTOR);
-
-		downscaleFactor_ = Options::GetInt(OPTION_L2_DOWNSCALE_FACTOR);
 	}
 };
 

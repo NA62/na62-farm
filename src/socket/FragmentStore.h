@@ -29,10 +29,11 @@ class FragmentStore {
 
 public:
 	static DataContainer addFragment(DataContainer&& fragment) {
+		//LOG_ERROR("Fragmented packet from " << );
 		UDP_HDR* hdr = (UDP_HDR*) fragment.data;
 		const uint64_t fragID = generateFragmentID(hdr->ip.saddr, hdr->ip.id);
 		const uint fragmentStoreNum = fragID % numberOfFragmentStores_;
-
+		LOG_INFO("Fragmented packet from " << EthernetUtils::ipToString(hdr->ip.saddr));
 		numberOfFragmentsReceived_++;
 
 		/*
@@ -136,10 +137,10 @@ private:
 
 			if (currentData->getFragmentOffsetInBytes() + sizeof(ether_header)
 					+ sizeof(iphdr) != currentOffset) {
-				LOG_ERROR
-						<< "Error while reassembling IP fragments: sum of fragment lengths is "
+				LOG_ERROR(
+						   "Error while reassembling IP fragments: sum of fragment lengths is "
 						<< currentOffset << " but offset of current frame is "
-						<< currentData->getFragmentOffsetInBytes() << ENDL;
+						<< currentData->getFragmentOffsetInBytes());
 
 				for (DataContainer& fragment : fragments) {
 					if (fragment.data != nullptr) {

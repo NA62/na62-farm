@@ -10,8 +10,11 @@
 #include <glog/logging.h>
 #include <l0/MEP.h>
 #include <l0/MEPFragment.h>
-#include <LKr/LkrFragment.h>
+#include <l1/MEP.h>
+#include <l1/MEPFragment.h>
 #include <l1/L1Fragment.h>
+#include <l1/L1TriggerProcessor.h>
+#include <l2/L2TriggerProcessor.h>
 #include <l2/L2Fragment.h>
 #include <net/ethernet.h>
 #include <net/if_arp.h>
@@ -24,9 +27,11 @@
 #include <cstdint>
 #include <iostream>
 #include <vector>
-
+#ifdef USE_ERS
+#include <exceptions/CommonExceptions.h>
+#endif
 #include <eventBuilding/SourceIDManager.h>
-#include <exceptions/UnknownCREAMSourceIDFound.h>
+#include <exceptions/BrokenPacketReceivedError.h>
 #include <exceptions/UnknownSourceIDFound.h>
 #include <utils/DataDumper.h>
 #include <options/Options.h>
@@ -38,7 +43,7 @@
 #include "../eventBuilding/L1Builder.h"
 #include "../eventBuilding/L2Builder.h"
 #include "../options/MyOptions.h"
-#include "../straws/StrawReceiver.h"
+//#include "../straws/StrawReceiver.h"
 #include "PacketHandler.h"
 #include "FragmentStore.h"
 
@@ -46,13 +51,16 @@ namespace na62 {
 
 uint_fast16_t HandleFrameTask::L0_Port;
 uint_fast16_t HandleFrameTask::CREAM_Port;
-uint_fast16_t HandleFrameTask::STRAW_PORT;
+//uint_fast16_t HandleFrameTask::STRAW_PORT;
 uint_fast32_t HandleFrameTask::MyIP;
 
 std::atomic<uint> HandleFrameTask::queuedTasksNum_;
 uint HandleFrameTask::highestSourceNum_;
+uint HandleFrameTask::highestL1SourceNum_;
 std::atomic<uint64_t>* HandleFrameTask::MEPsReceivedBySourceNum_;
 std::atomic<uint64_t>* HandleFrameTask::BytesReceivedBySourceNum_;
+std::atomic<uint64_t>* HandleFrameTask::L1MEPsReceivedBySourceNum_;
+std::atomic<uint64_t>* HandleFrameTask::L1BytesReceivedBySourceNum_;
 
 HandleFrameTask::HandleFrameTask(std::vector<DataContainer>&& _containers,
 		uint burstID) :
@@ -67,22 +75,37 @@ HandleFrameTask::~HandleFrameTask() {
 void HandleFrameTask::initialize() {
 	L0_Port = Options::GetInt(OPTION_L0_RECEIVER_PORT);
 	CREAM_Port = Options::GetInt(OPTION_CREAM_RECEIVER_PORT);
-	STRAW_PORT = Options::GetInt(OPTION_STRAW_PORT);
+//	STRAW_PORT = Options::GetInt(OPTION_STRAW_PORT);
 	MyIP = NetworkHandler::GetMyIP();
 
 	/*
-	 * All L0 data sources and LKr:
+	 * All L0 data sources
 	 */
 	highestSourceNum_ = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES;
 
-	MEPsReceivedBySourceNum_ = new std::atomic<uint64_t>[highestSourceNum_ + 1];
+	MEPsReceivedBySourceNum_ = new std::atomic<uint64_t>[highestSourceNum_];
 	BytesReceivedBySourceNum_ =
-			new std::atomic<uint64_t>[highestSourceNum_ + 1];
+			new std::atomic<uint64_t>[highestSourceNum_];
 
-	for (uint i = 0; i != highestSourceNum_ + 1; i++) {
+	for (uint i = 0; i != highestSourceNum_; i++) {
 		MEPsReceivedBySourceNum_[i] = 0;
 		BytesReceivedBySourceNum_[i] = 0;
 	}
+
+	/*
+	 * All L1 data sources
+	 */
+	highestL1SourceNum_ = SourceIDManager::NUMBER_OF_L1_DATA_SOURCES;
+
+	L1MEPsReceivedBySourceNum_ = new std::atomic<uint64_t>[highestL1SourceNum_];
+	L1BytesReceivedBySourceNum_ =
+			new std::atomic<uint64_t>[highestL1SourceNum_];
+
+	for (uint i = 0; i != highestL1SourceNum_; i++) {
+		L1MEPsReceivedBySourceNum_[i] = 0;
+		L1BytesReceivedBySourceNum_[i] = 0;
+	}
+
 }
 
 void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
@@ -102,35 +125,45 @@ void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
 		AAARP << "ARP Response FarmToRouter" << pktLen << " ";
 		for (int i = 0; i < pktLen; i++)
 			AAARP << std::hex << ((char) (*(pbuff + i)) & 0xFF) << " ";
-//		LOG_INFO << AAARP.str() << ENDL;
+//		LOG_INFO(AAARP.str());
 		NetworkHandler::AsyncSendFrame(std::move(responseArp));
 	}
 }
 
-tbb::task* HandleFrameTask::execute() {
-	while (BurstIdHandler::isEobProcessingRunning()) {
-		usleep(1);
-	}
+void HandleFrameTask::execute() {
+
+
+//	while (BurstIdHandler::isEobProcessingRunning()) {
+//		usleep(1);
+//	}
 
 	for (DataContainer& container : containers_) {
-		processFrame(std::move(container));
+		//If we must clean up the burst we just drop data
+		if(BurstIdHandler::flushBurst()) {
+			LOG_WARNING("Dropping data because we are at EoB");
+			container.free();
+		}
+		else {
+			processFrame(std::move(container));
+
+		}
 	}
 
-	if (queuedTasksNum_ == 1) {
-		BurstIdHandler::checkBurstFinished();
-	}
+//	if (queuedTasksNum_ == 1) {
+//		BurstIdHandler::checkBurstFinished();
+//	}
 
-	return nullptr;
+	//return nullptr;
 }
 
 void HandleFrameTask::processFrame(DataContainer&& container) {
-	try {
+
 		UDP_HDR* hdr = (UDP_HDR*) container.data;
 		const uint_fast16_t etherType = /*ntohs*/(hdr->eth.ether_type);
 		const uint_fast8_t ipProto = hdr->ip.protocol;
 		uint_fast16_t destPort = ntohs(hdr->udp.dest);
 		const uint_fast32_t dstIP = hdr->ip.daddr;
-
+		try {
 		/*
 		 * Check if we received an ARP request
 		 */
@@ -144,7 +177,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				AAARP << "ARP Request FromRouter" << pktLen << " ";
 				for (int i = 0; i < pktLen; i++)
 					AAARP << std::hex << ((char) (*(pbuff + i)) & 0xFF) << " ";
-//				LOG_INFO << AAARP.str() << ENDL;
+//				LOG_INFO(AAARP.str());
 
 				// this will delete the data
 				processARPRequest(reinterpret_cast<ARP_HDR*>(container.data));
@@ -160,7 +193,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check checksum errors
 		 */
 		if (!checkFrame(hdr, container.length)) {
-			LOG_WARNING<< "Received broken packet from " << EthernetUtils::ipToString(hdr->ip.saddr) << ENDL;
+			LOG_ERROR("type = BadPack : Received broken packet from " << EthernetUtils::ipToString(hdr->ip.saddr));
 			container.free();
 			return;
 		}
@@ -169,7 +202,8 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 		 * Check if we are really the destination of the IP datagram
 		 */
 		if (MyIP != dstIP) {
-			LOG_WARNING<< "Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP) << ENDL;
+		//if("10.194.20.37" != EthernetUtils::ipToString(dstIP)) {
+			LOG_ERROR("Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP));
 			container.free();
 			return;
 		}
@@ -209,8 +243,9 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			 */
 			if (mep->getSourceID() == SOURCE_ID_L0TP) {
 				if (SourceIDManager::isL1Active()) {
+					//LOG_INFO("Invent L1 MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
-					uint16_t fragmentLength = sizeof(L1_BLOCK) + 8; //event length in bytes
+					uint16_t fragmentLength = L1TriggerProcessor::GetL1DataPacketSize() + 8; //event length in bytes
 					const uint32_t L1BlockLength = mep_factor * fragmentLength
 							+ 8; //L1 block length in bytes
 					char * L1Data = new char[L1BlockLength + sizeof(UDP_HDR)]; //include UDP header
@@ -249,18 +284,18 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					BytesReceivedBySourceNum_[sourceNum].fetch_add(
 							L1BlockLength + sizeof(UDP_HDR),
 							std::memory_order_relaxed);
-					for (uint i = 0; i != mep_L1->getNumberOfFragments(); i++) {
+					for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
 						L1Builder::buildEvent(mep_L1->getFragment(i), burstID_);
 					}
 				}
 				if (SourceIDManager::isL2Active()) {
+					//LOG_INFO("Invent L2 MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
-					uint32_t L2EventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
+					uint32_t L2EventLength = L2TriggerProcessor::GetL2DataPacketSize() + 8; //event length in bytes
 					uint32_t L2BlockLength = mep_factor * L2EventLength + 8; //L2 block length in bytes
 					char * L2Data = new char[L2BlockLength + sizeof(UDP_HDR)]; //include UDP header
-					l0::MEP_HDR * L2Hdr = (l0::MEP_HDR *) (L2Data
-							+ sizeof(UDP_HDR));
+					l0::MEP_HDR * L2Hdr = (l0::MEP_HDR *) (L2Data + sizeof(UDP_HDR));
 
 					L2Hdr->firstEventNum = mep->getFirstEventNum();
 					L2Hdr->sourceID = SOURCE_ID_L2;
@@ -293,14 +328,15 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 							L2BlockLength + sizeof(UDP_HDR),
 							std::memory_order_relaxed);
 
-					for (uint i = 0; i != mep_L2->getNumberOfFragments(); i++) {
+					for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
 						L1Builder::buildEvent(mep_L2->getFragment(i), burstID_);
 					}
 				}
 				if (SourceIDManager::isNSTDActive()) {
+					//LOG_INFO("Invent NSTD MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
-					uint32_t NSTDEventLength = sizeof(L2_BLOCK) + 8; //event length in bytes
+					uint32_t NSTDEventLength = sizeof(uint32_t) + 8; //dummy length that will be corrected in mergers
 					uint32_t NSTDBlockLength = mep_factor * NSTDEventLength + 8; //L2 block length in bytes
 					char * NSTDData =
 							new char[NSTDBlockLength + sizeof(UDP_HDR)]; //include UDP header
@@ -339,8 +375,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 							NSTDBlockLength + sizeof(UDP_HDR),
 							std::memory_order_relaxed);
 
-					for (uint i = 0; i != mep_NSTD->getNumberOfFragments();
-							i++) {
+					for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
 						L1Builder::buildEvent(mep_NSTD->getFragment(i),
 								burstID_);
@@ -348,48 +383,68 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 				}
 			}
 
-			for (uint i = 0; i != mep->getNumberOfFragments(); i++) {
+
+			uint maxFrags =  mep->getNumberOfFragments();
+			for (uint i = 0; i != maxFrags; i++) {
 				// Add every fragment
-//				if (EventPool::getPoolSize()
-//						> mep->getFragment(i)->getEventNumber()) {
-//					EventPool::getL0PacketCounter()[mep->getFragment(i)->getEventNumber()].fetch_add(
-//							1, std::memory_order_relaxed);
-//				}
 				L1Builder::buildEvent(mep->getFragment(i), burstID_);
 			}
-		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// CREAM Data //////////////////////////////////////////////////
-			cream::LkrFragment* fragment = new cream::LkrFragment(UDPPayload,
-					UdpDataLength, container);
+		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// L1 Data //////////////////////////////////////////////////
+			if (UdpDataLength == 0) {
+				LOG_ERROR("Empty L1 fragment from " << EthernetUtils::ipToString(hdr->ip.saddr));
+				container.free();
+				return;
+			}
+			 l1::MEP* l1mep = new l1::MEP(UDPPayload, UdpDataLength, container);
 
 			//fragment
+			uint sourceNum = SourceIDManager::l1SourceIDToNum(l1mep->getSourceID());
 
-			MEPsReceivedBySourceNum_[highestSourceNum_].fetch_add(1,
+			L1MEPsReceivedBySourceNum_[sourceNum].fetch_add(1,
 					std::memory_order_relaxed);
-
-			BytesReceivedBySourceNum_[highestSourceNum_].fetch_add(
-					container.length, std::memory_order_relaxed);
+			L1BytesReceivedBySourceNum_[sourceNum].fetch_add(container.length,
+					std::memory_order_relaxed);
 
 //			if (EventPool::getPoolSize() > fragment->getEventNumber()) {
 //				EventPool::getCREAMPacketCounter()[fragment->getEventNumber()].fetch_add(
 //						1, std::memory_order_relaxed);
 //			}
-			L2Builder::buildEvent(fragment);
-		} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
-			StrawReceiver::processFrame(std::move(container), burstID_);
+			uint nfrags = l1mep->getNumberOfEvents();
+			for (uint i=0; i!= nfrags ; ++i) {
+				L2Builder::buildEvent(l1mep->getEvent(i));
+			}
+		//} else if (destPort == STRAW_PORT) { ////////////////////////////////////////////////// STRAW Data //////////////////////////////////////////////////
+		//	StrawReceiver::processFrame(std::move(container), burstID_);
 		} else {
 			/*
 			 * Packet with unknown UDP port received
 			 */
-			LOG_ERROR<<"Packet with unknown UDP port received: " << destPort << ENDL;
+			LOG_WARNING("Packet with unknown UDP port received: " << destPort);
 			container.free();
 		}
+#ifdef USE_ERS
+	} catch (UnknownSourceID const& e) {
+		LOG_ERROR("Unknown source ID received from " + EthernetUtils::ipToString(hdr->ip.saddr) + ": " + e.message() );
+		//ers::warning(e);
+		container.free();
+	} catch (CorruptedMEP const&e) {
+		LOG_ERROR("Corrupted data received from " + EthernetUtils::ipToString(hdr->ip.saddr) + ": " + e.message() );
+		//ers::warning(CorruptedMEP(ERS_HERE, "DataSender=" + EthernetUtils::ipToString(hdr->ip.saddr), e));
+		container.free();
+	} catch (Message const& e) {
+		LOG_ERROR("Bad data received from " + EthernetUtils::ipToString(hdr->ip.saddr) + ": " + e.message() );
+		//ers::warning(e);
+		container.free();
+	}
+#else
 	} catch (UnknownSourceIDFound const& e) {
 		container.free();
-	} catch (UnknownCREAMSourceIDFound const&e) {
+	} catch (BrokenPacketReceivedError const&e) {
 		container.free();
 	} catch (NA62Error const& e) {
 		container.free();
 	}
+#endif
 }
 
 bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
@@ -397,7 +452,7 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 	 * Check IP-Header
 	 */
 	//				if (!EthernetUtils::CheckData((char*) &hdr->ip, sizeof(iphdr))) {
-	//					LOG_ERROR << "Packet with broken IP-checksum received");
+	//					LOG_ERROR("Packet with broken IP-checksum received"));
 	//					container.free();
 	//					continue;
 	//				}
@@ -410,9 +465,8 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 		 * Does not need to be equal because of ethernet padding
 		 */
 		if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) > length) {
-			LOG_ERROR<<
-			"Received IP-Packet with less bytes than ip.tot_len field! " <<
-			(ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length << ENDL;
+			LOG_ERROR("Received IP-Packet with less bytes than ip.tot_len field! " <<
+			(ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length);
 			return false;
 		}
 	}
@@ -421,7 +475,7 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 	 * Does not need to be equal because of ethernet padding
 	 */
 	if (ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr) > length) {
-		LOG_ERROR<<"Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length;
+		LOG_ERROR("Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length);
 		return false;
 	}
 
@@ -429,7 +483,7 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 	//				 * Check UDP checksum
 	//				 */
 	//				if (!EthernetUtils::CheckUDP(hdr, (const char *) (&hdr->udp) + sizeof(udphdr), ntohs(hdr->udp.len) - sizeof(udphdr))) {
-	//					LOG_ERROR << "Packet with broken UDP-checksum received" ) << ENDL;
+	//					LOG_ERROR("Packet with broken UDP-checksum received" );
 	//					container.free();
 	//					continue;
 	//				}

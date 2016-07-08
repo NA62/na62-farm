@@ -43,7 +43,6 @@ public:
 private:
 	int threadNum_;
 	bool running_;
-	static uint NUMBER_OF_EBS;
 
 	/**
 	 * @return <true> In case of success, false in case of a serious error (we should stop the thread in this case)

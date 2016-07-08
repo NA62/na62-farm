@@ -7,21 +7,28 @@
 #include <boost/bind.hpp>
 #include <eventBuilding/SourceIDManager.h>
 #include <tbb/task.h>
+#include <tbb/tbb.h>
 #include <thread>
+#include <atomic>
 
-#include <LKr/L1DistributionHandler.h>
 #include <monitoring/IPCHandler.h>
 #include <monitoring/BurstIdHandler.h>
+#include <monitoring/FarmStatistics.h>
+#include <monitoring/DetectorStatistics.h>
 #include <options/Options.h>
 #include <socket/NetworkHandler.h>
 #include <unistd.h>
 #include <csignal>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <l1/L1TriggerProcessor.h>
 #include <l2/L2TriggerProcessor.h>
+#include <common/HLTriggerManager.h>
+#include <struct/HLTConfParams.h>
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/Event.h>
+#include <l1/L1DistributionHandler.h>
 #include <options/TriggerOptions.h>
 #include <storage/EventSerializer.h>
 
@@ -31,52 +38,112 @@
 #include "monitoring/MonitorConnector.h"
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
+#include "socket/TaskProcessor.h"
 #include "socket/ZMQHandler.h"
 #include "socket/HandleFrameTask.h"
 #include "monitoring/CommandConnector.h"
-#include "straws/StrawReceiver.h"
-
+//#include "straws/StrawReceiver.h"
 
 using namespace std;
 using namespace na62;
 
 std::vector<PacketHandler*> packetHandlers;
+std::vector<TaskProcessor*> taskProcessors;
 
 void handle_stop(const boost::system::error_code& error, int signal_number) {
+#ifdef USE_GLOG
 	google::ShutdownGoogleLogging();
-	LOG_INFO<< "#############################################" << ENDL;
-	LOG_INFO<< "#############################################" << ENDL;
-	LOG_INFO<< "#############################################" << ENDL;
-	LOG_INFO<< "Received signal " << signal_number << " - Shutting down"
-	<< ENDL;
+#endif
+	LOG_INFO("#############################################");
+	LOG_INFO("#############################################");
+	LOG_INFO("#############################################");
+	LOG_INFO("Received signal " << signal_number << " - Shutting down");
 
 	IPCHandler::updateState(INITIALIZING);
 	usleep(100);
 	if (!error) {
 		ZMQHandler::Stop();
 		AExecutable::InterruptAll();
+		FarmStatistics::stopRunning();
 
-		LOG_INFO<< "Stopping packet handlers";
+		LOG_INFO("Stopping packet handlers");
 		for (auto& handler : packetHandlers) {
 			handler->stopRunning();
 		}
 
-		LOG_INFO<< "Stopping storage handler";
+		LOG_INFO("Stopping storage handler");
 		StorageHandler::onShutDown();
 
-		LOG_INFO<< "Stopping STRAW receiver";
-		StrawReceiver::onShutDown();
+		//LOG_INFO("Stopping STRAW receiver");
+		//StrawReceiver::onShutDown();
 
 		usleep(1000);
-		LOG_INFO<< "Stopping IPC handler";
+		LOG_INFO("Stopping IPC handler");
 		IPCHandler::shutDown();
 
-		LOG_INFO<< "Stopping ZMQ handler";
+		LOG_INFO("Stopping ZMQ handler");
 		ZMQHandler::shutdown();
 
-		LOG_INFO<< "Cleanly shut down na62-farm";
+		LOG_INFO("Stopping Burst handler");
+		BurstIdHandler::shutDown();
+
+		LOG_INFO("Cleanly shut down na62-farm");
 		exit(0);
 	}
+}
+
+void onBurstFinished() {
+	static std::atomic<uint> incompleteEvents_;
+	incompleteEvents_ = 0;
+
+
+	// Do it with parallel_for using tbb if tcmalloc is linked
+	tbb::parallel_for(
+			tbb::blocked_range<uint_fast32_t>(0,
+					EventPool::getLargestTouchedEventnumberIndex() + 1,
+					EventPool::getLargestTouchedEventnumberIndex()
+							/ std::thread::hardware_concurrency()),
+			[](const tbb::blocked_range<uint_fast32_t>& r) {
+				for(size_t index=r.begin();index!=r.end(); index++) {
+					Event* event = EventPool::getEventByIndex(index);
+					if(event == nullptr) continue;
+					if (event->isUnfinished()) {
+						if(event->isLastEventOfBurst()) {
+							LOG_ERROR("type = EOB : Handling unfinished EOB event " << event->getEventNumber());
+							StorageHandler::SendEvent(event);
+						}
+						++incompleteEvents_;
+						event->updateMissingEventsStats();
+						EventPool::freeEvent(event);
+					}
+				}
+			});
+
+	if (incompleteEvents_ > 0) {
+		LOG_ERROR("type = EOB : Dropped " << incompleteEvents_ << " events in burst ID = " << (int) BurstIdHandler::getCurrentBurstId() << ".");
+	//	LOG_ERROR (DetectorStatistics::L0RCInfo());
+	//	LOG_ERROR (DetectorStatistics::L1RCInfo());
+
+	}
+	IPCHandler::sendStatistics("MonitoringL0Data", DetectorStatistics::L0RCInfo());
+	IPCHandler::sendStatistics("MonitoringL1Data", DetectorStatistics::L1RCInfo());
+	DetectorStatistics::clearL0DetectorStatistics();
+	DetectorStatistics::clearL1DetectorStatistics();
+
+	int tSize = 0, resident = 0, share = 0;
+	ifstream buffer("/proc/self/statm");
+	buffer >> tSize >> resident >> share;
+	buffer.close();
+
+	long page_size_kb = sysconf(_SC_PAGE_SIZE) / 1024; // in case x86-64 is configured to use 2MB pages
+	double rss = resident * page_size_kb;
+	double shared_mem = share * page_size_kb;
+	if (rss > 30000000) {
+		LOG_WARNING("type=memstat RSS - " + std::to_string(int(rss/1000)) + " MB. Shared Memory - " + std::to_string(int(shared_mem/1000)) + " MB. Private Memory - " + std::to_string(int((rss - shared_mem)/1000)) + "MB" );
+		LOG_ERROR("Memory LEAK!!! Terminating process");
+		exit(-1);
+	}
+
 }
 
 int main(int argc, char* argv[]) {
@@ -89,23 +156,25 @@ int main(int argc, char* argv[]) {
 	boost::thread signalThread(
 			boost::bind(&boost::asio::io_service::run, &signalService));
 
-
-	L1TriggerProcessor::registerDownscalingAlgorithms();
-
-	L1TriggerProcessor::registerReductionAlgorithms();
 	/*
 	 * Static Class initializations
 	 */
 	TriggerOptions::Load(argc, argv);
 	MyOptions::Load(argc, argv);
+	try {
+		ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
+	} catch (const zmq::error_t& ex) {
+		LOG_ERROR("Failed to initialize ZMQ because: " << ex.what());
+		exit(1);
+	}
+	HLTStruct HLTConfParams;
+	HLTriggerManager::fillStructFromXMLFile(HLTConfParams);
+	L1TriggerProcessor::initialize(HLTConfParams.l1);
+	L2TriggerProcessor::initialize(HLTConfParams.l2);
 
-	ZMQHandler::Initialize(Options::GetInt(OPTION_ZMQ_IO_THREADS));
-
-	L1TriggerProcessor::initialize(
-			TriggerOptions::GetDouble(OPTION_L1_BYPASS_PROBABILITY));
-	L2TriggerProcessor::initialize(
-			TriggerOptions::GetDouble(OPTION_L2_BYPASS_PROBABILITY));
-
+	FarmStatistics::init();
+	FarmStatistics farmstats;
+	farmstats.startThread("StatisticsWriter");
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread
 	 */
@@ -114,39 +183,77 @@ int main(int argc, char* argv[]) {
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),
 			Options::GetIntPairList(OPTION_DATA_SOURCE_IDS),
-			Options::GetIntPairList(OPTION_CREAM_CRATES),
-			Options::GetIntPairList(OPTION_INACTIVE_CREAM_CRATES),
-			Options::GetInt(OPTION_MUV_CREAM_CRATE_ID));
+			Options::GetIntPairList(OPTION_L1_DATA_SOURCE_IDS));
 
-	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID));
+	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID),
+			&onBurstFinished);
 
 	HandleFrameTask::initialize();
 
 	EventSerializer::initialize();
-	StorageHandler::initialize();
-	StrawReceiver::initialize();
+	try {
+		StorageHandler::initialize();
+	}
+	catch(const zmq::error_t& ex) {
+		LOG_ERROR("Failed to initialize StorageHandler because: " << ex.what());
+		exit(1);
+	}
+	StorageHandler sh;
+	sh.startThread("StorageHandler");
+
+		//StrawReceiver::initialize();
 
 	L1Builder::initialize();
 	L2Builder::initialize();
 
-	Event::initialize(MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES),
-			Options::GetBool(OPTION_WRITE_BROKEN_CREAM_INFO));
+	Event::initialize(MyOptions::GetBool(OPTION_PRINT_MISSING_SOURCES));
 
-	EventPool::initialize(Options::GetInt(
-	OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST));
+//  Initialize Detector counts. L1=32 because 0=gtk, 1-30 Lkr, 31 MUV
+//  20 should be changed with a proper dynamic definition of the number of L0 sources
+	DetectorStatistics::init(20,32);
+	DetectorStatistics::clearL0DetectorStatistics();
+	DetectorStatistics::clearL1DetectorStatistics();
 
-	cream::L1DistributionHandler::Initialize(
+	// Get the list of farm nodes and find my position
+	vector<std::string> nodes = Options::GetStringList(OPTION_FARM_HOST_NAMES);
+	std::string myIP = EthernetUtils::ipToString(
+			EthernetUtils::GetIPOfInterface(
+					Options::GetString(OPTION_ETH_DEVICE_NAME)));
+	uint logicalNodeID = 0xffffffff;
+	for (size_t i = 0; i < nodes.size(); ++i) {
+		if (myIP == nodes[i]) {
+			logicalNodeID = i;
+			break;
+		}
+	}
+	if (logicalNodeID == 0xffffffff) {
+		LOG_ERROR(
+				"You must provide a list of farm nodes IP addresses containing the IP address of this node!");
+		exit(1);
+	}
+
+	EventPool::initialize(
+			Options::GetInt(OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST),
+			nodes.size(), logicalNodeID,
+			Options::GetInt(OPTION_NUMBER_OF_FRAGS_PER_L0MEP));
+
+	l1::L1DistributionHandler::Initialize(
 			Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP),
-			Options::GetInt(OPTION_NUMBER_OF_EBS),
 			Options::GetInt(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS),
 			Options::GetStringList(OPTION_CREAM_MULTICAST_GROUP),
 			Options::GetInt(OPTION_CREAM_RECEIVER_PORT),
 			Options::GetInt(OPTION_CREAM_MULTICAST_PORT));
 
 	/*
+	 * Burst Handler
+	 */
+	LOG_INFO("Start burst handler thread.");
+	BurstIdHandler bHandler;
+	bHandler.startThread("BurstHandler");
+	/*
 	 * Monitor
 	 */
-	LOG_INFO<<"Starting Monitoring Services";
+	LOG_INFO("Starting Monitoring Services");
 	monitoring::MonitorConnector monitor;
 	monitoring::MonitorConnector::setState(INITIALIZING);
 	monitor.startThread("MonitorConnector");
@@ -154,30 +261,39 @@ int main(int argc, char* argv[]) {
 	/*
 	 * L1 Distribution handler
 	 */
-	cream::L1DistributionHandler l1Handler;
+	l1::L1DistributionHandler l1Handler;
 	l1Handler.startThread("L1DistributionHandler");
 
 	/*
 	 * Packet Handler
 	 */
 	unsigned int numberOfPacketHandler = NetworkHandler::GetNumberOfQueues();
-	LOG_INFO<< "Starting " << numberOfPacketHandler
-	<< " PacketHandler threads" << ENDL;
+	LOG_INFO("Starting " << numberOfPacketHandler << " PacketHandler threads");
 
 	for (unsigned int i = 0; i < numberOfPacketHandler; i++) {
-		PacketHandler* handler = new (tbb::task::allocate_root()) PacketHandler(
-				i);
+		PacketHandler* handler = new PacketHandler(i);
 		packetHandlers.push_back(handler);
 
 		uint coresPerSocket = std::thread::hardware_concurrency()
 				/ 2/*hyperthreading*/;
 		uint cpuMask = i % 2 == 0 ? i / 2 : coresPerSocket + i / 2;
-		handler->startThread(i, "PacketHandler", cpuMask, 15,
+		handler->startThread(i, "PacketHandler", cpuMask, 25,
 				MyOptions::GetInt(OPTION_PH_SCHEDULER));
+
+	}
+
+	//for (unsigned int i = 0; i < 4; i++) {
+	for (unsigned int i = 0;
+			i < std::thread::hardware_concurrency() - numberOfPacketHandler;
+			i++) {
+		TaskProcessor* tp = new TaskProcessor();
+		taskProcessors.push_back(tp);
+		tp->startThread(i, "TaskProcessor");
+
 	}
 
 	CommandConnector c;
-	c.startThread(0, "Commandconnector", -1, 0);
+	c.startThread(0, "Commandconnector", -1, 1);
 	monitoring::MonitorConnector::setState(RUNNING);
 
 	/*
