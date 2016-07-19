@@ -117,7 +117,7 @@ void onBurstFinished() {
 					if (event->isUnfinished()) {
 						if(event->isLastEventOfBurst()) {
 							LOG_ERROR("type = EOB : Handling unfinished EOB event " << event->getEventNumber());
-							//StorageHandler::SendEvent(event);
+							StorageHandler::SendEvent(event);
 						}
 						++incompleteEvents_;
 						event->updateMissingEventsStats();
