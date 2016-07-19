@@ -6,6 +6,7 @@
  */
 
 #include "L1Builder.h"
+#include "L2Builder.h"
 #ifdef USE_ERS
 #include <exceptions/CommonExceptions.h>
 #endif
@@ -21,7 +22,10 @@
 #include <sys/types.h>
 #include <cstdbool>
 
-#include "L2Builder.h"
+#ifdef USE_SHAREDMEMORY
+#include "SharedMemory/SharedMemoryManager.h"
+#endif
+
 
 namespace na62 {
 
@@ -100,14 +104,20 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 
 void L1Builder::processL1(Event *event) {
 
-	uint_fast8_t l0TriggerTypeWord = event->getL0TriggerTypeWord();
+#ifdef USE_SHAREDMEMORY
+	/*
+	 * Send L1 to trigger processor
+	 */
+	bool result = SharedMemoryManager::storeL1Event(event);
+
+#else
 
 	/*
 	 * Process Level 1 trigger
 	 */
+	uint_fast8_t l0TriggerTypeWord = event->getL0TriggerTypeWord();
 	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event);
 	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
-
 	event->setL1Processed(L0L1Trigger);
 
 
@@ -128,7 +138,6 @@ void L1Builder::processL1(Event *event) {
 	if (l1TriggerTypeWord != 0) {
 
 		if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
-
 			sendL1Request(event);
 		} else {
 			L2Builder::processL2(event);
@@ -139,6 +148,8 @@ void L1Builder::processL1(Event *event) {
 		 */
 		EventPool::freeEvent(event);
 	}
+
+#endif
 
 }
 

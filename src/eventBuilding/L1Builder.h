@@ -38,12 +38,15 @@ private:
 
 	static bool requestZSuppressedLkrData_;
 
+
+
+public:
+
 	/*
 	 * @return <true> if any packet has been sent (time has passed)
 	 */
 	static void sendL1Request(Event * event);
 
-public:
 	/**
 	 * Adds the fragment to the corresponding event and processes the L1 trigger
 	 * algorithm if the event building is finished

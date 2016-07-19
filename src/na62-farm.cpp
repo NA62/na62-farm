@@ -30,7 +30,7 @@
 #include <eventBuilding/Event.h>
 #include <l1/L1DistributionHandler.h>
 #include <options/TriggerOptions.h>
-#include <storage/EventSerializer.h>
+#include <storage/SmartEventSerializer.h>
 
 #include "eventBuilding/L1Builder.h"
 #include "eventBuilding/L2Builder.h"
@@ -42,6 +42,13 @@
 #include "socket/ZMQHandler.h"
 #include "socket/HandleFrameTask.h"
 #include "monitoring/CommandConnector.h"
+
+
+#ifdef USE_SHAREDMEMORY
+#include "SharedMemory/SharedMemoryManager.h"
+#include "SharedMemory/QueueReceiver.h"
+#endif
+
 //#include "straws/StrawReceiver.h"
 
 using namespace std;
@@ -110,7 +117,7 @@ void onBurstFinished() {
 					if (event->isUnfinished()) {
 						if(event->isLastEventOfBurst()) {
 							LOG_ERROR("type = EOB : Handling unfinished EOB event " << event->getEventNumber());
-							StorageHandler::SendEvent(event);
+							//StorageHandler::SendEvent(event);
 						}
 						++incompleteEvents_;
 						event->updateMissingEventsStats();
@@ -190,7 +197,7 @@ int main(int argc, char* argv[]) {
 
 	HandleFrameTask::initialize();
 
-	EventSerializer::initialize();
+	SmartEventSerializer::initialize();
 	try {
 		StorageHandler::initialize();
 	}
@@ -201,7 +208,17 @@ int main(int argc, char* argv[]) {
 	StorageHandler sh;
 	sh.startThread("StorageHandler");
 
-		//StrawReceiver::initialize();
+#ifdef USE_SHAREDMEMORY
+	//Remove the shared memory if any
+	//I will start with a clean memory ech time the main process is restarted
+	//SharedMemoryManager::eraseAll();
+	//Initialize the shared memory
+	SharedMemoryManager::initialize();
+	//Starting queue Receiver for processed L1
+	QueueReceiver receiver;
+	receiver.startThread("QueueReceiver");
+#endif
+
 
 	L1Builder::initialize();
 	L2Builder::initialize();

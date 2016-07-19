@@ -27,7 +27,7 @@
 #include <glog/logging.h>
 
 #include "../options/MyOptions.h"
-#include <storage/EventSerializer.h>
+#include <storage/SmartEventSerializer.h>
 
 namespace na62 {
 
@@ -73,7 +73,7 @@ int StorageHandler::SendEvent(const Event* event) {
 	/*
 	 * TODO: Use multimessage instead of creating a separate buffer and copying the MEP data into it
 	 */
-	const EVENT_HDR* data = EventSerializer::SerializeEvent(event);
+	const EVENT_HDR* data = SmartEventSerializer::SerializeEvent(event);
 	int dataLength = data->length * 4;
 
 	StorageHandler::DataQueue_.push(data);
