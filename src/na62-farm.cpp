@@ -132,6 +132,24 @@ void onBurstFinished() {
 	//	LOG_ERROR (DetectorStatistics::L1RCInfo());
 
 	}
+#ifdef USE_SHAREDMEMORY
+	if(SharedMemoryManager::getTriggerQueue()->get_num_msg() != 0) {
+		LOG_ERROR("Some events are still waiting to process L1 at EOB!!!!");
+	} else {
+		//No event are waiting to be processed at L1
+		//Check consistency of free location queue
+		if (!SharedMemoryManager::checkTriggerFreeQueueConsistency()) {
+			LOG_ERROR("Regenerated Free queue at EOB!!!!");
+		}
+
+	}
+	if(SharedMemoryManager::getTriggerResponseQueue()->get_num_msg() != 0) {
+			LOG_ERROR("Some trigger results are still waiting to send L1 Request!!!!");
+	}
+#endif
+
+
+
 	IPCHandler::sendStatistics("MonitoringL0Data", DetectorStatistics::L0RCInfo());
 	IPCHandler::sendStatistics("MonitoringL1Data", DetectorStatistics::L1RCInfo());
 	DetectorStatistics::clearL0DetectorStatistics();
