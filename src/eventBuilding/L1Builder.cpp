@@ -108,7 +108,9 @@ void L1Builder::processL1(Event *event) {
 	/*
 	 * Send L1 to trigger processor
 	 */
-	bool result = SharedMemoryManager::storeL1Event(event);
+	if (!SharedMemoryManager::storeL1Event(event)) {
+		//TODO unable to store on the shared memory can process it locally?
+	}
 
 #else
 

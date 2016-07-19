@@ -50,11 +50,7 @@ void QueueReceiver::thread() {
 
 				event->setL1Processed(L0L1Trigger);
 
-				//Removing event from the shared memory
-				SharedMemoryManager::removeL1Event(trigger_message.memory_id);
-
 				if (trigger_message.l1_trigger_type_word != 0) {
-
 					if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
 						L1Builder::sendL1Request(event);
 					} else {
