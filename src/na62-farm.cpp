@@ -141,14 +141,12 @@ void onBurstFinished() {
 		if (!SharedMemoryManager::checkTriggerFreeQueueConsistency()) {
 			LOG_ERROR("Regenerated Free queue at EOB!!!!");
 		}
-
 	}
 	if(SharedMemoryManager::getTriggerResponseQueue()->get_num_msg() != 0) {
+			//Don't think that this can happen..
 			LOG_ERROR("Some trigger results are still waiting to send L1 Request!!!!");
 	}
 #endif
-
-
 
 	IPCHandler::sendStatistics("MonitoringL0Data", DetectorStatistics::L0RCInfo());
 	IPCHandler::sendStatistics("MonitoringL1Data", DetectorStatistics::L1RCInfo());

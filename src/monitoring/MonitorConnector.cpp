@@ -110,7 +110,7 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("PF_PacksDropped",
 			std::to_string(NetworkHandler::GetFramesDropped()));
 
-	LOG_INFO("########################");
+	//LOG_INFO("########################");
 	/*
 	 * Number of Events and data rate from all detectors
 	 */
@@ -228,7 +228,7 @@ void MonitorConnector::handleUpdate() {
 		}
 	}
 
-	LOG_INFO("########################");
+	//LOG_INFO("########################");
 
 	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
 	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
@@ -264,9 +264,9 @@ void MonitorConnector::handleUpdate() {
 	setContinuousData("OutFramesQueued",
 			NetworkHandler::getNumberOfEnqueuedSendFrames());
 
-	LOG_INFO(
-			"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames());
-	LOG_INFO("=======================================");
+//	LOG_INFO(
+//			"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames());
+//	LOG_INFO("=======================================");
 
 	/*
 	 * Building Time L0-L1 statistics
@@ -294,10 +294,10 @@ void MonitorConnector::handleUpdate() {
 	uint64_t L0BuildTimeMax = L1Builder::GetL0BuildingTimeMax();
 	uint64_t L1BuildTimeMax = L2Builder::GetL1BuildingTimeMax();
 
-	LOG_INFO("***********L0BuildTimeMean (x Run Control) " << L0BuildTimeMean);
-	LOG_INFO("***********L1BuildTimeMean (x Run Control) " << L1BuildTimeMean);
-	LOG_INFO("***********L0BuildTimeMax  (x Run Control) " << L0BuildTimeMax);
-	LOG_INFO("***********L1BuildTimeMax  (x Run Control) " << L1BuildTimeMax);
+//	LOG_INFO("***********L0BuildTimeMean (x Run Control) " << L0BuildTimeMean);
+//	LOG_INFO("***********L1BuildTimeMean (x Run Control) " << L1BuildTimeMean);
+//	LOG_INFO("***********L0BuildTimeMax  (x Run Control) " << L0BuildTimeMax);
+//	LOG_INFO("***********L1BuildTimeMax  (x Run Control) " << L1BuildTimeMax);
 
 	IPCHandler::sendStatistics("L0BuildingTimeMean",
 			std::to_string(L0BuildTimeMean));
@@ -330,10 +330,10 @@ void MonitorConnector::handleUpdate() {
 	uint64_t L1ProcTimeMax = L1Builder::GetL1ProcessingTimeMax();
 	uint64_t L2ProcTimeMax = L2Builder::GetL2ProcessingTimeMax();
 
-	LOG_INFO("***********L1ProcTimeMean (x Run Control)  " << L1ProcTimeMean);
-	LOG_INFO("***********L2ProcTimeMean (x Run Control)  " << L2ProcTimeMean);
-	LOG_INFO("***********L1ProcTimeMax  (x Run Control)  " << L1ProcTimeMax);
-	LOG_INFO("***********L2ProcTimeMax  (x Run Control)  " << L2ProcTimeMax);
+	//LOG_INFO("***********L1ProcTimeMean (x Run Control)  " << L1ProcTimeMean);
+//	LOG_INFO("***********L2ProcTimeMean (x Run Control)  " << L2ProcTimeMean);
+//	LOG_INFO("***********L1ProcTimeMax  (x Run Control)  " << L1ProcTimeMax);
+//	LOG_INFO("***********L2ProcTimeMax  (x Run Control)  " << L2ProcTimeMax);
 
 	IPCHandler::sendStatistics("L1ProcessingTimeMean",
 			std::to_string(L1ProcTimeMean));
@@ -412,11 +412,11 @@ uint64_t MonitorConnector::setDifferentialData(std::string key,
 
 	if (value != 0) {
 		if (key == "BytesReceived") {
-			LOG_INFO(
-					key << ":\t" << Utils::FormatSize(value - differentialInts_[key]) << " (" << Utils::FormatSize(value) <<")");
+			//LOG_INFO(
+				//	key << ":\t" << Utils::FormatSize(value - differentialInts_[key]) << " (" << Utils::FormatSize(value) <<")");
 		} else {
-			LOG_INFO(
-					key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")");
+			//LOG_INFO(
+					//key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")");
 		}
 
 	}
@@ -446,8 +446,8 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 	}
 	lastValue = detectorDifferentialInts_[detectorID][key];
 
-	LOG_INFO(
-			key << SourceIDManager::sourceIdToDetectorName(detectorID) << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")");
+	//LOG_INFO(
+			//key << SourceIDManager::sourceIdToDetectorName(detectorID) << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")");
 
 	detectorDifferentialInts_[detectorID][key + LAST_VALUE_SUFFIX] =
 			detectorDifferentialInts_[detectorID][key];
@@ -478,7 +478,7 @@ void MonitorConnector::setDetectorDifferentialData(std::string key,
 //}
 
 void MonitorConnector::setContinuousData(std::string key, uint64_t value) {
-	LOG_INFO(key << ":\t" << std::to_string(value));
+	//LOG_INFO(key << ":\t" << std::to_string(value));
 }
 
 }

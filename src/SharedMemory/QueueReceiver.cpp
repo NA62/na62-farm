@@ -15,33 +15,46 @@
 
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/Event.h>
+#include <monitoring/BurstIdHandler.h>
 
 namespace na62 {
 
+uint QueueReceiver::highest_burst_id_received_;
 
 QueueReceiver::QueueReceiver(){
 
 	running_ = true;
+	highest_burst_id_received_= 0;
 }
 
 QueueReceiver::~QueueReceiver(){}
 
 void QueueReceiver::thread() {
-	//All Those variable can became part of the class
-	TriggerMessager trigger_message;
-	uint priority = 0;
-
+	uint event_received_per_burst = 0;
 	while (running_) {
+		TriggerMessager trigger_message;
+		uint priority = 0;
 
 		//Receiving Response
-		//=================
 		if (SharedMemoryManager::popTriggerResponseQueue(trigger_message, priority)) {
+			//LOG_INFO("Queue Receiver Received trigger response of event: "<<trigger_message.event_id);
 
-			LOG_INFO("Queue Receiver Received event: "<<trigger_message.event_id);
+			if (trigger_message.burst_id != BurstIdHandler::getCurrentBurstId()) {
+				LOG_ERROR("Receiving data belonging to burst id: " << trigger_message.burst_id<<" Skipping...");
+				continue;
+			}
+
+			//Handling counters for L1 event processed
+			if (highest_burst_id_received_ < trigger_message.burst_id) {
+				LOG_INFO("########################Received from burst "<< highest_burst_id_received_ << " : " << event_received_per_burst);
+				highest_burst_id_received_ = trigger_message.burst_id;
+				event_received_per_burst = 0;
+			}
+			event_received_per_burst++;
 
 			if (trigger_message.level == 1){
 
-				printf("l0 trigger flags %d \n", trigger_message.l1_trigger_type_word);
+				//printf("l0 trigger flags %d \n", trigger_message.l1_trigger_type_word);
 
 				//Fetching the l0 word
 				Event* event = EventPool::getEvent(trigger_message.event_id);
@@ -63,7 +76,7 @@ void QueueReceiver::thread() {
 					EventPool::freeEvent(event);
 				}
 			} else {
-				LOG_INFO("Bad Level trigger to execute");
+				LOG_ERROR("Bad Level trigger to execute");
 				continue;
 			}
 
