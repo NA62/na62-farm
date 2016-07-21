@@ -20,12 +20,12 @@ public:
 	QueueReceiver();
 	virtual ~QueueReceiver();
 
-
 private:
 	virtual void thread() override;
 	virtual void onInterruption() override;
 	std::atomic<bool> running_;
 	static uint highest_burst_id_received_;
+
 };
 
 }

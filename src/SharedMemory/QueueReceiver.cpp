@@ -47,10 +47,16 @@ void QueueReceiver::thread() {
 			//Handling counters for L1 event processed
 			if (highest_burst_id_received_ < trigger_message.burst_id) {
 				LOG_INFO("########################Received from burst "<< highest_burst_id_received_ << " : " << event_received_per_burst);
+				SharedMemoryManager::showLastBurst(10);
+
 				highest_burst_id_received_ = trigger_message.burst_id;
 				event_received_per_burst = 0;
 			}
 			event_received_per_burst++;
+
+			//Counting event arrived in time
+			uint amount = 1;
+			SharedMemoryManager::setEventIn(trigger_message.burst_id, amount);
 
 			if (trigger_message.level == 1){
 
@@ -62,6 +68,9 @@ void QueueReceiver::thread() {
 				uint_fast16_t L0L1Trigger(l0TriggerTypeWord | trigger_message.l1_trigger_type_word << 8);
 
 				event->setL1Processed(L0L1Trigger);
+
+
+
 
 				if (trigger_message.l1_trigger_type_word != 0) {
 					if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {

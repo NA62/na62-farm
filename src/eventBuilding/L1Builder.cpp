@@ -108,7 +108,12 @@ void L1Builder::processL1(Event *event) {
 	/*
 	 * Send L1 to trigger processor
 	 */
-	if (!SharedMemoryManager::storeL1Event(event)) {
+	if (SharedMemoryManager::storeL1Event(event)) {
+		//Counting just event successfully sent in the shared memory
+		uint amount = 1;
+		SharedMemoryManager::setEventOut(event->getBurstID(), amount);
+
+	} else {
 		//TODO unable to store on the shared memory can process it locally?
 	}
 
