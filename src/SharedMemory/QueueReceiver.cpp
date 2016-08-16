@@ -17,6 +17,8 @@
 #include <eventBuilding/Event.h>
 #include <monitoring/BurstIdHandler.h>
 
+#include <l1/L1TriggerProcessor.h>
+
 namespace na62 {
 
 uint QueueReceiver::highest_burst_id_received_;
@@ -65,12 +67,12 @@ void QueueReceiver::thread() {
 				//Fetching the l0 word
 				Event* event = EventPool::getEvent(trigger_message.event_id);
 				uint_fast8_t l0TriggerTypeWord = event->getL0TriggerTypeWord();
+
 				uint_fast16_t L0L1Trigger(l0TriggerTypeWord | trigger_message.l1_trigger_type_word << 8);
 
+				//Writing L0 info
+				L1TriggerProcessor::writeL1Data(event, trigger_message.l1TriggerWords, &trigger_message.l1Info, trigger_message.isL1WhileTimeout);
 				event->setL1Processed(L0L1Trigger);
-
-
-
 
 				if (trigger_message.l1_trigger_type_word != 0) {
 					if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
