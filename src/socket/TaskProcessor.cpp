@@ -6,6 +6,7 @@
  */
 
 #include "TaskProcessor.h"
+#include "HandleFrameTask.h"
 #include <boost/timer/timer.hpp>
 
 namespace na62 {
@@ -21,7 +22,7 @@ void TaskProcessor::thread() {
 		while (running_) {
 			HandleFrameTask* task;
 			if (TaskProcessor::TasksQueue_.try_pop(task)) {
-				task->execute();
+				task->execute(this);
 				delete task;
 			}
 			else {
