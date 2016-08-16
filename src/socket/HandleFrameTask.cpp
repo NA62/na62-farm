@@ -130,7 +130,7 @@ void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
 	}
 }
 
-void HandleFrameTask::execute() {
+void HandleFrameTask::execute(TaskProcessor* taskProcessor) {
 
 
 //	while (BurstIdHandler::isEobProcessingRunning()) {
@@ -144,7 +144,7 @@ void HandleFrameTask::execute() {
 			container.free();
 		}
 		else {
-			processFrame(std::move(container));
+			processFrame(std::move(container), taskProcessor);
 
 		}
 	}
@@ -156,7 +156,7 @@ void HandleFrameTask::execute() {
 	//return nullptr;
 }
 
-void HandleFrameTask::processFrame(DataContainer&& container) {
+void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* taskProcessor) {
 
 		UDP_HDR* hdr = (UDP_HDR*) container.data;
 		const uint_fast16_t etherType = /*ntohs*/(hdr->eth.ether_type);
@@ -286,7 +286,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 							std::memory_order_relaxed);
 					for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
-						L1Builder::buildEvent(mep_L1->getFragment(i), burstID_);
+						L1Builder::buildEvent(mep_L1->getFragment(i), burstID_, taskProcessor);
 					}
 				}
 				if (SourceIDManager::isL2Active()) {
@@ -330,7 +330,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 
 					for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
-						L1Builder::buildEvent(mep_L2->getFragment(i), burstID_);
+						L1Builder::buildEvent(mep_L2->getFragment(i), burstID_, taskProcessor);
 					}
 				}
 				if (SourceIDManager::isNSTDActive()) {
@@ -378,7 +378,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 					for (uint i = 0; i != mep_factor; i++) {
 						// Add every fragment
 						L1Builder::buildEvent(mep_NSTD->getFragment(i),
-								burstID_);
+								burstID_, taskProcessor);
 					}
 				}
 			}
@@ -387,7 +387,7 @@ void HandleFrameTask::processFrame(DataContainer&& container) {
 			uint maxFrags =  mep->getNumberOfFragments();
 			for (uint i = 0; i != maxFrags; i++) {
 				// Add every fragment
-				L1Builder::buildEvent(mep->getFragment(i), burstID_);
+				L1Builder::buildEvent(mep->getFragment(i), burstID_, taskProcessor);
 			}
 		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// L1 Data //////////////////////////////////////////////////
 			if (UdpDataLength == 0) {

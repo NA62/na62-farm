@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <atomic>
 
+#include "TaskProcessor.h"
 #include <socket/EthernetUtils.h>
 #include <utils/AExecutable.h>
 
@@ -22,7 +23,6 @@ private:
 
 	std::vector<DataContainer> containers_;
 	uint burstID_;
-
 	void processARPRequest(ARP_HDR* arp);
 
 	/**
@@ -45,14 +45,14 @@ private:
 	static std::atomic<uint64_t>* L1MEPsReceivedBySourceNum_;
 	static std::atomic<uint64_t>* L1BytesReceivedBySourceNum_;
 
-	void processFrame(DataContainer&& container);
+	void processFrame(DataContainer&& container, TaskProcessor* taskProcessor);
 
 public:
 	HandleFrameTask(std::vector<DataContainer>&& _containers, uint burstID);
 	virtual ~HandleFrameTask();
 
 	//tbb::task* execute();
-	void execute();
+	void execute(TaskProcessor* taskProcessor);
 	static void initialize();
 
 	static inline uint getNumberOfQeuedTasks() {
