@@ -35,7 +35,7 @@ std::atomic<uint64_t>** L1Builder::L0BuildingTimeVsEvtNumber_;
 std::atomic<uint64_t>** L1Builder::L1ProcessingTimeVsEvtNumber_;
 bool L1Builder::requestZSuppressedLkrData_;
 
-void L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
+void L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID, TaskProcessor* taskProcessor) {
 	Event * event = nullptr;
 
 #ifdef USE_ERS
@@ -93,19 +93,19 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID) {
 		/*
 		 * This event is complete -> process it
 		 */
-		processL1(event);
+		processL1(event, taskProcessor);
 	}
 	return;
 }
 
-void L1Builder::processL1(Event *event) {
+void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 
 	uint_fast8_t l0TriggerTypeWord = event->getL0TriggerTypeWord();
 
 	/*
 	 * Process Level 1 trigger
 	 */
-	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event);
+	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event, taskProcessor->getStrawAlgo());
 	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
 
 	event->setL1Processed(L0L1Trigger);

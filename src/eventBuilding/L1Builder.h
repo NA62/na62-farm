@@ -13,7 +13,7 @@
 #include <cstdint>
 
 #include "../options/MyOptions.h"
-
+#include "../socket/TaskProcessor.h"
 namespace na62 {
 class Event;
 namespace l0 {
@@ -34,7 +34,7 @@ private:
 	static std::atomic<uint64_t>** L0BuildingTimeVsEvtNumber_;
 	static std::atomic<uint64_t>** L1ProcessingTimeVsEvtNumber_;
 
-	static void processL1(Event *event);
+	static void processL1(Event *event, TaskProcessor* taskProcessor);
 
 	static bool requestZSuppressedLkrData_;
 
@@ -50,7 +50,7 @@ public:
 	 *
 	 * @ return true if the event is complete and therefore L1 has been processed, false otherwise
 	 */
-	static void buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID);
+	static void buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID, TaskProcessor* taskProcessor);
 
 	static inline std::atomic<uint64_t>** GetL0BuidingTimeVsEvtNumber() {
 		return L0BuildingTimeVsEvtNumber_;
