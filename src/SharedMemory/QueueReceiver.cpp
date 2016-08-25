@@ -49,7 +49,7 @@ void QueueReceiver::thread() {
 			//Handling counters for L1 event processed
 			if (highest_burst_id_received_ < trigger_message.burst_id) {
 				LOG_INFO("########################Received from burst "<< highest_burst_id_received_ << " : " << event_received_per_burst);
-				SharedMemoryManager::showLastBurst(10);
+				SharedMemoryManager::showLastBurst(20);
 
 				highest_burst_id_received_ = trigger_message.burst_id;
 				event_received_per_burst = 0;
@@ -70,17 +70,22 @@ void QueueReceiver::thread() {
 
 				uint_fast16_t L0L1Trigger(l0TriggerTypeWord | trigger_message.l1_trigger_type_word << 8);
 
+				event->setRrequestZeroSuppressedCreamData(trigger_message.isRequestZeroSuppressed);
+
 				//Writing L0 info
 				L1TriggerProcessor::writeL1Data(event, trigger_message.l1TriggerWords, &trigger_message.l1Info, trigger_message.isL1WhileTimeout);
 				event->setL1Processed(L0L1Trigger);
 
 				if (trigger_message.l1_trigger_type_word != 0) {
 					if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
-						LOG_ERROR("Sending L1 Request for: " << event->getEventNumber() <<" !");
+						//LOG_ERROR("Sending L1 Request for: " << event->getEventNumber() <<" !");
 						L1Builder::sendL1Request(event);
 						event->setL1Requested();
+						SharedMemoryManager::setEventL1Requested(event->getBurstID(), 1);
+
 					} else {
 						L2Builder::processL2(event);
+						LOG_ERROR("ERROR we should not arrive here!");
 					}
 				} else { // Event not accepted
 					/*
@@ -94,9 +99,9 @@ void QueueReceiver::thread() {
 				continue;
 			}
 
-		} else {
+		} /*else {
 			boost::this_thread::sleep(boost::posix_time::microsec(50));
-		}
+		}*/
 
 		//usleep(1000000);
 	}

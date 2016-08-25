@@ -24,6 +24,7 @@
 #include <exceptions/CommonExceptions.h>
 #endif
 #include "StorageHandler.h"
+#include "SharedMemory/SharedMemoryManager.h"
 
 namespace na62 {
 
@@ -102,11 +103,11 @@ void L2Builder::processL2(Event *event) {
 	// If L2 is disabled just write out the event
 	if (!SourceIDManager::isL2Active()) {
 		event->setL2Processed(0);
+
 		BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
 				std::memory_order_relaxed);
 		EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
-	}
-	else {
+	} else {
 		if (!event->isWaitingForNonZSuppressedLKrData()) {
 			/*
 			 * L1 already passed but non zero suppressed LKr data not yet requested -> Process Level 2 trigger
@@ -142,6 +143,7 @@ void L2Builder::processL2(Event *event) {
 					BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
 							std::memory_order_relaxed);
 					EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
+					SharedMemoryManager::setEventL1Stored(event->getBurstID(), 1);
 				}
 			}
 		} else { // Process non zero-suppressed data (not used at the moment!
@@ -157,9 +159,10 @@ void L2Builder::processL2(Event *event) {
 				L2ProcessingTimeMax_ = event->getL2ProcessingTime();
 #endif
 			if (event->isL2Accepted()) {
+
 				BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
 						std::memory_order_relaxed);
-				EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
+				//EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 			}
 		}
 	}
