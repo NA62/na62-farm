@@ -76,7 +76,9 @@ void QueueReceiver::thread() {
 
 				if (trigger_message.l1_trigger_type_word != 0) {
 					if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
+						LOG_ERROR("Sending L1 Request for: " << event->getEventNumber() <<" !");
 						L1Builder::sendL1Request(event);
+						event->setL1Requested();
 					} else {
 						L2Builder::processL2(event);
 					}
@@ -84,6 +86,7 @@ void QueueReceiver::thread() {
 					/*
 					 * If the Event has been rejected by L1 we can destroy it now
 					 */
+					LOG_ERROR("Event: " << event->getEventNumber() <<" discarded from L1");
 					EventPool::freeEvent(event);
 				}
 			} else {

@@ -110,11 +110,13 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 	 */
 	if (SharedMemoryManager::storeL1Event(event)) {
 		//Counting just event successfully sent in the shared memory
+		//LOG_ERROR("Rerialized on the shared memory");
 		uint amount = 1;
 		SharedMemoryManager::setEventOut(event->getBurstID(), amount);
 
 	} else {
 		//TODO unable to store on the shared memory can process it locally?
+		LOG_ERROR("Unable to serialize on the shared memory");
 	}
 
 #else

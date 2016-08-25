@@ -47,6 +47,7 @@
 #ifdef USE_SHAREDMEMORY
 #include "SharedMemory/SharedMemoryManager.h"
 #include "SharedMemory/QueueReceiver.h"
+#include "SharedMemory/PoolParser.h"
 #endif
 
 //#include "straws/StrawReceiver.h"
@@ -233,6 +234,9 @@ int main(int argc, char* argv[]) {
 	//Starting queue Receiver for processed L1
 	QueueReceiver receiver;
 	receiver.startThread("QueueReceiver");
+	PoolParser parser;
+	parser.startThread("PoolParser");
+
 #endif
 
 
