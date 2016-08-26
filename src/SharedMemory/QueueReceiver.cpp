@@ -91,7 +91,7 @@ void QueueReceiver::thread() {
 					/*
 					 * If the Event has been rejected by L1 we can destroy it now
 					 */
-					LOG_ERROR("Event: " << event->getEventNumber() <<" discarded from L1");
+					//LOG_ERROR("Event: " << event->getEventNumber() <<" discarded from L1");
 					EventPool::freeEvent(event);
 				}
 			} else {

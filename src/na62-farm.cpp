@@ -234,9 +234,8 @@ int main(int argc, char* argv[]) {
 	//Starting queue Receiver for processed L1
 	QueueReceiver receiver;
 	receiver.startThread("QueueReceiver");
-	PoolParser parser;
-	parser.startThread("PoolParser");
-
+	//PoolParser parser;
+	//parser.startThread("PoolParser");
 #endif
 
 

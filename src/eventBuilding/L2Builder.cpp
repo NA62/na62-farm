@@ -143,7 +143,9 @@ void L2Builder::processL2(Event *event) {
 					BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
 							std::memory_order_relaxed);
 					EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
+#ifdef USE_SHAREDMEMORY
 					SharedMemoryManager::setEventL1Stored(event->getBurstID(), 1);
+#endif
 				}
 			}
 		} else { // Process non zero-suppressed data (not used at the moment!

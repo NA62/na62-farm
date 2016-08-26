@@ -110,7 +110,7 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 	 */
 	if (SharedMemoryManager::storeL1Event(event)) {
 		//Counting just event successfully sent in the shared memory
-		//LOG_ERROR("Rerialized on the shared memory");
+		//LOG_ERROR("Serialized on the shared memory");
 		uint amount = 1;
 		SharedMemoryManager::setEventOut(event->getBurstID(), amount);
 
@@ -164,7 +164,7 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 
 void L1Builder::sendL1Request(Event* event) {
 
-// See https://github.com/NA62/na62-trigger-algorithms/wiki/CREAM-data
+	// See https://github.com/NA62/na62-trigger-algorithms/wiki/CREAM-data
 	l1::L1DistributionHandler::Async_RequestL1DataMulticast(event,
 			event->isRrequestZeroSuppressedCreamData()
 					&& requestZSuppressedLkrData_);
