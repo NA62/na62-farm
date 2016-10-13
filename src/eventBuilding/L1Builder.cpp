@@ -131,6 +131,9 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 	/*********************/
 	/*Copying statistics*/
 	HltStatistics::SumL1InputEvents(L1TriggerProcessor::GetL1InputStats());
+	if (event->isPhysicsTriggerEvent()) {
+		HltStatistics::SumL1PhysicsStats(1);
+	}
 	/*End copying statistics*/
 
 	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);

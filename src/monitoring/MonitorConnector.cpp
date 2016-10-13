@@ -165,7 +165,7 @@ void MonitorConnector::handleUpdate() {
 	setDifferentialData("L1InputEvents", L1InputEvents);
 	IPCHandler::sendStatistics("L1InputEvents", std::to_string(L1InputEvents));
 
-	uint_fast32_t L1PhysicsEvents = L1TriggerProcessor::GetL1PhysicsStats();
+	uint_fast32_t L1PhysicsEvents = HltStatistics::GetL1PhysicsStats();
 	setDifferentialData("L1PhysicsEvents", L1PhysicsEvents);
 	IPCHandler::sendStatistics("L1PhysicsEvents", std::to_string(L1PhysicsEvents));
 
