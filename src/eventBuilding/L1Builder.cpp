@@ -131,8 +131,13 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 	/*********************/
 	/*Copying statistics*/
 	HltStatistics::SumL1InputEvents(L1TriggerProcessor::GetL1InputStats());
+	//This counter should not be incremented if the event has been marked as downscaled
 	if (event->isPhysicsTriggerEvent()) {
 		HltStatistics::SumL1PhysicsStats(1);
+		uint_fast16_t l0TrigFlags = event->getTriggerFlags();
+		if (__builtin_popcount((uint) l0TrigFlags) > 1) {
+			HltStatistics::SumL1PhysicsByMultipleMasksStats(1);
+		}
 	}
 	/*End copying statistics*/
 

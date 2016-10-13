@@ -169,7 +169,7 @@ void MonitorConnector::handleUpdate() {
 	setDifferentialData("L1PhysicsEvents", L1PhysicsEvents);
 	IPCHandler::sendStatistics("L1PhysicsEvents", std::to_string(L1PhysicsEvents));
 
-	uint_fast32_t L1PhysicsByMultipleMasksEvents = L1TriggerProcessor::GetL1PhysicsByMultipleMasksStats();
+	uint_fast32_t L1PhysicsByMultipleMasksEvents = HltStatistics::GetL1PhysicsByMultipleMasksStats();
 	setDifferentialData("L1PhysicsByMultipleMasksEvents", L1PhysicsByMultipleMasksEvents);
 	IPCHandler::sendStatistics("L1PhysicsByMultipleMasksEvents", std::to_string(L1PhysicsByMultipleMasksEvents));
 
@@ -188,7 +188,7 @@ void MonitorConnector::handleUpdate() {
 
 	std::stringstream L1OutputStats;
 	std::stringstream L1ReductionFactorStats;
-	for (int iMask = 0; iMask < (uint) L1TriggerProcessor::GetNumberOfEnabledL0Masks(); iMask++) {
+	for (uint iMask = 0; iMask < (uint) L1TriggerProcessor::GetNumberOfEnabledL0Masks(); iMask++) {
 
 		int l0MaskID = (int) L1TriggerProcessor::GetL0MaskNumToMaskID(iMask);
 		std::stringstream stringstream;
