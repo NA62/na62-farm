@@ -21,6 +21,7 @@
 #include <l1/L1TriggerProcessor.h>
 #include <sys/types.h>
 #include <cstdbool>
+#include <monitoring/HltStatistics.h>
 
 #ifdef USE_SHAREDMEMORY
 #include "SharedMemory/SharedMemoryManager.h"
@@ -126,6 +127,12 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 	 */
 	uint_fast8_t l0TriggerTypeWord = event->getL0TriggerTypeWord();
 	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event, taskProcessor->getStrawAlgo());
+
+	/*********************/
+	/*Copying statistics*/
+	HltStatistics::SumL1InputEvents(L1TriggerProcessor::GetL1InputStats());
+	/*End copying statistics*/
+
 	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
 	event->setL1Processed(L0L1Trigger);
 

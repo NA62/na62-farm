@@ -37,6 +37,7 @@
 #include "../socket/FragmentStore.h"
 #include "../socket/PacketHandler.h"
 #include <socket/NetworkHandler.h>
+#include <monitoring/HltStatistics.h>
 
 using namespace boost::interprocess;
 
@@ -160,7 +161,7 @@ void MonitorConnector::handleUpdate() {
 	/*
 	 * L1-L2 statistics
 	 */
-	uint_fast32_t L1InputEvents = L1TriggerProcessor::GetL1InputStats();
+	uint_fast32_t L1InputEvents = HltStatistics::GetL1InputEvents();
 	setDifferentialData("L1InputEvents", L1InputEvents);
 	IPCHandler::sendStatistics("L1InputEvents", std::to_string(L1InputEvents));
 

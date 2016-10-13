@@ -76,6 +76,13 @@ void QueueReceiver::thread() {
 				L1TriggerProcessor::writeL1Data(event, trigger_message.l1TriggerWords, &trigger_message.l1Info, trigger_message.isL1WhileTimeout);
 				event->setL1Processed(L0L1Trigger);
 
+				/*********************/
+				/*Copying statistics*/
+				//HltStatistics::SumL1InputEvents(L1TriggerProcessor::GetL1InputStats());
+				/*End copying statistics*/
+
+
+
 				if (trigger_message.l1_trigger_type_word != 0) {
 					if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
 						//LOG_ERROR("Sending L1 Request for: " << event->getEventNumber() <<" !");
