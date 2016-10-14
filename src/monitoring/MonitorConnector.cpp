@@ -229,7 +229,7 @@ void MonitorConnector::handleUpdate() {
 		std::stringstream stream;
 		stream << std::hex << wordNum;
 
-		uint64_t L1Trigs = L1TriggerProcessor::GetL1TriggerStats()[wordNum];
+		uint64_t L1Trigs = HltStatistics::GetL1TriggerStats()[wordNum];
 		uint64_t L2Trigs = L2TriggerProcessor::GetL2TriggerStats()[wordNum];
 
 		setDifferentialData("L1Triggers" + stream.str(), L1Trigs);

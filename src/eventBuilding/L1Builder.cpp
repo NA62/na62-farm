@@ -130,6 +130,9 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 
 	/*********************/
 	/*Copying statistics*/
+	if (l1TriggerTypeWord != 0) {
+		HltStatistics::SumL1TriggerStats(1, l1TriggerTypeWord);
+	}
 	HltStatistics::SumL1InputEvents(L1TriggerProcessor::GetL1InputStats());
 	//This counter should not be incremented if the event has been marked as downscaled
 	if (event->isPhysicsTriggerEvent()) {

@@ -36,6 +36,7 @@
 #include "eventBuilding/L2Builder.h"
 #include "eventBuilding/StorageHandler.h"
 #include "monitoring/MonitorConnector.h"
+#include "monitoring/HltStatistics.h"
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
 #include "socket/TaskProcessor.h"
@@ -195,6 +196,8 @@ int main(int argc, char* argv[]) {
 	HLTriggerManager::fillStructFromXMLFile(HLTConfParams);
 	L1TriggerProcessor::initialize(HLTConfParams.l1);
 	L2TriggerProcessor::initialize(HLTConfParams.l2);
+
+	HltStatistics::initialize();
 
 	FarmStatistics::init();
 	FarmStatistics farmstats;
