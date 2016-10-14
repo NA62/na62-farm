@@ -16,6 +16,7 @@
 #include <eventBuilding/EventPool.h>
 #include <eventBuilding/Event.h>
 #include <monitoring/BurstIdHandler.h>
+#include <monitoring/HltStatistics.h>
 
 #include <l1/L1TriggerProcessor.h>
 
@@ -76,12 +77,8 @@ void QueueReceiver::thread() {
 				L1TriggerProcessor::writeL1Data(event, trigger_message.l1TriggerWords, &trigger_message.l1Info, trigger_message.isL1WhileTimeout);
 				event->setL1Processed(L0L1Trigger);
 
-				/*********************/
-				/*Copying statistics*/
-				//HltStatistics::SumL1InputEvents(L1TriggerProcessor::GetL1InputStats());
-				/*End copying statistics*/
-
-
+				/*STATISTICS*/
+				HltStatistics::updateStatistics(event, trigger_message.l1_trigger_type_word);
 
 				if (trigger_message.l1_trigger_type_word != 0) {
 					if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {

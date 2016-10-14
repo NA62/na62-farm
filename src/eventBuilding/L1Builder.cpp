@@ -128,23 +128,8 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 	uint_fast8_t l0TriggerTypeWord = event->getL0TriggerTypeWord();
 	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event, taskProcessor->getStrawAlgo());
 
-	/************/
 	/*STATISTICS*/
-	HltStatistics::SumL1InputEventsPerBurst(1);
-	if (l1TriggerTypeWord != 0) {
-		HltStatistics::SumL1TriggerStats(1, l1TriggerTypeWord);
-	}
-	HltStatistics::SumL1InputEvents(L1TriggerProcessor::GetL1InputStats());
-	//This counter should not be incremented if the event has been marked as downscaled
-	if (event->isPhysicsTriggerEvent()) {
-		HltStatistics::SumL1PhysicsStats(1);
-		uint_fast16_t l0TrigFlags = event->getTriggerFlags();
-		if (__builtin_popcount((uint) l0TrigFlags) > 1) {
-			HltStatistics::SumL1PhysicsByMultipleMasksStats(1);
-		}
-	}
-	/*END STATISTICS*/
-	/************/
+	HltStatistics::updateStatistics(event, l1TriggerTypeWord);
 
 	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
 	event->setL1Processed(L0L1Trigger);
