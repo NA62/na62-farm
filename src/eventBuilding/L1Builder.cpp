@@ -128,8 +128,9 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 	uint_fast8_t l0TriggerTypeWord = event->getL0TriggerTypeWord();
 	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event, taskProcessor->getStrawAlgo());
 
-	/*********************/
-	/*Copying statistics*/
+	/************/
+	/*STATISTICS*/
+	HltStatistics::SumL1InputEventsPerBurst(1);
 	if (l1TriggerTypeWord != 0) {
 		HltStatistics::SumL1TriggerStats(1, l1TriggerTypeWord);
 	}
@@ -142,7 +143,8 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 			HltStatistics::SumL1PhysicsByMultipleMasksStats(1);
 		}
 	}
-	/*End copying statistics*/
+	/*END STATISTICS*/
+	/************/
 
 	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
 	event->setL1Processed(L0L1Trigger);

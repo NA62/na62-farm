@@ -19,6 +19,7 @@
 #include <vector>
 #include <boost/algorithm/string.hpp>
 #include <monitoring/BurstIdHandler.h>
+#include <monitoring/HltStatistics.h>
 
 #include "../eventBuilding/StorageHandler.h"
 #include "../options/MyOptions.h"
@@ -69,7 +70,7 @@ void CommandConnector::thread() {
 					L1Builder::ResetL0BuildingTimeMax();
 					L1Builder::ResetL1ProcessingTimeCumulative();
 					L1Builder::ResetL1ProcessingTimeMax();
-					L1TriggerProcessor::ResetL1InputEventsPerBurst();
+					HltStatistics::ResetL1InputEventsPerBurst();
 					L2Builder::ResetL1BuildingTimeCumulative();
 					L2Builder::ResetL1BuildingTimeMax();
 					L2Builder::ResetL2ProcessingTimeCumulative();
@@ -88,7 +89,7 @@ void CommandConnector::thread() {
 					LOG_INFO(
 							"Resetting L1ProcessingTimeMax " << L1Builder::GetL1ProcessingTimeMax());
 					LOG_INFO(
-							"Resetting L1InputEvents " << L1TriggerProcessor::GetL1InputEventsPerBurst());
+							"Resetting L1InputEvents " << HltStatistics::GetL1InputEventsPerBurst());
 //					}
 #endif
 					LOG_INFO("Got EOB time: Incrementing burstID to" << burst);
@@ -104,7 +105,7 @@ void CommandConnector::thread() {
 					L1Builder::ResetL0BuildingTimeMax();
 					L1Builder::ResetL1ProcessingTimeCumulative();
 					L1Builder::ResetL1ProcessingTimeMax();
-					L1TriggerProcessor::ResetL1InputEventsPerBurst();
+					HltStatistics::ResetL1InputEventsPerBurst();
 					L2Builder::ResetL1BuildingTimeCumulative();
 					L2Builder::ResetL1BuildingTimeMax();
 					L2Builder::ResetL2ProcessingTimeCumulative();

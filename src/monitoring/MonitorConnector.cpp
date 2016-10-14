@@ -287,7 +287,7 @@ void MonitorConnector::handleUpdate() {
 	 */
 	uint64_t L0BuildTimeMean = 0;
 	uint64_t L1BuildTimeMean = 0;
-	uint64_t L1InputEventsPerBurst = L1TriggerProcessor::GetL1InputEventsPerBurst();
+	uint64_t L1InputEventsPerBurst = HltStatistics::GetL1InputEventsPerBurst();
 	uint64_t L2InputEventsPerBurst = L2TriggerProcessor::GetL2InputEventsPerBurst();
 
 	if (L1Builder::GetL0BuildingTimeCumulative()) {
