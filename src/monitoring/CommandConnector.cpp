@@ -105,7 +105,7 @@ void CommandConnector::thread() {
 					L1Builder::ResetL0BuildingTimeMax();
 					L1Builder::ResetL1ProcessingTimeCumulative();
 					L1Builder::ResetL1ProcessingTimeMax();
-					HltStatistics::ResetL1InputEventsPerBurst();
+
 					L2Builder::ResetL1BuildingTimeCumulative();
 					L2Builder::ResetL1BuildingTimeMax();
 					L2Builder::ResetL2ProcessingTimeCumulative();
@@ -122,6 +122,14 @@ void CommandConnector::thread() {
 //						LOG_INFO("Resetting L1InputEvents " << L1TriggerProcessor::GetL1InputEventsPerBurst());
 //					}
 #endif
+					IPCHandler::sendStatistics("L1InputEventsPerBurst", std::to_string(NetworkHandler::GetBytesReceived()));
+					HltStatistics::ResetL1InputEventsPerBurst();
+
+					//New per burst counters
+					HltStatistics::CountersSnapshot();//Coping last burst values
+					for (auto& key: HltStatistics::ExtractKeys()) {
+						IPCHandler::sendStatistics(key + "perBurst", std::to_string(HltStatistics::GetLastBurstCounter(key)));
+					}
 				}
 			}
 			/*else if (command == "runningmergers") {

@@ -25,6 +25,7 @@
 #endif
 #include "StorageHandler.h"
 #include "SharedMemory/SharedMemoryManager.h"
+#include <monitoring/HltStatistics.h>
 
 namespace na62 {
 
@@ -114,6 +115,9 @@ void L2Builder::processL2(Event *event) {
 			 */
 			uint_fast8_t L2Trigger = L2TriggerProcessor::compute(event);
 
+			/*STATISTICS*/
+			HltStatistics::updateL2Statistics(event, L2Trigger);
+
 #ifdef MEASURE_TIME
 			uint L2ProcessingTimeIndex = (uint) event->getL2ProcessingTime() / 1.;
 			if (L2ProcessingTimeIndex >= 0x64)
@@ -143,6 +147,8 @@ void L2Builder::processL2(Event *event) {
 					BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
 							std::memory_order_relaxed);
 					EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
+					/*STATISTICS*/
+					HltStatistics::updateStorageStatistics();
 #ifdef USE_SHAREDMEMORY
 					SharedMemoryManager::setEventL1Stored(event->getBurstID(), 1);
 #endif

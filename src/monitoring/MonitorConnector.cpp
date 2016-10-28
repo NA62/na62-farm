@@ -383,7 +383,6 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber", L1BuildTimeVsEvtNumStats.str());
 	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber", L1ProcTimeVsEvtNumStats.str());
 	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber", L2ProcTimeVsEvtNumStats.str());
-
 	IPCHandler::sendStatistics("UnfinishedEventsData", UnfinishedEventsCollector::toJson());
 }
 

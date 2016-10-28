@@ -129,7 +129,7 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event, taskProcessor->getStrawAlgo());
 
 	/*STATISTICS*/
-	HltStatistics::updateStatistics(event, l1TriggerTypeWord);
+	HltStatistics::updateL1Statistics(event, l1TriggerTypeWord);
 
 	uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
 	event->setL1Processed(L0L1Trigger);

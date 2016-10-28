@@ -78,7 +78,7 @@ void QueueReceiver::thread() {
 				event->setL1Processed(L0L1Trigger);
 
 				/*STATISTICS*/
-				HltStatistics::updateStatistics(event, trigger_message.l1_trigger_type_word);
+				HltStatistics::updateL1Statistics(event, trigger_message.l1_trigger_type_word);
 
 				if (trigger_message.l1_trigger_type_word != 0) {
 					if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
