@@ -9,7 +9,7 @@
 				</macros>
 				<externalSettings/>
 				<extensions>
-					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GNU_ELF" point="org.eclipse.cdt.core.BinaryParser"/>
 					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
@@ -32,38 +32,34 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib-networking}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-trigger-algorithms}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib}&quot;"/>
-									<listOptionValue builtIn="false" value="/mnt/sw/LCG/include"/>
 								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.1515787549" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="USE_GLOG"/>
 									<listOptionValue builtIn="false" value="USE_PFRING"/>
 								</option>
-								<option id="gnu.cpp.compiler.option.dialect.std.677020798" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.option.dialect.std.677020798" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1591196732" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.release.98151741" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.release">
 								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.exe.release.option.optimization.level.254440098" name="Optimization Level" superClass="gnu.c.compiler.exe.release.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>
 								<option id="gnu.c.compiler.exe.release.option.debugging.level.829264381" name="Debug Level" superClass="gnu.c.compiler.exe.release.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.none" valueType="enumerated"/>
-								<option id="gnu.c.compiler.option.include.paths.1919034442" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib-networking}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-trigger-algorithms}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib}&quot;"/>
-									<listOptionValue builtIn="false" value="/mnt/sw/LCG/include"/>
-								</option>
+								<option id="gnu.c.compiler.option.include.paths.1919034442" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath"/>
+								<option id="gnu.c.compiler.option.dialect.std.647789199" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1867556398" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.exe.release.1633345701" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.exe.release"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.release.294496407" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.release">
-								<option id="gnu.cpp.link.option.libs.14146177" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
+								<option id="gnu.cpp.link.option.libs.14146177" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
 									<listOptionValue builtIn="false" value="na62-farm-lib-networking"/>
 									<listOptionValue builtIn="false" value="na62-trigger-algorithms"/>
 									<listOptionValue builtIn="false" value="na62-farm-lib"/>
-									<listOptionValue builtIn="false" value="boost_chrono${tag}"/>
-									<listOptionValue builtIn="false" value="boost_filesystem${tag}"/>
-									<listOptionValue builtIn="false" value="boost_thread${tag}"/>
-									<listOptionValue builtIn="false" value="boost_timer${tag}"/>
-									<listOptionValue builtIn="false" value="boost_program_options${tag}"/>
-									<listOptionValue builtIn="false" value="boost_system${tag}"/>
+									<listOptionValue builtIn="false" value="rt"/>
+									<listOptionValue builtIn="false" value="boost_chrono"/>
+									<listOptionValue builtIn="false" value="boost_filesystem"/>
+									<listOptionValue builtIn="false" value="boost_thread"/>
+									<listOptionValue builtIn="false" value="boost_timer"/>
+									<listOptionValue builtIn="false" value="boost_program_options"/>
+									<listOptionValue builtIn="false" value="boost_system"/>
 									<listOptionValue builtIn="false" value="glog"/>
 									<listOptionValue builtIn="false" value="pcap"/>
 									<listOptionValue builtIn="false" value="tcmalloc"/>
@@ -73,19 +69,10 @@
 									<listOptionValue builtIn="false" value="tbb"/>
 									<listOptionValue builtIn="false" value="xmlpreprocessor"/>
 								</option>
-								<option id="gnu.cpp.link.option.paths.1371079621" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
+								<option id="gnu.cpp.link.option.paths.1371079621" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" useByScannerDiscovery="false" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib-networking/Debug}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-trigger-algorithms/Debug}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib/Debug}&quot;"/>
-									<listOptionValue builtIn="false" value="/mnt/sw/LCG/tbb/42_20140122-80d7a/x86_64-slc6-gcc49-opt/lib/"/>
-									<listOptionValue builtIn="false" value="/mnt/sw/LCG/Boost/1.59.0_python2.7-cfca9/x86_64-slc6-gcc49-opt/lib/"/>
-									<listOptionValue builtIn="false" value="/mnt/sw/LCG/libunwind/5c2cade-76996/x86_64-slc6-gcc49-opt/lib"/>
-									<listOptionValue builtIn="false" value="/mnt/sw/LCG/sqlite/3090200-fa2bb/x86_64-slc6-gcc49-opt/lib/"/>
-									<listOptionValue builtIn="false" value="/mnt/sw/LCG/tcmalloc/2.4-f5a5c/x86_64-slc6-gcc49-opt/lib/"/>
-									<listOptionValue builtIn="false" value="/mnt/sw/LCG/Python/2.7.9-bc0c0/x86_64-slc6-gcc49-opt/lib/"/>
-									<listOptionValue builtIn="false" value="/mnt/sw/LCG/gcc/4.9.1/x86_64-slc6-gcc49-opt/lib64"/>
-									<listOptionValue builtIn="false" value="/mnt/sw/LCG/ers/x86_64-slc6-gcc49-opt/lib"/>
-									<listOptionValue builtIn="false" value="/workspace/XMLPreProcessor/XMLConf/"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.948156127" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -93,12 +80,7 @@
 								</inputType>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.exe.release.851007853" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.release">
-								<option id="gnu.both.asm.option.include.paths.1781320741" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib-networking}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-trigger-algorithms}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib}&quot;"/>
-									<listOptionValue builtIn="false" value="/mnt/sw/LCG/include"/>
-								</option>
+								<option id="gnu.both.asm.option.include.paths.1781320741" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" useByScannerDiscovery="false" valueType="includePath"/>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.2017263371" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
 						</toolChain>
@@ -142,7 +124,7 @@
 				</macros>
 				<externalSettings/>
 				<extensions>
-					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GNU_ELF" point="org.eclipse.cdt.core.BinaryParser"/>
 					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
@@ -278,7 +260,7 @@
 				</macros>
 				<externalSettings/>
 				<extensions>
-					<extension id="org.eclipse.cdt.core.ELF" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.GNU_ELF" point="org.eclipse.cdt.core.BinaryParser"/>
 					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
@@ -307,7 +289,7 @@
 									<listOptionValue builtIn="false" value="USE_ERS"/>
 									<listOptionValue builtIn="false" value="USE_PFRING"/>
 								</option>
-								<option id="gnu.cpp.compiler.option.dialect.std.429685836" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.option.dialect.std.429685836" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1015467020" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.release.41566005" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.release">
