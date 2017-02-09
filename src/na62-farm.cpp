@@ -202,7 +202,9 @@ int main(int argc, char* argv[]) {
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread
 	 */
+	LOG_INFO("Initilize NIC handler: " << Options::GetString(OPTION_ETH_DEVICE_NAME));
 	NetworkHandler NetworkHandler(Options::GetString(OPTION_ETH_DEVICE_NAME));
+	LOG_INFO("Initilize Arp Send: " << Options::GetString(OPTION_ETH_DEVICE_NAME));
 	NetworkHandler.startThread("ArpSender");
 
 	SourceIDManager::Initialize(Options::GetInt(OPTION_TS_SOURCEID),

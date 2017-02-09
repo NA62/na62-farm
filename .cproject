@@ -294,7 +294,7 @@
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.release.41566005" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.release">
 								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.exe.release.option.optimization.level.1461989399" name="Optimization Level" superClass="gnu.c.compiler.exe.release.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>
 								<option id="gnu.c.compiler.exe.release.option.debugging.level.923638370" name="Debug Level" superClass="gnu.c.compiler.exe.release.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.none" valueType="enumerated"/>
-								<option id="gnu.c.compiler.option.include.paths.1741763796" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath"/>
+								<option id="gnu.c.compiler.option.include.paths.1741763796" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false"/>
 								<option id="gnu.c.compiler.option.dialect.std.1373462634" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1682356744" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
@@ -302,6 +302,7 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.release.1582631200" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.release">
 								<option id="gnu.cpp.link.option.libs.590444711" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
 									<listOptionValue builtIn="false" value="na62-farm-lib-networking"/>
+									<listOptionValue builtIn="false" value="pcap"/>
 									<listOptionValue builtIn="false" value="na62-trigger-algorithms"/>
 									<listOptionValue builtIn="false" value="na62-farm-lib"/>
 									<listOptionValue builtIn="false" value="boost_chrono"/>
@@ -311,7 +312,6 @@
 									<listOptionValue builtIn="false" value="boost_program_options"/>
 									<listOptionValue builtIn="false" value="boost_system"/>
 									<listOptionValue builtIn="false" value="boost_regex"/>
-									<listOptionValue builtIn="false" value="pcap"/>
 									<listOptionValue builtIn="false" value="rt"/>
 									<listOptionValue builtIn="false" value="pfring"/>
 									<listOptionValue builtIn="false" value="pthread"/>
@@ -324,6 +324,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib-networking/Debug_ERS}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-trigger-algorithms/Debug_ERS}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/na62-farm-lib/Debug_ERS}&quot;"/>
+									<listOptionValue builtIn="false" value="/workspace/PF_RING/userland/lib"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.2020689134" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -331,7 +332,7 @@
 								</inputType>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.exe.release.271143844" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.exe.release">
-								<option id="gnu.both.asm.option.include.paths.1969225431" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" useByScannerDiscovery="false" valueType="includePath"/>
+								<option id="gnu.both.asm.option.include.paths.1969225431" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" useByScannerDiscovery="false"/>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.471754993" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
 						</toolChain>
