@@ -34,6 +34,7 @@
 //#define OPTION_INACTIVE_CREAM_CRATES (char*)"inactiveCREAMCrates"
 
 #define OPTION_FIRST_BURST_ID (char*)"firstBurstID"
+#define OPTION_CURRENT_RUN_NUMBER (char*)"currentRunNumber"
 
 #define OPTION_CREAM_MULTICAST_GROUP (char*)"creamMulticastIP"
 #define OPTION_CREAM_MULTICAST_PORT (char*)"creamMulticastPort"
@@ -141,6 +142,9 @@ public:
 		(OPTION_FIRST_BURST_ID, po::value<int>()->required(),
 				"The current or first burst ID. This must be set if a PC starts during a run.")
 
+		(OPTION_CURRENT_RUN_NUMBER, po::value<int>()->default_value(1),
+				"The current RUN.")
+
 		(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS,
 				po::value<int>()->default_value(1000),
 				"Minimum time between two MRPs sent to the L1")
@@ -164,7 +168,6 @@ public:
 		(OPTION_SEND_MRP_WITH_ZSUPPRESSION_FLAG,
 				po::value<int>()->default_value(0),
 				"Set to true if only zero-suppressed data from LKr should be requested after L1")
-
 
 		(OPTION_ZMQ_IO_THREADS, po::value<int>()->default_value(1),
 				"Number of ZMQ IO threads")
