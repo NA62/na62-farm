@@ -44,6 +44,8 @@
 #include "monitoring/CommandConnector.h"
 
 
+
+
 #ifdef USE_SHAREDMEMORY
 #include "SharedMemory/SharedMemoryManager.h"
 #include "SharedMemory/QueueReceiver.h"
@@ -171,6 +173,7 @@ void onBurstFinished() {
 }
 
 int main(int argc, char* argv[]) {
+
 	/*
 	 * Signals
 	 */
@@ -210,6 +213,7 @@ int main(int argc, char* argv[]) {
 			Options::GetIntPairList(OPTION_L1_DATA_SOURCE_IDS));
 
 	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID),
+			Options::GetInt(OPTION_CURRENT_RUN_NUMBER),
 			&onBurstFinished);
 
 	HandleFrameTask::initialize();
@@ -217,8 +221,7 @@ int main(int argc, char* argv[]) {
 	SmartEventSerializer::initialize();
 	try {
 		StorageHandler::initialize();
-	}
-	catch(const zmq::error_t& ex) {
+	} catch(const zmq::error_t& ex) {
 		LOG_ERROR("Failed to initialize StorageHandler because: " << ex.what());
 		exit(1);
 	}
