@@ -44,9 +44,6 @@
 #include "socket/HandleFrameTask.h"
 #include "monitoring/CommandConnector.h"
 
-
-
-
 #ifdef USE_SHAREDMEMORY
 #include "SharedMemory/SharedMemoryManager.h"
 #include "SharedMemory/QueueReceiver.h"
@@ -107,7 +104,6 @@ void onBurstFinished() {
 	static std::atomic<uint> incompleteEvents_;
 	incompleteEvents_ = 0;
 
-
 	// Do it with parallel_for using tbb if tcmalloc is linked
 	tbb::parallel_for(
 			tbb::blocked_range<uint_fast32_t>(0,
@@ -152,11 +148,48 @@ void onBurstFinished() {
 	}
 #endif
 
+
+	//Missing sources
 	IPCHandler::sendStatistics("MonitoringL0Data", DetectorStatistics::L0RCInfo());
 	IPCHandler::sendStatistics("MonitoringL1Data", DetectorStatistics::L1RCInfo());
 	DetectorStatistics::clearL0DetectorStatistics();
 	DetectorStatistics::clearL1DetectorStatistics();
 
+
+	//Resetting time graphs
+#ifdef MEASURE_TIME
+	L1Builder::ResetL0BuildingTimeCumulative();
+	L1Builder::ResetL0BuildingTimeMax();
+	L1Builder::ResetL1ProcessingTimeCumulative();
+	L1Builder::ResetL1ProcessingTimeMax();
+
+	L2Builder::ResetL1BuildingTimeCumulative();
+	L2Builder::ResetL1BuildingTimeMax();
+	L2Builder::ResetL2ProcessingTimeCumulative();
+	L2Builder::ResetL2ProcessingTimeMax();
+
+	L1Builder::ResetL0BuidingTimeVsEvtNumber();
+	L2Builder::ResetL1BuidingTimeVsEvtNumber();
+	L1Builder::ResetL1ProcessingTimeVsEvtNumber();
+	L2Builder::ResetL2ProcessingTimeVsEvtNumber();
+
+#endif
+	L1TriggerProcessor::ResetL1InputEventsPerBurst();
+	L2TriggerProcessor::ResetL2InputEventsPerBurst();
+
+
+	//Updating PerBurstCounters
+	for (auto& key : HltStatistics::extractKeys()) {
+		IPCHandler::sendStatistics(key + "PerBurst", std::to_string(HltStatistics::getRollingCounter(key)));
+	}
+	//Updating PerBurstCounters
+	for (auto& key : HltStatistics::extractDimensionalKeys()) {
+		IPCHandler::sendStatistics(key + "PerBurst", HltStatistics::serializeDimensionalCounter(key));
+	}
+	//Resetting ALL HLT statistics
+	HltStatistics::countersReset();
+
+	//Memory monitor
 	int tSize = 0, resident = 0, share = 0;
 	ifstream buffer("/proc/self/statm");
 	buffer >> tSize >> resident >> share;
@@ -170,7 +203,6 @@ void onBurstFinished() {
 		LOG_ERROR("Memory LEAK!!! Terminating process");
 		exit(-1);
 	}
-
 }
 
 int main(int argc, char* argv[]) {

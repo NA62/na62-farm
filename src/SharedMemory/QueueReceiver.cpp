@@ -9,7 +9,6 @@
 #include "structs/TriggerMessager.h"
 #include "structs/SerialEvent.h"
 
-
 #include "../eventBuilding/L2Builder.h"
 #include "../eventBuilding/L1Builder.h"
 
@@ -24,13 +23,13 @@ namespace na62 {
 
 uint QueueReceiver::highest_burst_id_received_;
 
-QueueReceiver::QueueReceiver(){
-
+QueueReceiver::QueueReceiver() {
 	running_ = true;
-	highest_burst_id_received_= 0;
+	highest_burst_id_received_ = 0;
 }
 
-QueueReceiver::~QueueReceiver(){}
+QueueReceiver::~QueueReceiver() {
+}
 
 void QueueReceiver::thread() {
 	uint event_received_per_burst = 0;
@@ -61,7 +60,7 @@ void QueueReceiver::thread() {
 			uint amount = 1;
 			SharedMemoryManager::setEventIn(trigger_message.burst_id, amount);
 
-			if (trigger_message.level == 1){
+			if (trigger_message.level == 1) {
 
 				//printf("l0 trigger flags %d \n", trigger_message.l1_trigger_type_word);
 
@@ -74,7 +73,7 @@ void QueueReceiver::thread() {
 				event->setRrequestZeroSuppressedCreamData(trigger_message.isRequestZeroSuppressed);
 
 				//Writing L0 info
-				L1TriggerProcessor::writeL1Data(event, trigger_message.l1TriggerWords, &trigger_message.l1Info, trigger_message.isL1WhileTimeout);
+				L1TriggerProcessor::writeL1Data(event, &trigger_message.l1Info, trigger_message.isL1WhileTimeout);
 				event->setL1Processed(L0L1Trigger);
 
 				/*STATISTICS*/
@@ -104,8 +103,8 @@ void QueueReceiver::thread() {
 			}
 
 		} /*else {
-			boost::this_thread::sleep(boost::posix_time::microsec(50));
-		}*/
+		 boost::this_thread::sleep(boost::posix_time::microsec(50));
+		 }*/
 
 		//usleep(1000000);
 	}

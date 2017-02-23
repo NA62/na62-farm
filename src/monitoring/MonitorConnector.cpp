@@ -53,9 +53,7 @@ MonitorConnector::MonitorConnector() :
 }
 
 void MonitorConnector::thread() {
-
 	timer_.expires_from_now(boost::posix_time::milliseconds(1000));
-
 	timer_.async_wait(boost::bind(&MonitorConnector::handleUpdate, this));
 	monitoringService.run();
 }
@@ -83,49 +81,47 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::updateState(currentState_);
 
 	LOG_INFO("Enqueued tasks:\t" << HandleFrameTask::getNumberOfQeuedTasks());
-
 	LOG_INFO(
 			"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames());
-
 	LOG_INFO("BurstID:\t" << BurstIdHandler::getCurrentBurstId());
-	//LOG_INFO<<"NextBurstID:\t" << BurstIdHandler::getNextBurstId();
-
 	LOG_INFO("State:\t" << currentState_);
-
-	setDifferentialData("Sleeps", PacketHandler::sleeps_);
-	setDifferentialData("Spins", PacketHandler::spins_);
-	setContinuousData("SendTimer", PacketHandler::sendTimer.elapsed().wall / 1000);
-	setDifferentialData("SpawnedTasks", PacketHandler::frameHandleTasksSpawned_);
-	setContinuousData("AggregationSize", NetworkHandler::GetFramesReceived() / (float) PacketHandler::frameHandleTasksSpawned_);
 
 	NetworkHandler::PrintStats();
 
+	//singlelongServices
+	IPCHandler::sendStatistics("BytesToMerger", std::to_string(L2Builder::GetBytesSentToStorage()));
+	IPCHandler::sendStatistics("EventsToMerger", std::to_string(L2Builder::GetEventsSentToStorage()));
+	IPCHandler::sendStatistics("L1MRPsSent", std::to_string(l1::L1DistributionHandler::GetL1MRPsSent()));
+	IPCHandler::sendStatistics("L1TriggersSent", std::to_string(l1::L1DistributionHandler::GetL1TriggersSent()));
 	IPCHandler::sendStatistics("PF_BytesReceived", std::to_string(NetworkHandler::GetBytesReceived()));
 	IPCHandler::sendStatistics("PF_PacksReceived", std::to_string(NetworkHandler::GetFramesReceived()));
 	IPCHandler::sendStatistics("PF_PacksDropped", std::to_string(NetworkHandler::GetFramesDropped()));
 
-	//LOG_INFO("########################");
+	/*
+	 * L1-L2 statistics
+	 */
+	for (auto& key : HltStatistics::extractKeys()) {
+		IPCHandler::sendStatistics(key, std::to_string(HltStatistics::getRollingCounter(key)));
+	}
+
+	//
+	//multiStatsServices
+	//
 	/*
 	 * Number of Events and data rate from all detectors
 	 */
 	std::stringstream statistics;
-
 	for (int soruceIDNum = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES - 1; soruceIDNum >= 0; soruceIDNum--) {
 		uint_fast8_t sourceID = SourceIDManager::sourceNumToID(soruceIDNum);
 		statistics << "0x" << std::hex << (int) sourceID << ";";
 
 		if (SourceIDManager::getExpectedPacksBySourceID(sourceID) > 0) {
-			setDetectorDifferentialData("MEPsReceived",
-					HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum) / SourceIDManager::getExpectedPacksBySourceID(sourceID),
-					sourceID);
-
 			statistics << std::dec
 					<< HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum) / SourceIDManager::getExpectedPacksBySourceID(sourceID)
 					<< ";";
 		}
-		setDetectorDifferentialData("EventsReceived", Event::getMissingL0EventsBySourceNum(soruceIDNum), sourceID);
-		statistics << std::dec << Event::getMissingL0EventsBySourceNum(soruceIDNum) << ";";
 
+		statistics << std::dec << Event::getMissingL0EventsBySourceNum(soruceIDNum) << ";";
 		statistics << std::dec << HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum) << ";";
 	}
 
@@ -137,88 +133,20 @@ void MonitorConnector::handleUpdate() {
 			statistics << "0x" << std::hex << (int) sourceID << ";";
 
 			if (SourceIDManager::getExpectedL1PacksBySourceID(sourceID) > 0) {
-				setDetectorDifferentialData("MEPsReceived",
-						HandleFrameTask::GetL1MEPsReceivedBySourceNum(soruceIDNum)
-								/ SourceIDManager::getExpectedL1PacksBySourceID(sourceID), sourceID);
-
 				statistics << std::dec
 						<< HandleFrameTask::GetL1MEPsReceivedBySourceNum(soruceIDNum)
 								/ SourceIDManager::getExpectedL1PacksBySourceID(sourceID) << ";";
 			}
 
-			setDetectorDifferentialData("EventsReceived", Event::getMissingL1EventsBySourceNum(soruceIDNum), sourceID);
 			statistics << std::dec << Event::getMissingL1EventsBySourceNum(soruceIDNum) << ";";
-
 			statistics << std::dec << HandleFrameTask::GetL1BytesReceivedBySourceNum(soruceIDNum) << ";";
-
-			setDetectorDifferentialData("NonRequested:1Frags", Event::getNumberOfNonRequestedL1Fragments(), sourceID);
-
 		}
 	}
-
 	IPCHandler::sendStatistics("DetectorData", statistics.str());
 
-	/*
-	 * L1-L2 statistics
-	 */
-	uint_fast32_t L1InputEvents = HltStatistics::GetL1InputEvents();
-	setDifferentialData("L1InputEvents", L1InputEvents);
-	IPCHandler::sendStatistics("L1InputEvents", std::to_string(L1InputEvents));
-
-	uint_fast32_t L1PhysicsEvents = HltStatistics::GetL1PhysicsStats();
-	setDifferentialData("L1PhysicsEvents", L1PhysicsEvents);
-	IPCHandler::sendStatistics("L1PhysicsEvents", std::to_string(L1PhysicsEvents));
-
-	uint_fast32_t L1PhysicsByMultipleMasksEvents = HltStatistics::GetL1PhysicsByMultipleMasksStats();
-	setDifferentialData("L1PhysicsByMultipleMasksEvents", L1PhysicsByMultipleMasksEvents);
-	IPCHandler::sendStatistics("L1PhysicsByMultipleMasksEvents", std::to_string(L1PhysicsByMultipleMasksEvents));
-
-	uint_fast32_t L2InputEvents = L2TriggerProcessor::GetL2InputStats();
-	setDifferentialData("L2InputEvents", L2InputEvents);
-	IPCHandler::sendStatistics("L2InputEvents", std::to_string(L2InputEvents));
-
-	uint_fast32_t L1Requests = L1Builder::GetL1Requests();
-	setDifferentialData("L1RequestToCreams", L1Requests);
-	IPCHandler::sendStatistics("L1RequestToCreams", std::to_string(L1Requests));
-
-//	uint_fast32_t L1BypassedEvents = L1TriggerProcessor::GetL1BypassedEvents();
-//	setDifferentialData("L1BypassedEvents ", L1BypassedEvents);
-//	IPCHandler::sendStatistics("L1BypassedEvents",
-//			std::to_string(L1BypassedEvents));
-
-	std::stringstream L1OutputStats;
-	std::stringstream L1ReductionFactorStats;
-	for (uint iMask = 0; iMask < (uint) L1TriggerProcessor::GetNumberOfEnabledL0Masks(); iMask++) {
-
-		int l0MaskID = (int) L1TriggerProcessor::GetL0MaskNumToMaskID(iMask);
-		std::stringstream stringstream;
-		stringstream << std::hex << l0MaskID;
-
-		uint64_t L1Output = L1TriggerProcessor::GetL1AcceptedEventsPerL0Mask(l0MaskID);
-		uint64_t L1Input = L1TriggerProcessor::GetL1InputReducedEventsPerL0Mask(l0MaskID);
-		double L1ReductionFactor;
-		if (!L1Input)
-			L1ReductionFactor = 0.;
-		else
-			L1ReductionFactor = (double) ((double) L1Output / (double) L1Input);
-
-		setDifferentialData("L1AcceptedTriggersPerL0Mask" + stringstream.str(), L1Output);
-		setDifferentialData("L1ReductionFactorPerL0Mask" + stringstream.str(), L1ReductionFactor);
-
-		if (L1Output > 0) {
-			L1OutputStats << "l0Mask:" << l0MaskID << ";";
-//			Utils::bin((uint_fast8_t&) l0MaskID, L1OutputStats);
-			L1OutputStats << L1Output << ";";
-		}
-		if (L1ReductionFactor > 0) { //or different from a nan
-			L1ReductionFactorStats << "l0Mask:" << l0MaskID << ";";
-//			Utils::bin((uint_fast8_t&) l0MaskID, L1ReductionFactorStats);
-			L1ReductionFactorStats << std::fixed << L1ReductionFactor << std::dec << ";";
-		}
-
+	for (auto& key : HltStatistics::extractDimensionalKeys()) {
+		IPCHandler::sendStatistics(key, HltStatistics::serializeDimensionalCounter(key));
 	}
-	IPCHandler::sendStatistics("L1OutputTriggerData", L1OutputStats.str());
-	IPCHandler::sendStatistics("L1ReductionFactorTriggerData", L1OutputStats.str());
 
 	/*
 	 * Trigger word statistics
@@ -226,14 +154,8 @@ void MonitorConnector::handleUpdate() {
 	std::stringstream L1Stats;
 	std::stringstream L2Stats;
 	for (int wordNum = 0x00; wordNum <= 0xFF; wordNum++) {
-		std::stringstream stream;
-		stream << std::hex << wordNum;
-
-		uint64_t L1Trigs = HltStatistics::GetL1TriggerStats()[wordNum];
+		uint64_t L1Trigs = HltStatistics::getL1TriggerStats()[wordNum];
 		uint64_t L2Trigs = L2TriggerProcessor::GetL2TriggerStats()[wordNum];
-
-		setDifferentialData("L1Triggers" + stream.str(), L1Trigs);
-		setDifferentialData("L2Triggers" + stream.str(), L2Trigs);
 
 		if (L1Trigs > 0) {
 			L1Stats << "0b";
@@ -248,38 +170,8 @@ void MonitorConnector::handleUpdate() {
 		}
 	}
 
-	//LOG_INFO("########################");
-
-	setDifferentialData("BytesReceived", NetworkHandler::GetBytesReceived());
-	setDifferentialData("FramesReceived", NetworkHandler::GetFramesReceived());
-	if (getDifferentialValue("FramesReceived") != 0) {
-		setContinuousData("FrameSize", getDifferentialValue("BytesReceived") / getDifferentialValue("FramesReceived"));
-	}
-
 	IPCHandler::sendStatistics("L1TriggerData", L1Stats.str());
 	IPCHandler::sendStatistics("L2TriggerData", L2Stats.str());
-
-	uint_fast32_t bytesToStorage = L2Builder::GetBytesSentToStorage();
-	uint_fast32_t eventsToStorage = L2Builder::GetEventsSentToStorage();
-
-	setDifferentialData("BytesToMerger", bytesToStorage);
-	setDifferentialData("EventsToMerger", eventsToStorage);
-
-	IPCHandler::sendStatistics("BytesToMerger", std::to_string(bytesToStorage));
-	IPCHandler::sendStatistics("EventsToMerger", std::to_string(eventsToStorage));
-
-	setDifferentialData("L1MRPsSent", l1::L1DistributionHandler::GetL1MRPsSent());
-	IPCHandler::sendStatistics("L1MRPsSent", std::to_string(l1::L1DistributionHandler::GetL1MRPsSent()));
-
-	setDifferentialData("L1TriggersSent", l1::L1DistributionHandler::GetL1TriggersSent());
-	IPCHandler::sendStatistics("L1TriggersSent", std::to_string(l1::L1DistributionHandler::GetL1TriggersSent()));
-
-	setDifferentialData("FramesSent", NetworkHandler::GetFramesSent());
-	setContinuousData("OutFramesQueued", NetworkHandler::getNumberOfEnqueuedSendFrames());
-
-//	LOG_INFO(
-//			"IPFragments:\t" << FragmentStore::getNumberOfReceivedFragments()<<"/"<<FragmentStore::getNumberOfReassembledFrames() <<"/"<<FragmentStore::getNumberOfUnfinishedFrames());
-//	LOG_INFO("=======================================");
 
 	/*
 	 * Building Time L0-L1 statistics
@@ -287,7 +179,7 @@ void MonitorConnector::handleUpdate() {
 	 */
 	uint64_t L0BuildTimeMean = 0;
 	uint64_t L1BuildTimeMean = 0;
-	uint64_t L1InputEventsPerBurst = HltStatistics::GetL1InputEventsPerBurst();
+	uint64_t L1InputEventsPerBurst = L1TriggerProcessor::GetL1InputEventsPerBurst();
 	uint64_t L2InputEventsPerBurst = L2TriggerProcessor::GetL2InputEventsPerBurst();
 
 	if (L1Builder::GetL0BuildingTimeCumulative()) {
@@ -303,15 +195,12 @@ void MonitorConnector::handleUpdate() {
 	uint64_t L0BuildTimeMax = L1Builder::GetL0BuildingTimeMax();
 	uint64_t L1BuildTimeMax = L2Builder::GetL1BuildingTimeMax();
 
-//	LOG_INFO("***********L0BuildTimeMean (x Run Control) " << L0BuildTimeMean);
-//	LOG_INFO("***********L1BuildTimeMean (x Run Control) " << L1BuildTimeMean);
-//	LOG_INFO("***********L0BuildTimeMax  (x Run Control) " << L0BuildTimeMax);
-//	LOG_INFO("***********L1BuildTimeMax  (x Run Control) " << L1BuildTimeMax);
-
+	//singlelongServices
 	IPCHandler::sendStatistics("L0BuildingTimeMean", std::to_string(L0BuildTimeMean));
 	IPCHandler::sendStatistics("L1BuildingTimeMean", std::to_string(L1BuildTimeMean));
 	IPCHandler::sendStatistics("L0BuildingTimeMax", std::to_string(L0BuildTimeMax));
 	IPCHandler::sendStatistics("L1BuildingTimeMax", std::to_string(L1BuildTimeMax));
+
 	/*
 	 * Timing L1-L2 statistics
 	 *
@@ -333,11 +222,7 @@ void MonitorConnector::handleUpdate() {
 	uint64_t L1ProcTimeMax = L1Builder::GetL1ProcessingTimeMax();
 	uint64_t L2ProcTimeMax = L2Builder::GetL2ProcessingTimeMax();
 
-	//LOG_INFO("***********L1ProcTimeMean (x Run Control)  " << L1ProcTimeMean);
-//	LOG_INFO("***********L2ProcTimeMean (x Run Control)  " << L2ProcTimeMean);
-//	LOG_INFO("***********L1ProcTimeMax  (x Run Control)  " << L1ProcTimeMax);
-//	LOG_INFO("***********L2ProcTimeMax  (x Run Control)  " << L2ProcTimeMax);
-
+	//singlelongServices
 	IPCHandler::sendStatistics("L1ProcessingTimeMean", std::to_string(L1ProcTimeMean));
 	IPCHandler::sendStatistics("L2ProcessingTimeMean", std::to_string(L2ProcTimeMean));
 	IPCHandler::sendStatistics("L1ProcessingTimeMax", std::to_string(L1ProcTimeMax));
@@ -358,7 +243,6 @@ void MonitorConnector::handleUpdate() {
 			uint64_t L1BuildTimeVsEvtNum = L2Builder::GetL1BuidingTimeVsEvtNumber()[timeId][tsId];
 			uint64_t L1ProcTimeVsEvtNum = L1Builder::GetL1ProcessingTimeVsEvtNumber()[timeId][tsId];
 			uint64_t L2ProcTimeVsEvtNum = L2Builder::GetL2ProcessingTimeVsEvtNumber()[timeId][tsId];
-//					NetworkHandler::GetPacketTimeDiffVsTime()[timeId][tsId];
 
 			if (L0BuildTimeVsEvtNum > 0) {
 				L0BuildTimeVsEvtNumStats << timeId << "," << tsId << "," << L0BuildTimeVsEvtNum << ";";
@@ -374,90 +258,12 @@ void MonitorConnector::handleUpdate() {
 			}
 		}
 	}
-//	LOG_INFO("########################" << L0BuildTimeVsEvtNumStats.str());
-//	LOG_INFO("########################" << L1BuildTimeVsEvtNumStats.str());
-//	LOG_INFO("########################" << L1ProcTimeVsEvtNumStats.str());
-//	LOG_INFO("########################" << L2ProcTimeVsEvtNumStats.str());
 
 	IPCHandler::sendStatistics("L0BuildingTimeVsEvtNumber", L0BuildTimeVsEvtNumStats.str());
 	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber", L1BuildTimeVsEvtNumStats.str());
 	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber", L1ProcTimeVsEvtNumStats.str());
 	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber", L2ProcTimeVsEvtNumStats.str());
 	IPCHandler::sendStatistics("UnfinishedEventsData", UnfinishedEventsCollector::toJson());
-}
-
-uint64_t MonitorConnector::setDifferentialData(std::string key, uint64_t value) {
-
-	if (differentialInts_.find(key) == differentialInts_.end()) {
-		differentialInts_[key + LAST_VALUE_SUFFIX] = 0;
-		differentialInts_[key] = 0;
-	}
-	uint64_t lastValue = differentialInts_[key];
-
-	if (value != 0) {
-		if (key == "BytesReceived") {
-			//LOG_INFO(
-			//	key << ":\t" << Utils::FormatSize(value - differentialInts_[key]) << " (" << Utils::FormatSize(value) <<")");
-		} else {
-			//LOG_INFO(
-			//key << ":\t" << std::to_string(value - differentialInts_[key]) << " (" << std::to_string(value) <<")");
-		}
-
-	}
-
-	differentialInts_[key + LAST_VALUE_SUFFIX] = differentialInts_[key];
-	differentialInts_[key] = value;
-	return value - lastValue;
-}
-
-uint64_t MonitorConnector::getDifferentialValue(std::string key) {
-	if (differentialInts_.find(key) != differentialInts_.end()) {
-		return differentialInts_[key] - differentialInts_[key + LAST_VALUE_SUFFIX];
-	}
-	return 0;
-}
-
-void MonitorConnector::setDetectorDifferentialData(std::string key, uint64_t value, uint_fast8_t detectorID) {
-	uint64_t lastValue;
-	if (detectorDifferentialInts_.find(detectorID) == detectorDifferentialInts_.end()) {
-		detectorDifferentialInts_[detectorID] = std::map<std::string, uint64_t>();
-		detectorDifferentialInts_[detectorID][key + LAST_VALUE_SUFFIX] = 0;
-		detectorDifferentialInts_[detectorID][key] = 0;
-	}
-	lastValue = detectorDifferentialInts_[detectorID][key];
-
-	//LOG_INFO(
-	//key << SourceIDManager::sourceIdToDetectorName(detectorID) << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")");
-
-	detectorDifferentialInts_[detectorID][key + LAST_VALUE_SUFFIX] = detectorDifferentialInts_[detectorID][key];
-	detectorDifferentialInts_[detectorID][key] = value;
-}
-
-//void MonitorConnector::setDetectorSubIdDifferentialData(std::string key,
-//		uint64_t value, uint_fast8_t subID, uint_fast8_t detectorID) {
-//	uint64_t lastValue;
-//	if (detectorSubIdDifferentialInts_.find(detectorID)
-//			== detectorSubIdDifferentialInts_.end()) {
-//		detectorSubIdDifferentialInts_[detectorID] = std::map<uint_fast8_t,
-//				std::map<std::string, uint64_t>>();
-//		if (detectorSubIdDifferentialInts_[detectorID].find(subID)
-//				== detectorSubIdDifferentialInts_[detectorID].end()) {
-//			detectorSubIdDifferentialInts_[detectorID][subID][key
-//					+ LAST_VALUE_SUFFIX] = 0;
-//			detectorSubIdDifferentialInts_[detectorID][subID][key] = 0;
-//		}
-//	}
-//	lastValue = detectorSubIdDifferentialInts_[detectorID][subID][key];
-//
-//	LOG_INFO(key << SourceIDManager::sourceIdToDetectorName(detectorID) << ", subID "<< (uint)subID << ":\t" << std::to_string(value - lastValue) << "( " <<std::to_string(value)<<")");
-//
-//	detectorSubIdDifferentialInts_[detectorID][subID][key + LAST_VALUE_SUFFIX] =
-//			detectorSubIdDifferentialInts_[detectorID][subID][key];
-//	detectorSubIdDifferentialInts_[detectorID][subID][key] = value;
-//}
-
-void MonitorConnector::setContinuousData(std::string key, uint64_t value) {
-	//LOG_INFO(key << ":\t" << std::to_string(value));
 }
 
 }
