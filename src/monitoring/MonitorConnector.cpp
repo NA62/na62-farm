@@ -155,7 +155,7 @@ void MonitorConnector::handleUpdate() {
 	std::stringstream L2Stats;
 	for (int wordNum = 0x00; wordNum <= 0xFF; wordNum++) {
 		uint64_t L1Trigs = HltStatistics::getL1TriggerStats()[wordNum];
-		uint64_t L2Trigs = HltStatistics::GetL2TriggerStats()[wordNum];
+		uint64_t L2Trigs = HltStatistics::getL2TriggerStats()[wordNum];
 
 		if (L1Trigs > 0) {
 			L1Stats << "0b";
