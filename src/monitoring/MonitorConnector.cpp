@@ -155,7 +155,7 @@ void MonitorConnector::handleUpdate() {
 	std::stringstream L2Stats;
 	for (int wordNum = 0x00; wordNum <= 0xFF; wordNum++) {
 		uint64_t L1Trigs = HltStatistics::getL1TriggerStats()[wordNum];
-		uint64_t L2Trigs = L2TriggerProcessor::GetL2TriggerStats()[wordNum];
+		uint64_t L2Trigs = HltStatistics::GetL2TriggerStats()[wordNum];
 
 		if (L1Trigs > 0) {
 			L1Stats << "0b";
@@ -263,7 +263,6 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber", L1BuildTimeVsEvtNumStats.str());
 	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber", L1ProcTimeVsEvtNumStats.str());
 	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber", L2ProcTimeVsEvtNumStats.str());
-	IPCHandler::sendStatistics("UnfinishedEventsData", UnfinishedEventsCollector::toJson());
 }
 
 }
