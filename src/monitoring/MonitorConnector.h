@@ -17,7 +17,6 @@
 #include <string>
 #include <monitoring/IPCHandler.h>
 
-
 #include <utils/Stopwatch.h>
 #include <utils/AExecutable.h>
 
@@ -41,7 +40,7 @@ public:
 	MonitorConnector();
 	virtual ~MonitorConnector();
 
-	static void setState(STATE state){
+	static void setState(STATE state) {
 		currentState_ = state;
 	}
 
@@ -49,23 +48,10 @@ private:
 	virtual void thread();
 	void onInterruption();
 	void handleUpdate();
-	uint64_t setDifferentialData(std::string key, uint64_t value);
-	uint64_t getDifferentialValue(std::string key);
-
-	void setDetectorDifferentialData(std::string key, uint64_t value,
-			uint_fast8_t detectorID);
-//	void setDetectorSubIdDifferentialData(std::string key, uint64_t value, uint_fast8_t subID, uint_fast8_t detectorID);
-	void setContinuousData(std::string key, uint64_t value);
 
 	boost::asio::io_service monitoringService;
-
 	boost::asio::deadline_timer timer_;
-
 	Stopwatch updateWatch_;
-
-	std::map<std::string, uint64_t> differentialInts_;
-	std::map<uint_fast8_t, std::map<std::string, uint64_t> > detectorDifferentialInts_;
-//	std::map<uint_fast8_t, std::map<uint_fast8_t, std::map<std::string,uint64_t>> > detectorSubIdDifferentialInts_;
 
 	static STATE currentState_;
 };

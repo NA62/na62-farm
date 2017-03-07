@@ -36,13 +36,13 @@
 #include "eventBuilding/L2Builder.h"
 #include "eventBuilding/StorageHandler.h"
 #include "monitoring/MonitorConnector.h"
+#include "monitoring/HltStatistics.h"
 #include "options/MyOptions.h"
 #include "socket/PacketHandler.h"
 #include "socket/TaskProcessor.h"
 #include "socket/ZMQHandler.h"
 #include "socket/HandleFrameTask.h"
 #include "monitoring/CommandConnector.h"
-
 
 #ifdef USE_SHAREDMEMORY
 #include "SharedMemory/SharedMemoryManager.h"
@@ -104,7 +104,6 @@ void onBurstFinished() {
 	static std::atomic<uint> incompleteEvents_;
 	incompleteEvents_ = 0;
 
-
 	// Do it with parallel_for using tbb if tcmalloc is linked
 	tbb::parallel_for(
 			tbb::blocked_range<uint_fast32_t>(0,
@@ -149,11 +148,48 @@ void onBurstFinished() {
 	}
 #endif
 
+
+	//Missing sources
 	IPCHandler::sendStatistics("MonitoringL0Data", DetectorStatistics::L0RCInfo());
 	IPCHandler::sendStatistics("MonitoringL1Data", DetectorStatistics::L1RCInfo());
 	DetectorStatistics::clearL0DetectorStatistics();
 	DetectorStatistics::clearL1DetectorStatistics();
 
+
+	//Resetting time graphs
+#ifdef MEASURE_TIME
+	L1Builder::ResetL0BuildingTimeCumulative();
+	L1Builder::ResetL0BuildingTimeMax();
+	L1Builder::ResetL1ProcessingTimeCumulative();
+	L1Builder::ResetL1ProcessingTimeMax();
+
+	L2Builder::ResetL1BuildingTimeCumulative();
+	L2Builder::ResetL1BuildingTimeMax();
+	L2Builder::ResetL2ProcessingTimeCumulative();
+	L2Builder::ResetL2ProcessingTimeMax();
+
+	L1Builder::ResetL0BuidingTimeVsEvtNumber();
+	L2Builder::ResetL1BuidingTimeVsEvtNumber();
+	L1Builder::ResetL1ProcessingTimeVsEvtNumber();
+	L2Builder::ResetL2ProcessingTimeVsEvtNumber();
+
+#endif
+	L1TriggerProcessor::ResetL1InputEventsPerBurst();
+	L2TriggerProcessor::ResetL2InputEventsPerBurst();
+
+
+	//Updating PerBurstCounters
+	for (auto& key : HltStatistics::extractKeys()) {
+		IPCHandler::sendStatistics(key + "PerBurst", std::to_string(HltStatistics::getRollingCounter(key)));
+	}
+	//Updating PerBurstCounters
+	for (auto& key : HltStatistics::extractDimensionalKeys()) {
+		IPCHandler::sendStatistics(key + "PerBurst", HltStatistics::serializeDimensionalCounter(key));
+	}
+	//Resetting ALL HLT statistics
+	HltStatistics::countersReset();
+
+	//Memory monitor
 	int tSize = 0, resident = 0, share = 0;
 	ifstream buffer("/proc/self/statm");
 	buffer >> tSize >> resident >> share;
@@ -167,10 +203,10 @@ void onBurstFinished() {
 		LOG_ERROR("Memory LEAK!!! Terminating process");
 		exit(-1);
 	}
-
 }
 
 int main(int argc, char* argv[]) {
+
 	/*
 	 * Signals
 	 */
@@ -196,6 +232,8 @@ int main(int argc, char* argv[]) {
 	L1TriggerProcessor::initialize(HLTConfParams.l1);
 	L2TriggerProcessor::initialize(HLTConfParams.l2);
 
+	HltStatistics::initialize();
+
 	FarmStatistics::init();
 	FarmStatistics farmstats;
 	farmstats.startThread("StatisticsWriter");
@@ -212,6 +250,7 @@ int main(int argc, char* argv[]) {
 			Options::GetIntPairList(OPTION_L1_DATA_SOURCE_IDS));
 
 	BurstIdHandler::initialize(Options::GetInt(OPTION_FIRST_BURST_ID),
+			Options::GetInt(OPTION_CURRENT_RUN_NUMBER),
 			&onBurstFinished);
 
 	HandleFrameTask::initialize();
@@ -219,8 +258,7 @@ int main(int argc, char* argv[]) {
 	SmartEventSerializer::initialize();
 	try {
 		StorageHandler::initialize();
-	}
-	catch(const zmq::error_t& ex) {
+	} catch(const zmq::error_t& ex) {
 		LOG_ERROR("Failed to initialize StorageHandler because: " << ex.what());
 		exit(1);
 	}

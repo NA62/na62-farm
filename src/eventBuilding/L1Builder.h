@@ -38,8 +38,6 @@ private:
 
 	static bool requestZSuppressedLkrData_;
 
-
-
 public:
 
 	/*
