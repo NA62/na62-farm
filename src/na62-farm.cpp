@@ -13,7 +13,7 @@
 
 #include <monitoring/IPCHandler.h>
 #include <monitoring/BurstIdHandler.h>
-#include <monitoring/FarmStatistics.h>
+//#include <monitoring/FarmStatistics.h>
 #include <monitoring/DetectorStatistics.h>
 #include <options/Options.h>
 #include <socket/NetworkHandler.h>
@@ -72,7 +72,7 @@ void handle_stop(const boost::system::error_code& error, int signal_number) {
 	if (!error) {
 		ZMQHandler::Stop();
 		AExecutable::InterruptAll();
-		FarmStatistics::stopRunning();
+		//FarmStatistics::stopRunning();
 
 		LOG_INFO("Stopping packet handlers");
 		for (auto& handler : packetHandlers) {
@@ -174,9 +174,6 @@ void onBurstFinished() {
 	L2Builder::ResetL2ProcessingTimeVsEvtNumber();
 
 #endif
-	L1TriggerProcessor::ResetL1InputEventsPerBurst();
-	L2TriggerProcessor::ResetL2InputEventsPerBurst();
-
 
 	//Updating PerBurstCounters
 	for (auto& key : HltStatistics::extractKeys()) {
@@ -186,8 +183,15 @@ void onBurstFinished() {
 	for (auto& key : HltStatistics::extractDimensionalKeys()) {
 		IPCHandler::sendStatistics(key + "PerBurst", HltStatistics::serializeDimensionalCounter(key));
 	}
+
+	IPCHandler::sendStatistics("EOBStatsL1", HltStatistics::fillL1Eob());
+	IPCHandler::sendStatistics("EOBStatsL2", HltStatistics::fillL2Eob());
+
+
 	//Resetting ALL HLT statistics
-	HltStatistics::countersReset();
+	HltStatistics::resetCounters();
+	HandleFrameTask::resetCounters();
+	Event::resetCounters();
 
 	//Memory monitor
 	int tSize = 0, resident = 0, share = 0;
@@ -232,11 +236,26 @@ int main(int argc, char* argv[]) {
 	L1TriggerProcessor::initialize(HLTConfParams.l1);
 	L2TriggerProcessor::initialize(HLTConfParams.l2);
 
-	HltStatistics::initialize();
+	// Get the list of farm nodes and find my position
+	vector<std::string> nodes = Options::GetStringList(OPTION_FARM_HOST_NAMES);
+	std::string myIP = EthernetUtils::ipToString(
+			EthernetUtils::GetIPOfInterface(
+					Options::GetString(OPTION_ETH_DEVICE_NAME)));
+	uint logicalNodeID = 0xffffffff;
+	for (size_t i = 0; i < nodes.size(); ++i) {
+		if (myIP == nodes[i]) {
+			logicalNodeID = i;
+			break;
+		}
+	}
+	if (logicalNodeID == 0xffffffff) {
+		LOG_ERROR(
+				"You must provide a list of farm nodes IP addresses containing the IP address of this node!");
+		exit(1);
+	}
 
-	FarmStatistics::init();
-	FarmStatistics farmstats;
-	farmstats.startThread("StatisticsWriter");
+	HltStatistics::initialize(logicalNodeID);
+
 	/*
 	 * initialize NIC handler and start gratuitous ARP request sending thread
 	 */
@@ -290,23 +309,6 @@ int main(int argc, char* argv[]) {
 	DetectorStatistics::clearL0DetectorStatistics();
 	DetectorStatistics::clearL1DetectorStatistics();
 
-	// Get the list of farm nodes and find my position
-	vector<std::string> nodes = Options::GetStringList(OPTION_FARM_HOST_NAMES);
-	std::string myIP = EthernetUtils::ipToString(
-			EthernetUtils::GetIPOfInterface(
-					Options::GetString(OPTION_ETH_DEVICE_NAME)));
-	uint logicalNodeID = 0xffffffff;
-	for (size_t i = 0; i < nodes.size(); ++i) {
-		if (myIP == nodes[i]) {
-			logicalNodeID = i;
-			break;
-		}
-	}
-	if (logicalNodeID == 0xffffffff) {
-		LOG_ERROR(
-				"You must provide a list of farm nodes IP addresses containing the IP address of this node!");
-		exit(1);
-	}
 
 	EventPool::initialize(
 			Options::GetInt(OPTION_MAX_NUMBER_OF_EVENTS_PER_BURST),

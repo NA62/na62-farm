@@ -69,6 +69,7 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID, Tas
 	/*
 	 * Add new packet to Event
 	 */
+
 	if (event->addL0Fragment(fragment, burstID)) {
 
 		/*
@@ -95,6 +96,7 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID, Tas
 		 * This event is complete -> process it
 		 */
 		processL1(event, taskProcessor);
+
 	}
 	return;
 }
@@ -122,6 +124,7 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 	 * Process Level 1 trigger
 	 */
 	uint_fast8_t l0TriggerTypeWord = event->getL0TriggerTypeWord();
+
 	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event, taskProcessor->getStrawAlgo());
 
 	/*STATISTICS*/

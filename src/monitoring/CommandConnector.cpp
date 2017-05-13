@@ -61,10 +61,13 @@ void CommandConnector::thread() {
 		}
 
 		std::string command = strings[0];
+
 		if (command == "eob_timestamp") {
+			BurstIdHandler::setEOBTime(atoi(strings[1].c_str()));
 			if (MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
 				uint_fast32_t burst = BurstIdHandler::getCurrentBurstId() + 1;
 				BurstIdHandler::setNextBurstID(burst);
+
 				LOG_INFO("Got EOB time: Incrementing burstID to" << burst);
 			}
 		} else if (command == "updatenextburstid") {

@@ -84,13 +84,7 @@ void HandleFrameTask::initialize() {
 	highestSourceNum_ = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES;
 
 	MEPsReceivedBySourceNum_ = new std::atomic<uint64_t>[highestSourceNum_];
-	BytesReceivedBySourceNum_ =
-			new std::atomic<uint64_t>[highestSourceNum_];
-
-	for (uint i = 0; i != highestSourceNum_; i++) {
-		MEPsReceivedBySourceNum_[i] = 0;
-		BytesReceivedBySourceNum_[i] = 0;
-	}
+	BytesReceivedBySourceNum_ =	new std::atomic<uint64_t>[highestSourceNum_];
 
 	/*
 	 * All L1 data sources
@@ -98,16 +92,22 @@ void HandleFrameTask::initialize() {
 	highestL1SourceNum_ = SourceIDManager::NUMBER_OF_L1_DATA_SOURCES;
 
 	L1MEPsReceivedBySourceNum_ = new std::atomic<uint64_t>[highestL1SourceNum_];
-	L1BytesReceivedBySourceNum_ =
-			new std::atomic<uint64_t>[highestL1SourceNum_];
+	L1BytesReceivedBySourceNum_ = new std::atomic<uint64_t>[highestL1SourceNum_];
+
+	resetCounters();
+}
+
+void HandleFrameTask::resetCounters() {
+	for (uint i = 0; i != highestSourceNum_; i++) {
+		MEPsReceivedBySourceNum_[i] = 0;
+		BytesReceivedBySourceNum_[i] = 0;
+	}
 
 	for (uint i = 0; i != highestL1SourceNum_; i++) {
 		L1MEPsReceivedBySourceNum_[i] = 0;
 		L1BytesReceivedBySourceNum_[i] = 0;
 	}
-
 }
-
 void HandleFrameTask::processARPRequest(ARP_HDR* arp) {
 	/*
 	 * Look for ARP requests asking for my IP

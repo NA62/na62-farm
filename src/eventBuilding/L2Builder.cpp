@@ -33,9 +33,9 @@ std::atomic<uint64_t> L2Builder::L1BuildingTimeCumulative_(0);
 std::atomic<uint64_t> L2Builder::L1BuildingTimeMax_(0);
 std::atomic<uint64_t> L2Builder::L2ProcessingTimeCumulative_(0);
 std::atomic<uint64_t> L2Builder::L2ProcessingTimeMax_(0);
-std::atomic<uint64_t> L2Builder::BytesSentToStorage_(0);
+//std::atomic<uint64_t> L2Builder::BytesSentToStorage_(0);
 
-std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
+//std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
 
 std::atomic<uint64_t>** L2Builder::L1BuildingTimeVsEvtNumber_;
 std::atomic<uint64_t>** L2Builder::L2ProcessingTimeVsEvtNumber_;
@@ -105,9 +105,11 @@ void L2Builder::processL2(Event *event) {
 	if (!SourceIDManager::isL2Active()) {
 		event->setL2Processed(0);
 
-		BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
-				std::memory_order_relaxed);
-		EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
+//		BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
+//				std::memory_order_relaxed);
+//		EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
+		uint64_t BytesSentToStorage = StorageHandler::SendEvent(event);
+		HltStatistics::updateStorageStatistics(BytesSentToStorage);
 	} else {
 		if (!event->isWaitingForNonZSuppressedLKrData()) {
 			/*
@@ -144,11 +146,11 @@ void L2Builder::processL2(Event *event) {
 					/*
 					 * Send Event to merger
 					 */
-					BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
-							std::memory_order_relaxed);
-					EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
+					uint64_t BytesSentToStorage = StorageHandler::SendEvent(event);
+					//EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 					/*STATISTICS*/
-					HltStatistics::updateStorageStatistics();
+					HltStatistics::updateStorageStatistics(BytesSentToStorage);
+
 #ifdef USE_SHAREDMEMORY
 					SharedMemoryManager::setEventL1Stored(event->getBurstID(), 1);
 #endif
@@ -168,8 +170,8 @@ void L2Builder::processL2(Event *event) {
 #endif
 			if (event->isL2Accepted()) {
 
-				BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
-						std::memory_order_relaxed);
+				//BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
+				//		std::memory_order_relaxed);
 				//EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 			}
 		}

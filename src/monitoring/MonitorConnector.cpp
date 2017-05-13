@@ -89,8 +89,10 @@ void MonitorConnector::handleUpdate() {
 	NetworkHandler::PrintStats();
 
 	//singlelongServices
-	IPCHandler::sendStatistics("BytesToMerger", std::to_string(L2Builder::GetBytesSentToStorage()));
-	IPCHandler::sendStatistics("EventsToMerger", std::to_string(L2Builder::GetEventsSentToStorage()));
+	//IPCHandler::sendStatistics("BytesToMerger", std::to_string(L2Builder::GetBytesSentToStorage()));
+	//IPCHandler::sendStatistics("EventsToMerger", std::to_string(L2Builder::GetEventsSentToStorage()));
+
+
 	IPCHandler::sendStatistics("L1MRPsSent", std::to_string(l1::L1DistributionHandler::GetL1MRPsSent()));
 	IPCHandler::sendStatistics("L1TriggersSent", std::to_string(l1::L1DistributionHandler::GetL1TriggersSent()));
 	IPCHandler::sendStatistics("PF_BytesReceived", std::to_string(NetworkHandler::GetBytesReceived()));
@@ -111,35 +113,48 @@ void MonitorConnector::handleUpdate() {
 	 * Number of Events and data rate from all detectors
 	 */
 	std::stringstream statistics;
-	for (int soruceIDNum = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES - 1; soruceIDNum >= 0; soruceIDNum--) {
-		uint_fast8_t sourceID = SourceIDManager::sourceNumToID(soruceIDNum);
+	for (int sourceIDNum = SourceIDManager::NUMBER_OF_L0_DATA_SOURCES - 1; sourceIDNum >= 0; sourceIDNum--) {
+		uint_fast8_t sourceID = SourceIDManager::sourceNumToID(sourceIDNum);
 		statistics << "0x" << std::hex << (int) sourceID << ";";
 
 		if (SourceIDManager::getExpectedPacksBySourceID(sourceID) > 0) {
 			statistics << std::dec
-					<< HandleFrameTask::GetMEPsReceivedBySourceNum(soruceIDNum) / SourceIDManager::getExpectedPacksBySourceID(sourceID)
+					<< HandleFrameTask::GetMEPsReceivedBySourceNum(sourceIDNum) / SourceIDManager::getExpectedPacksBySourceID(sourceID)
 					<< ";";
+
+			LOG_INFO("MEPsReceived: " << SourceIDManager::sourceIdToDetectorName(sourceID) << " " <<
+								HandleFrameTask::GetMEPsReceivedBySourceNum(sourceIDNum)
+									<< "/" << SourceIDManager::getExpectedPacksBySourceID(sourceID));
+			LOG_INFO("EventsLost: " << SourceIDManager::sourceIdToDetectorName(sourceID) << " " <<
+					Event::getMissingL0EventsBySourceNum(sourceIDNum));
+
+
 		}
 
-		statistics << std::dec << Event::getMissingL0EventsBySourceNum(soruceIDNum) << ";";
-		statistics << std::dec << HandleFrameTask::GetBytesReceivedBySourceNum(soruceIDNum) << ";";
+		statistics << std::dec << Event::getMissingL0EventsBySourceNum(sourceIDNum) << ";";
+		statistics << std::dec << HandleFrameTask::GetBytesReceivedBySourceNum(sourceIDNum) << ";";
 	}
 
 	if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
 
-		for (int soruceIDNum = SourceIDManager::NUMBER_OF_L1_DATA_SOURCES - 1; soruceIDNum >= 0; soruceIDNum--) {
+		for (int sourceIDNum = SourceIDManager::NUMBER_OF_L1_DATA_SOURCES - 1; sourceIDNum >= 0; sourceIDNum--) {
 
-			uint_fast8_t sourceID = SourceIDManager::l1SourceNumToID(soruceIDNum);
+			uint_fast8_t sourceID = SourceIDManager::l1SourceNumToID(sourceIDNum);
 			statistics << "0x" << std::hex << (int) sourceID << ";";
 
 			if (SourceIDManager::getExpectedL1PacksBySourceID(sourceID) > 0) {
 				statistics << std::dec
-						<< HandleFrameTask::GetL1MEPsReceivedBySourceNum(soruceIDNum)
+						<< HandleFrameTask::GetL1MEPsReceivedBySourceNum(sourceIDNum)
 								/ SourceIDManager::getExpectedL1PacksBySourceID(sourceID) << ";";
+				LOG_INFO("MEPsReceived: " << SourceIDManager::sourceIdToDetectorName(sourceID) << " " <<
+									HandleFrameTask::GetL1MEPsReceivedBySourceNum(sourceIDNum)
+										<< "/" << SourceIDManager::getExpectedL1PacksBySourceID(sourceID));
+				LOG_INFO("EventsLost: " << SourceIDManager::sourceIdToDetectorName(sourceID) << " " <<
+						Event::getMissingL1EventsBySourceNum(sourceIDNum));
 			}
 
-			statistics << std::dec << Event::getMissingL1EventsBySourceNum(soruceIDNum) << ";";
-			statistics << std::dec << HandleFrameTask::GetL1BytesReceivedBySourceNum(soruceIDNum) << ";";
+			statistics << std::dec << Event::getMissingL1EventsBySourceNum(sourceIDNum) << ";";
+			statistics << std::dec << HandleFrameTask::GetL1BytesReceivedBySourceNum(sourceIDNum) << ";";
 		}
 	}
 	IPCHandler::sendStatistics("DetectorData", statistics.str());
@@ -179,8 +194,11 @@ void MonitorConnector::handleUpdate() {
 	 */
 	uint64_t L0BuildTimeMean = 0;
 	uint64_t L1BuildTimeMean = 0;
-	uint64_t L1InputEventsPerBurst = L1TriggerProcessor::GetL1InputEventsPerBurst();
-	uint64_t L2InputEventsPerBurst = L2TriggerProcessor::GetL2InputEventsPerBurst();
+	//uint64_t L1InputEventsPerBurst = L1TriggerProcessor::GetL1InputEventsPerBurst();
+	//uint64_t L2InputEventsPerBurst = L2TriggerProcessor::GetL2InputEventsPerBurst();
+	uint64_t L1InputEventsPerBurst = HltStatistics::getCounter("L1InputEvents");
+	uint64_t L2InputEventsPerBurst = HltStatistics::getCounter("L2InputEvents");
+
 
 	if (L1Builder::GetL0BuildingTimeCumulative()) {
 		if (L1InputEventsPerBurst) {

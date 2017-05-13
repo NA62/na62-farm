@@ -71,7 +71,7 @@ void QueueReceiver::thread() {
 				uint_fast16_t L0L1Trigger(l0TriggerTypeWord | trigger_message.l1_trigger_type_word << 8);
 
 				event->setRrequestZeroSuppressedCreamData(trigger_message.isRequestZeroSuppressed);
-
+				event->setL1TriggerWords(trigger_message.l1TriggerWords);
 				//Writing L0 info
 				L1TriggerProcessor::writeL1Data(event, &trigger_message.l1Info, trigger_message.isL1WhileTimeout);
 				event->setL1Processed(L0L1Trigger);
@@ -88,7 +88,7 @@ void QueueReceiver::thread() {
 
 					} else {
 						L2Builder::processL2(event);
-						LOG_ERROR("ERROR we should not arrive here!");
+						//LOG_ERROR("ERROR we should not arrive here!");
 					}
 				} else { // Event not accepted
 					/*

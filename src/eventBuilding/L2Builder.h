@@ -27,9 +27,9 @@ private:
 	static std::atomic<uint64_t> L1BuildingTimeMax_;
 	static std::atomic<uint64_t> L2ProcessingTimeCumulative_;
 	static std::atomic<uint64_t> L2ProcessingTimeMax_;
-	static std::atomic<uint64_t> BytesSentToStorage_;
 
-	static std::atomic<uint64_t> EventsSentToStorage_;
+	//static std::atomic<uint64_t> BytesSentToStorage_;
+	//static std::atomic<uint64_t> EventsSentToStorage_;
 
 	static std::atomic<uint64_t>** L1BuildingTimeVsEvtNumber_;
 	static std::atomic<uint64_t>** L2ProcessingTimeVsEvtNumber_;
@@ -101,13 +101,13 @@ public:
 		L1BuildingTimeMax_ = 0;
 	}
 
-	static inline uint64_t GetBytesSentToStorage() {
-		return BytesSentToStorage_;
-	}
+//	static inline uint64_t GetBytesSentToStorage() {
+//		return BytesSentToStorage_;
+//	}
 
-	static inline uint64_t GetEventsSentToStorage() {
-		return EventsSentToStorage_;
-	}
+//	static inline uint64_t GetEventsSentToStorage() {
+//		return EventsSentToStorage_;
+//	}
 
 	static void initialize() {
 

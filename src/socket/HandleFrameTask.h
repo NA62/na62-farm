@@ -38,12 +38,12 @@ private:
 	static std::atomic<uint> queuedTasksNum_;
 
 	static uint highestSourceNum_;
-	static std::atomic<uint64_t>* MEPsReceivedBySourceNum_;
-	static std::atomic<uint64_t>* BytesReceivedBySourceNum_;
+	static std::atomic<uint64_t>* MEPsReceivedBySourceNum_;	    //not cumulative
+	static std::atomic<uint64_t>* BytesReceivedBySourceNum_;	//not cumulative
 
 	static uint highestL1SourceNum_;
-	static std::atomic<uint64_t>* L1MEPsReceivedBySourceNum_;
-	static std::atomic<uint64_t>* L1BytesReceivedBySourceNum_;
+	static std::atomic<uint64_t>* L1MEPsReceivedBySourceNum_;	//not cumulative
+	static std::atomic<uint64_t>* L1BytesReceivedBySourceNum_;	//not cumulative
 
 	void processFrame(DataContainer&& container, TaskProcessor* taskProcessor);
 
@@ -54,6 +54,8 @@ public:
 	//tbb::task* execute();
 	void execute(TaskProcessor* taskProcessor);
 	static void initialize();
+
+	static void resetCounters();
 
 	static inline uint getNumberOfQeuedTasks() {
 		return queuedTasksNum_;
