@@ -26,6 +26,7 @@
 #include "StorageHandler.h"
 #include "SharedMemory/SharedMemoryManager.h"
 #include <monitoring/HltStatistics.h>
+#include <structs/LkrCrateSlotDecoder.h>
 
 namespace na62 {
 
@@ -46,9 +47,15 @@ void L2Builder::buildEvent(l1::MEPFragment* fragment) {
 #ifdef USE_ERS
 	try {
 		event = EventPool::getEvent(fragment->getEventNumber());
-	}
-	catch (na62::Message &e) {
-		ers::error(UnexpectedFragment(ERS_HERE, fragment->getEventNumber(), SourceIDManager::sourceIdToDetectorName( fragment->getSourceID()), fragment->getSourceSubID(), e));
+	} catch (na62::Message &e) {
+		uint_fast8_t source_sub_id = fragment->getSourceSubID();
+		if (SourceIDManager::sourceIdToDetectorName(fragment->getSourceID()) == "LKR") {
+			lkr_crate_slot_decoder crateslot(source_sub_id);
+			ers::error(UnexpectedFragmentLKR(ERS_HERE, fragment->getEventNumber(), SourceIDManager::sourceIdToDetectorName(fragment->getSourceID()), crateslot.getCrate(), crateslot.getSlot(), e));
+		} else {
+			ers::error(UnexpectedFragment(ERS_HERE, fragment->getEventNumber(), SourceIDManager::sourceIdToDetectorName(fragment->getSourceID()), source_sub_id, e));
+		}
+
 		delete fragment;
 		return;
 	}

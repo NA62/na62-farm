@@ -17,6 +17,7 @@
  * Listening Ports
  */
 #define OPTION_ETH_DEVICE_NAME (char*)"ethDeviceName"
+#define OPTION_GATEWAY_MAC_ADDRESS (char *)"gatewayMAC"
 
 #define OPTION_L0_RECEIVER_PORT (char*)"L0Port"
 #define OPTION_CREAM_RECEIVER_PORT (char*)"CREAMPort"
@@ -105,6 +106,10 @@ public:
 				po::value<std::string>()->default_value("zc:enp130s0f0"),
 				"Name of the device to be used for receiving data")
 
+		(OPTION_GATEWAY_MAC_ADDRESS,
+				po::value<std::string>()->default_value("00:11:22:33:44:55"),
+				"MAC address of gateway")
+
 		(OPTION_L0_RECEIVER_PORT, po::value<int>()->default_value(58913),
 				"UDP-Port for L1 data reception")
 
@@ -156,8 +161,12 @@ public:
 				"The TCP port the merger is listening to.")
 
 		(OPTION_CREAM_MULTICAST_GROUP,
-				po::value<std::string>()->default_value("239.1.1.1"),
+				po::value<std::string>()->required(),
 				"Comma separated list of multicast group IPs for L1 requests to the L1 (MRP)")
+
+//		(OPTION_CREAM_UNICAST_LIST,
+//				po::value<std::string>()->required(),
+//				"Comma separated list of IPs for L1 requests to the L1 (MRP)")
 
 		(OPTION_CREAM_MULTICAST_PORT, po::value<int>()->default_value(58914),
 				"The port all L1 multicast MRPs to the CREAMs should be sent to")

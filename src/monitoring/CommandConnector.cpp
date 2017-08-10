@@ -42,7 +42,7 @@ void CommandConnector::thread() {
 	std::string message;
 	while (IPCHandler::isRunning()) {
 		/*
-		 * Synchronious receive:
+		 * Synchronous receive:
 		 */
 		message = IPCHandler::getNextCommand();
 		if (message == "") {
@@ -67,7 +67,6 @@ void CommandConnector::thread() {
 			if (MyOptions::GetBool(OPTION_INCREMENT_BURST_AT_EOB)) {
 				uint_fast32_t burst = BurstIdHandler::getCurrentBurstId() + 1;
 				BurstIdHandler::setNextBurstID(burst);
-
 				LOG_INFO("Got EOB time: Incrementing burstID to" << burst);
 			}
 		} else if (command == "updatenextburstid") {
@@ -76,6 +75,8 @@ void CommandConnector::thread() {
 				LOG_INFO("Received new burstID: " << burst);
 				BurstIdHandler::setNextBurstID(burst);
 			}
+		} else if (command == "sob_timestamp") {
+			BurstIdHandler::setSOBTime(atoi(strings[1].c_str()));
 		} else {
 			LOG_INFO("Ignore command received: " << message);
 		}

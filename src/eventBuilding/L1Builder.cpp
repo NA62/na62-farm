@@ -27,6 +27,8 @@
 #include "SharedMemory/SharedMemoryManager.h"
 #endif
 
+
+
 namespace na62 {
 
 std::atomic<uint64_t> L1Builder::L1Requests_(0);
@@ -38,6 +40,9 @@ std::atomic<uint64_t> L1Builder::L1ProcessingTimeMax_(0);
 std::atomic<uint64_t>** L1Builder::L0BuildingTimeVsEvtNumber_;
 std::atomic<uint64_t>** L1Builder::L1ProcessingTimeVsEvtNumber_;
 bool L1Builder::requestZSuppressedLkrData_;
+
+//FIXME: global
+bool bypassL1=false;
 
 void L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID, TaskProcessor* taskProcessor) {
 	Event * event = nullptr;
@@ -107,6 +112,7 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 	/*
 	 * Send L1 to trigger processor
 	 */
+	bypassL1 = false;
 	if (SharedMemoryManager::storeL1Event(event)) {
 		//Counting just event successfully sent in the shared memory
 		//LOG_ERROR("Serialized on the shared memory");
@@ -115,7 +121,22 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 
 	} else {
 		//TODO unable to store on the shared memory can process it locally?
-		LOG_ERROR("Unable to serialize on the shared memory");
+		//LOG_ERROR("Unable to serialize event " << (int) event->getEventNumber()  << " on the shared memory. -> send L1 request");
+		// send L1 request!
+		uint_fast8_t l1TriggerTypeWord = 0x20;
+		uint_fast8_t l0TriggerTypeWord = event->getL0TriggerTypeWord(); //special trigger word to mark these events
+		HltStatistics::updateL1Statistics(event, l1TriggerTypeWord);
+
+		uint_fast16_t L0L1Trigger(l0TriggerTypeWord | l1TriggerTypeWord << 8);
+		event->setL1Processed(L0L1Trigger);
+		if (SourceIDManager::NUMBER_OF_EXPECTED_L1_PACKETS_PER_EVENT != 0) {
+				sendL1Request(event);
+				event->setL1Requested();
+				SharedMemoryManager::setEventL1Requested(event->getBurstID(), 1);
+		}
+		else {
+				L2Builder::processL2(event);
+		}
 	}
 
 #else
@@ -123,10 +144,9 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 	/*
 	 * Process Level 1 trigger
 	 */
+
 	uint_fast8_t l0TriggerTypeWord = event->getL0TriggerTypeWord();
-
 	uint_fast8_t l1TriggerTypeWord = L1TriggerProcessor::compute(event, taskProcessor->getStrawAlgo());
-
 	/*STATISTICS*/
 	HltStatistics::updateL1Statistics(event, l1TriggerTypeWord);
 
