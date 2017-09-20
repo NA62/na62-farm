@@ -15,7 +15,9 @@ gmon.out
 *.la
 *.a
 /Debug
+/Debug_ERS
+/Debug_ERS_SM
 /Release
 /NoTcMalloc/
 /ICC/
-/Debug_ERS/
+.settings/*

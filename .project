@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>na62-farm2</name>
+	<name>na62-farm</name>
 	<comment></comment>
 	<projects>
 		<project>na62-farm-lib</project>
-		<project>na62-trigger-algorithms</project>
 		<project>na62-farm-lib-networking</project>
+		<project>na62-trigger-algorithms</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
