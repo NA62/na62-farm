@@ -157,18 +157,19 @@ void HandleFrameTask::execute(TaskProcessor* taskProcessor) {
 }
 
 void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* taskProcessor) {
+	UDP_HDR* hdr = (UDP_HDR*) container.data;
+	const uint_fast16_t etherType = /*ntohs*/(hdr->eth.ether_type);
+	const uint_fast8_t ipProto = hdr->ip.protocol;
+	uint_fast16_t destPort = ntohs(hdr->udp.dest);
+	const uint_fast32_t dstIP = hdr->ip.daddr;
 
-		UDP_HDR* hdr = (UDP_HDR*) container.data;
-		const uint_fast16_t etherType = /*ntohs*/(hdr->eth.ether_type);
-		const uint_fast8_t ipProto = hdr->ip.protocol;
-		uint_fast16_t destPort = ntohs(hdr->udp.dest);
-		const uint_fast32_t dstIP = hdr->ip.daddr;
-		try {
+	try {
 		/*
 		 * Check if we received an ARP request
 		 */
 		if (etherType != 0x0008/*ETHERTYPE_IP*/|| ipProto != IPPROTO_UDP) {
 			if (etherType == 0x0608/*ETHERTYPE_ARP*/) {
+				/*
 				u_int16_t pktLen = container.length;
 				char buff[64];
 				char* pbuff = buff;
@@ -177,7 +178,8 @@ void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* tas
 				AAARP << "ARP Request FromRouter" << pktLen << " ";
 				for (int i = 0; i < pktLen; i++)
 					AAARP << std::hex << ((char) (*(pbuff + i)) & 0xFF) << " ";
-//				LOG_INFO(AAARP.str());
+				LOG_INFO(AAARP.str());
+				 */
 
 				// this will delete the data
 				processARPRequest(reinterpret_cast<ARP_HDR*>(container.data));
@@ -193,7 +195,7 @@ void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* tas
 		 * Check checksum errors
 		 */
 		if (!checkFrame(hdr, container.length)) {
-			LOG_ERROR("type = BadPack : Received broken packet from " << EthernetUtils::ipToString(hdr->ip.saddr));
+			//LOG_ERROR("type = BadPack : Received broken packet from " << EthernetUtils::ipToString(hdr->ip.saddr));
 			container.free();
 			return;
 		}
@@ -203,7 +205,7 @@ void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* tas
 		 */
 		if (MyIP != dstIP) {
 		//if("10.194.20.37" != EthernetUtils::ipToString(dstIP)) {
-			LOG_ERROR("Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP));
+			LOG_ERROR("type = BadPack : Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP) << " from: " << EthernetUtils::ipToString(hdr->ip.saddr));
 			container.free();
 			return;
 		}
@@ -289,6 +291,7 @@ void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* tas
 						L1Builder::buildEvent(mep_L1->getFragment(i), burstID_, taskProcessor);
 					}
 				}
+
 				if (SourceIDManager::isL2Active()) {
 					//LOG_INFO("Invent L2 MEP for event " << mep->getFirstEventNum());
 					uint16_t mep_factor = mep->getNumberOfFragments();
@@ -383,7 +386,6 @@ void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* tas
 				}
 			}
 
-
 			uint maxFrags =  mep->getNumberOfFragments();
 			for (uint i = 0; i != maxFrags; i++) {
 				// Add every fragment
@@ -425,15 +427,12 @@ void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* tas
 #ifdef USE_ERS
 	} catch (UnknownSourceID const& e) {
 		LOG_ERROR("Unknown source ID received from " + EthernetUtils::ipToString(hdr->ip.saddr) + ": " + e.message() );
-		//ers::warning(e);
 		container.free();
 	} catch (CorruptedMEP const&e) {
 		LOG_ERROR("Corrupted data received from " + EthernetUtils::ipToString(hdr->ip.saddr) + ": " + e.message() );
-		//ers::warning(CorruptedMEP(ERS_HERE, "DataSender=" + EthernetUtils::ipToString(hdr->ip.saddr), e));
 		container.free();
 	} catch (Message const& e) {
 		LOG_ERROR("Bad data received from " + EthernetUtils::ipToString(hdr->ip.saddr) + ": " + e.message() );
-		//ers::warning(e);
 		container.free();
 	}
 #else
@@ -451,11 +450,12 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 	/*
 	 * Check IP-Header
 	 */
-	//				if (!EthernetUtils::CheckData((char*) &hdr->ip, sizeof(iphdr))) {
-	//					LOG_ERROR("Packet with broken IP-checksum received"));
-	//					container.free();
-	//					continue;
-	//				}
+	//if (!EthernetUtils::CheckData((char*) &hdr->ip, sizeof(iphdr))) {
+	//	LOG_ERROR("Packet with broken IP-checksum received"));
+	//	container.free();
+	//	continue;
+	//}
+
 	if (hdr->isFragment()) {
 		return true;
 	}
@@ -465,8 +465,9 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 		 * Does not need to be equal because of ethernet padding
 		 */
 		if (ntohs(hdr->ip.tot_len) + sizeof(ether_header) > length) {
-			LOG_ERROR("Received IP-Packet with less bytes than ip.tot_len field! " <<
-			(ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << ":"<<length);
+			LOG_ERROR("type = BadPack : check frame failed reason: Received IP-Packet with less bytes than ip.tot_len field! "
+					<< (ntohs(hdr->ip.tot_len) + sizeof(ether_header) ) << "<" << length
+					<< " from: " << EthernetUtils::ipToString(hdr->ip.saddr));
 			return false;
 		}
 	}
@@ -475,18 +476,20 @@ bool HandleFrameTask::checkFrame(UDP_HDR* hdr, uint_fast16_t length) {
 	 * Does not need to be equal because of ethernet padding
 	 */
 	if (ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr) > length) {
-		LOG_ERROR("Received UDP-Packet with less bytes than udp.len field! "<<(ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) <<":"<<length);
+		LOG_ERROR("type = BadPack : check frame failed reason: Received UDP-Packet with less bytes than udp.len field! "
+				<< (ntohs(hdr->udp.len) + sizeof(ether_header) + sizeof(iphdr)) << "<" <<length
+				<< " from: " << EthernetUtils::ipToString(hdr->ip.saddr));
 		return false;
 	}
 
-	//				/*
-	//				 * Check UDP checksum
-	//				 */
-	//				if (!EthernetUtils::CheckUDP(hdr, (const char *) (&hdr->udp) + sizeof(udphdr), ntohs(hdr->udp.len) - sizeof(udphdr))) {
-	//					LOG_ERROR("Packet with broken UDP-checksum received" );
-	//					container.free();
-	//					continue;
-	//				}
+	/*
+	 * Check UDP checksum
+	 */
+	//if (!EthernetUtils::CheckUDP(hdr, (const char *) (&hdr->udp) + sizeof(udphdr), ntohs(hdr->udp.len) - sizeof(udphdr))) {
+	//	LOG_ERROR("Packet with broken UDP-checksum received" );
+	//	container.free();
+	//	continue;
+	//}
 	return true;
 }
 
