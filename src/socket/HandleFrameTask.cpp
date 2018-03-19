@@ -142,10 +142,8 @@ void HandleFrameTask::execute(TaskProcessor* taskProcessor) {
 		if(BurstIdHandler::flushBurst()) {
 			LOG_WARNING("Dropping data because we are at EoB");
 			container.free();
-		}
-		else {
+		} else {
 			processFrame(std::move(container), taskProcessor);
-
 		}
 	}
 
@@ -154,6 +152,11 @@ void HandleFrameTask::execute(TaskProcessor* taskProcessor) {
 //	}
 
 	//return nullptr;
+}
+
+void HandleFrameTask::freeContainer(DataContainer&& container, TaskProcessor* taskProcessor) {
+	taskProcessor->dumpPacket(container);
+	container.free();
 }
 
 void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* taskProcessor) {
@@ -186,7 +189,7 @@ void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* tas
 				return;
 			} else {
 				// Just ignore this frame as it's neither IP nor ARP
-				container.free();
+				freeContainer(std::move(container), taskProcessor);
 				return;
 			}
 		}
@@ -196,7 +199,7 @@ void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* tas
 		 */
 		if (!checkFrame(hdr, container.length)) {
 			//LOG_ERROR("type = BadPack : Received broken packet from " << EthernetUtils::ipToString(hdr->ip.saddr));
-			container.free();
+			freeContainer(std::move(container), taskProcessor);
 			return;
 		}
 
@@ -206,7 +209,7 @@ void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* tas
 		if (MyIP != dstIP) {
 		//if("10.194.20.37" != EthernetUtils::ipToString(dstIP)) {
 			LOG_ERROR("type = BadPack : Received packet with wrong destination IP: " << EthernetUtils::ipToString(dstIP) << " from: " << EthernetUtils::ipToString(hdr->ip.saddr));
-			container.free();
+			freeContainer(std::move(container), taskProcessor);
 			return;
 		}
 
@@ -394,7 +397,7 @@ void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* tas
 		} else if (destPort == CREAM_Port) { ////////////////////////////////////////////////// L1 Data //////////////////////////////////////////////////
 			if (UdpDataLength == 0) {
 				LOG_ERROR("Empty L1 fragment from " << EthernetUtils::ipToString(hdr->ip.saddr));
-				container.free();
+				freeContainer(std::move(container), taskProcessor);
 				return;
 			}
 			 l1::MEP* l1mep = new l1::MEP(UDPPayload, UdpDataLength, container);
@@ -422,26 +425,27 @@ void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* tas
 			 * Packet with unknown UDP port received
 			 */
 			LOG_WARNING("Packet with unknown UDP port received: " << destPort);
-			container.free();
+			freeContainer(std::move(container), taskProcessor);
+			return;
 		}
 #ifdef USE_ERS
 	} catch (UnknownSourceID const& e) {
 		LOG_ERROR("Unknown source ID received from " + EthernetUtils::ipToString(hdr->ip.saddr) + ": " + e.message() );
-		container.free();
+		freeContainer(std::move(container), taskProcessor);
 	} catch (CorruptedMEP const&e) {
 		LOG_ERROR("Corrupted data received from " + EthernetUtils::ipToString(hdr->ip.saddr) + ": " + e.message() );
-		container.free();
+		freeContainer(std::move(container), taskProcessor);
 	} catch (Message const& e) {
 		LOG_ERROR("Bad data received from " + EthernetUtils::ipToString(hdr->ip.saddr) + ": " + e.message() );
-		container.free();
+		freeContainer(std::move(container), taskProcessor);
 	}
 #else
 	} catch (UnknownSourceIDFound const& e) {
-		container.free();
+		freeContainer(std::move(container), taskProcessor);
 	} catch (BrokenPacketReceivedError const&e) {
-		container.free();
+		freeContainer(std::move(container), taskProcessor);
 	} catch (NA62Error const& e) {
-		container.free();
+		freeContainer(std::move(container), taskProcessor);
 	}
 #endif
 }

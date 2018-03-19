@@ -46,6 +46,7 @@ private:
 	static std::atomic<uint64_t>* L1BytesReceivedBySourceNum_;	//not cumulative
 
 	void processFrame(DataContainer&& container, TaskProcessor* taskProcessor);
+	void freeContainer(DataContainer&& container, TaskProcessor* taskProcessor);
 
 public:
 	HandleFrameTask(std::vector<DataContainer>&& _containers, uint burstID);

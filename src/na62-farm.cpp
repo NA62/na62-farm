@@ -437,7 +437,8 @@ int main(int argc, char* argv[]) {
 	for (unsigned int i = 0;
 			i < std::thread::hardware_concurrency() - numberOfPacketHandler;
 			i++) {
-		TaskProcessor* tp = new TaskProcessor();
+		LOG_INFO("Starting TaskProcessor no: " << i);
+		TaskProcessor* tp = new TaskProcessor(i);
 		taskProcessors.push_back(tp);
 		tp->startThread(i, "TaskProcessor");
 

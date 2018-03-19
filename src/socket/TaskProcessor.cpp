@@ -12,9 +12,7 @@
 namespace na62 {
 tbb::concurrent_queue<HandleFrameTask*> TaskProcessor::TasksQueue_;
 
-TaskProcessor::TaskProcessor(){
-	running_ = true;
-}
+TaskProcessor::TaskProcessor(uint task_processor_id):running_(true),task_processor_id_(task_processor_id), dumper_("/var/log/dumped-packets/packets", task_processor_id) {}
 
 TaskProcessor::~TaskProcessor(){}
 
@@ -24,15 +22,18 @@ void TaskProcessor::thread() {
 			if (TaskProcessor::TasksQueue_.try_pop(task)) {
 				task->execute(this);
 				delete task;
-			}
-			else {
+			} else {
 				boost::this_thread::sleep(boost::posix_time::microsec(50));
 			}
 		}
 	}
 
+void TaskProcessor::dumpPacket(DataContainer container) {
+	dumper_.dumpPacket(container.data, container.length);
+}
+
 void TaskProcessor::onInterruption() {
 		running_ = false;
-		}
+}
 
 }
