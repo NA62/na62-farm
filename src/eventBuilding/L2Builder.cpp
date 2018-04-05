@@ -48,7 +48,7 @@ void L2Builder::buildEvent(l1::MEPFragment* fragment) {
 	try {
 		event = EventPool::getEvent(fragment->getEventNumber());
 	} catch (na62::Message &e) {
-		uint_fast8_t source_sub_id = fragment->getSourceSubID();
+		uint16_t source_sub_id = fragment->getSourceSubID();
 		if (SourceIDManager::sourceIdToDetectorName(fragment->getSourceID()) == "LKR") {
 			lkr_crate_slot_decoder crateslot(source_sub_id);
 			ers::error(UnexpectedFragmentLKR(ERS_HERE, fragment->getEventNumber(), SourceIDManager::sourceIdToDetectorName(fragment->getSourceID()), crateslot.getCrate(), crateslot.getSlot(), e));

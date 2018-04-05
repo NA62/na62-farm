@@ -214,7 +214,7 @@ void HandleFrameTask::processFrame(DataContainer&& container, TaskProcessor* tas
 		}
 
 		if (hdr->isFragment()) {
-			container = FragmentStore::addFragment(std::move(container));
+			container = std::move(FragmentStore::addFragment(std::move(container)));
 			if (container.data == nullptr) {
 				return;
 			}
