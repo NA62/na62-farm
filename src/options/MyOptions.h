@@ -80,6 +80,8 @@
  * Debugging
  */
 #define OPTION_PRINT_MISSING_SOURCES (char*)"printMissingSources"
+#define OPTION_DUMP_BAD_PACKETS (char*)"dumpBadPackets"
+
 //#define OPTION_WRITE_BROKEN_CREAM_INFO (char*)"printBrokenCreamInfo"
 
 //For eventPool building
@@ -216,7 +218,8 @@ public:
 
 		(OPTION_PRINT_MISSING_SOURCES, po::value<bool>()->default_value(false),
 				"If set to 1, information about unfinished events is written to /tmp/farm-logs/unfinishedEvents")
-
+		(OPTION_DUMP_BAD_PACKETS, po::value<bool>()->default_value(false),
+				"If set to 1, information bad packet are dumped to /var/log/dumped-packets")
 //		(OPTION_WRITE_BROKEN_CREAM_INFO,
 //				po::value<bool>()->default_value(false),
 //				"If set to 1, information about non requested cream data (already received/not requested) is written to /tmp/farm-logs/nonRequestedCreamData)")

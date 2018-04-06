@@ -35,6 +35,7 @@
 #include <exceptions/UnknownSourceIDFound.h>
 #include <utils/DataDumper.h>
 #include <options/Options.h>
+#include "../options/MyOptions.h"
 #include <monitoring/BurstIdHandler.h>
 #include <socket/NetworkHandler.h>
 #include <structs/Network.h>
@@ -155,7 +156,9 @@ void HandleFrameTask::execute(TaskProcessor* taskProcessor) {
 }
 
 void HandleFrameTask::freeContainer(DataContainer&& container, TaskProcessor* taskProcessor) {
-	taskProcessor->dumpPacket(container);
+	if(MyOptions::GetBool(OPTION_DUMP_BAD_PACKETS)){
+		taskProcessor->dumpPacket(container);
+	}
 	container.free();
 }
 
