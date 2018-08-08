@@ -146,8 +146,9 @@ private:
 //}
 
 void onBurstFinished() {
-	static std::atomic<uint> incompleteEvents_;
-	incompleteEvents_ = 0;
+	static std::atomic<uint> incomplete_events, incomplete_events_with_l1_request_sent;
+	incomplete_events = 0;
+	incomplete_events_with_l1_request_sent = 0;
 
 
 	LOG_INFO("@@@onBurstFinished SOB timestamp was: " <<BurstIdHandler::getSOBTime());
@@ -180,7 +181,9 @@ void onBurstFinished() {
 			[](const tbb::blocked_range<uint_fast32_t>& r) {
 				for(size_t index=r.begin();index!=r.end(); index++) {
 					Event* event = EventPool::getEventByIndex(index);
-					if(event == nullptr) continue;
+					if(event == nullptr) {
+						continue;
+					}
 					if (event->isLastEventOfBurst()) {
 						LOG_INFO("Processing last event of burst " << (int) event->getBurstID());
 					}
@@ -189,15 +192,27 @@ void onBurstFinished() {
 							LOG_ERROR("type = EOB : Handling unfinished EOB event " << event->getEventNumber());
 							StorageHandler::SendEvent(event);
 						}
-						++incompleteEvents_;
+
+						++incomplete_events;
+						if (event->isL1Requested()) {
+							++incomplete_events_with_l1_request_sent;
+						}
+
 						event->updateMissingEventsStats();
+						if (event->isMepHeaderCorrupted()) {
+							//Will be written on the L1 EOB packet
+							HltStatistics::sumCounter("L1CorruptedHeader", 1);
+						}
 						EventPool::freeEvent(event);
 					}
 				}
 			});
 
-	if (incompleteEvents_ > 0) {
-		LOG_ERROR("type = EOB : Dropped " << incompleteEvents_ << " events in burst ID = " << (int) BurstIdHandler::getCurrentBurstId() << ".");
+	if (incomplete_events > 0) {
+		LOG_ERROR("type = EOB : Dropped " << incomplete_events
+				<< " events in burst ID = " << (int) BurstIdHandler::getCurrentBurstId()
+				<< " of which with l1 request sent " << incomplete_events_with_l1_request_sent
+				<< " incomplete at L0: " << (incomplete_events - incomplete_events_with_l1_request_sent ));
 	//	LOG_ERROR (DetectorStatistics::L0RCInfo());
 	//	LOG_ERROR (DetectorStatistics::L1RCInfo());
 
