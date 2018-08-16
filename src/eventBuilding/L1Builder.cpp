@@ -85,16 +85,20 @@ void L1Builder::buildEvent(l0::MEPFragment* fragment, uint_fast32_t burstID, Tas
 
 #ifdef MEASURE_TIME
 		uint L0BuildingTimeIndex = (uint) event->getL0BuildingTime() / 5000.;
-		if (L0BuildingTimeIndex >= 0x64)
+		//uint L0BuildingTimeIndex = (uint) (event->getL0BuildingTime() / 1000. + 0.5);
+		if (L0BuildingTimeIndex >= 0x64) {
 			L0BuildingTimeIndex = 0x64;
-		uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-08) / 2);
-		if (EventTimestampIndex >= 0x64)
+		}
+		uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-8));
+		if (EventTimestampIndex >= 0x64) {
 			EventTimestampIndex = 0x64;
+		}
 		L0BuildingTimeVsEvtNumber_[L0BuildingTimeIndex][EventTimestampIndex].fetch_add(1, std::memory_order_relaxed);
 
 		L0BuildingTimeCumulative_.fetch_add(event->getL0BuildingTime(), std::memory_order_relaxed);
-		if (event->getL0BuildingTime() >= L0BuildingTimeMax_)
+		if (event->getL0BuildingTime() >= L0BuildingTimeMax_) {
 			L0BuildingTimeMax_ = event->getL0BuildingTime();
+		}
 #endif
 		event->readTriggerTypeWordAndFineTime();
 		/*
@@ -154,16 +158,21 @@ void L1Builder::processL1(Event *event, TaskProcessor* taskProcessor) {
 	event->setL1Processed(L0L1Trigger);
 
 #ifdef MEASURE_TIME
-	uint L1ProcessingTimeIndex = (uint) event->getL1ProcessingTime() / 10.;
-	if (L1ProcessingTimeIndex >= 0x64)
+	uint L1ProcessingTimeIndex = (uint) event->getL1ProcessingTime() / 10;
+	//uint L1ProcessingTimeIndex = (uint) event->getL1ProcessingTime() + 0.5;
+	if (L1ProcessingTimeIndex >= 0x64) {
 		L1ProcessingTimeIndex = 0x64;
-	uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-08) / 2);
-	if (EventTimestampIndex >= 0x64)
+	}
+	uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-08));
+	//uint EventTimestampIndex = (uint) (event->getTimestamp() * 25e-8);
+	if (EventTimestampIndex >= 0x64) {
 		EventTimestampIndex = 0x64;
+	}
 	L1ProcessingTimeVsEvtNumber_[L1ProcessingTimeIndex][EventTimestampIndex].fetch_add(1, std::memory_order_relaxed);
 	L1ProcessingTimeCumulative_.fetch_add(event->getL1ProcessingTime(), std::memory_order_relaxed);
-	if (event->getL1ProcessingTime() >= L1ProcessingTimeMax_)
+	if (event->getL1ProcessingTime() >= L1ProcessingTimeMax_) {
 		L1ProcessingTimeMax_ = event->getL1ProcessingTime();
+	}
 #endif
 	if (l1TriggerTypeWord != 0) {
 

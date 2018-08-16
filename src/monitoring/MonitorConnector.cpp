@@ -194,8 +194,6 @@ void MonitorConnector::handleUpdate() {
 	 */
 	uint64_t L0BuildTimeMean = 0;
 	uint64_t L1BuildTimeMean = 0;
-	//uint64_t L1InputEventsPerBurst = L1TriggerProcessor::GetL1InputEventsPerBurst();
-	//uint64_t L2InputEventsPerBurst = L2TriggerProcessor::GetL2InputEventsPerBurst();
 	uint64_t L1InputEventsPerBurst = HltStatistics::getCounter("L1InputEvents");
 	uint64_t L2InputEventsPerBurst = HltStatistics::getCounter("L2InputEvents");
 
@@ -246,41 +244,41 @@ void MonitorConnector::handleUpdate() {
 	IPCHandler::sendStatistics("L1ProcessingTimeMax", std::to_string(L1ProcTimeMax));
 	IPCHandler::sendStatistics("L2ProcessingTimeMax", std::to_string(L2ProcTimeMax));
 
-	/*
-	 * Timing statistics for histograms
-	 */
-	std::stringstream L0BuildTimeVsEvtNumStats;
-	std::stringstream L1BuildTimeVsEvtNumStats;
-	std::stringstream L1ProcTimeVsEvtNumStats;
-	std::stringstream L2ProcTimeVsEvtNumStats;
-
-	for (int timeId = 0x00; timeId < 0x64 + 1; timeId++) {
-		for (int tsId = 0x00; tsId < 0x32 + 1; tsId++) {
-
-			uint64_t L0BuildTimeVsEvtNum = L1Builder::GetL0BuidingTimeVsEvtNumber()[timeId][tsId];
-			uint64_t L1BuildTimeVsEvtNum = L2Builder::GetL1BuidingTimeVsEvtNumber()[timeId][tsId];
-			uint64_t L1ProcTimeVsEvtNum = L1Builder::GetL1ProcessingTimeVsEvtNumber()[timeId][tsId];
-			uint64_t L2ProcTimeVsEvtNum = L2Builder::GetL2ProcessingTimeVsEvtNumber()[timeId][tsId];
-
-			if (L0BuildTimeVsEvtNum > 0) {
-				L0BuildTimeVsEvtNumStats << timeId << "," << tsId << "," << L0BuildTimeVsEvtNum << ";";
-			}
-			if (L1BuildTimeVsEvtNum > 0) {
-				L1BuildTimeVsEvtNumStats << timeId << "," << tsId << "," << L1BuildTimeVsEvtNum << ";";
-			}
-			if (L1ProcTimeVsEvtNum > 0) {
-				L1ProcTimeVsEvtNumStats << timeId << "," << tsId << "," << L1ProcTimeVsEvtNum << ";";
-			}
-			if (L2ProcTimeVsEvtNum > 0) {
-				L2ProcTimeVsEvtNumStats << timeId << "," << tsId << "," << L2ProcTimeVsEvtNum << ";";
-			}
-		}
-	}
-
-	IPCHandler::sendStatistics("L0BuildingTimeVsEvtNumber", L0BuildTimeVsEvtNumStats.str());
-	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber", L1BuildTimeVsEvtNumStats.str());
-	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber", L1ProcTimeVsEvtNumStats.str());
-	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber", L2ProcTimeVsEvtNumStats.str());
+//	/*
+//	 * Timing statistics for histograms
+//	 */
+//	std::stringstream L0BuildTimeVsEvtNumStats;
+//	std::stringstream L1BuildTimeVsEvtNumStats;
+//	std::stringstream L1ProcTimeVsEvtNumStats;
+//	std::stringstream L2ProcTimeVsEvtNumStats;
+//
+//	for (int timeId = 0x00; timeId < 0x64 + 1; timeId++) {
+//		for (int tsId = 0x00; tsId < 0x64 + 1; tsId++) {
+//
+//			uint64_t L0BuildTimeVsEvtNum = L1Builder::GetL0BuidingTimeVsEvtNumber()[timeId][tsId];
+//			uint64_t L1BuildTimeVsEvtNum = L2Builder::GetL1BuidingTimeVsEvtNumber()[timeId][tsId];
+//			uint64_t L1ProcTimeVsEvtNum = L1Builder::GetL1ProcessingTimeVsEvtNumber()[timeId][tsId];
+//			uint64_t L2ProcTimeVsEvtNum = L2Builder::GetL2ProcessingTimeVsEvtNumber()[timeId][tsId];
+//
+//			if (L0BuildTimeVsEvtNum > 0) {
+//				L0BuildTimeVsEvtNumStats << timeId << "," << tsId << "," << L0BuildTimeVsEvtNum << ";";
+//			}
+//			if (L1BuildTimeVsEvtNum > 0) {
+//				L1BuildTimeVsEvtNumStats << timeId << "," << tsId << "," << L1BuildTimeVsEvtNum << ";";
+//			}
+//			if (L1ProcTimeVsEvtNum > 0) {
+//				L1ProcTimeVsEvtNumStats << timeId << "," << tsId << "," << L1ProcTimeVsEvtNum << ";";
+//			}
+//			if (L2ProcTimeVsEvtNum > 0) {
+//				L2ProcTimeVsEvtNumStats << timeId << "," << tsId << "," << L2ProcTimeVsEvtNum << ";";
+//			}
+//		}
+//	}
+//
+//	IPCHandler::sendStatistics("L0BuildingTimeVsEvtNumber", L0BuildTimeVsEvtNumStats.str());
+//	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber", L1BuildTimeVsEvtNumStats.str());
+//	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber", L1ProcTimeVsEvtNumStats.str());
+//	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber", L2ProcTimeVsEvtNumStats.str());
 }
 
 }

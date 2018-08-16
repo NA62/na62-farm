@@ -226,8 +226,52 @@ void onBurstFinished() {
 	DetectorStatistics::clearL1DetectorStatistics();
 
 
-	//Resetting time graphs
+
 #ifdef MEASURE_TIME
+	//Resetting time graphs
+	/*
+	 * Timing statistics for histograms
+	 */
+	std::stringstream L0BuildTimeVsEvtNumStats;
+	std::stringstream L1BuildTimeVsEvtNumStats;
+	std::stringstream L1ProcTimeVsEvtNumStats;
+	std::stringstream L2ProcTimeVsEvtNumStats;
+
+	for (int timeId = 0x00; timeId < 0x64 + 1; timeId++) {
+		for (int tsId = 0x00; tsId < 0x64 + 1; tsId++) {
+
+			uint64_t L0BuildTimeVsEvtNum = L1Builder::GetL0BuidingTimeVsEvtNumber()[timeId][tsId];
+			uint64_t L1BuildTimeVsEvtNum = L2Builder::GetL1BuidingTimeVsEvtNumber()[timeId][tsId];
+			uint64_t L1ProcTimeVsEvtNum = L1Builder::GetL1ProcessingTimeVsEvtNumber()[timeId][tsId];
+			uint64_t L2ProcTimeVsEvtNum = L2Builder::GetL2ProcessingTimeVsEvtNumber()[timeId][tsId];
+
+			if (L0BuildTimeVsEvtNum > 0) {
+				L0BuildTimeVsEvtNumStats << timeId << "," << tsId << "," << L0BuildTimeVsEvtNum << ";";
+			}
+			if (L1BuildTimeVsEvtNum > 0) {
+				L1BuildTimeVsEvtNumStats << timeId << "," << tsId << "," << L1BuildTimeVsEvtNum << ";";
+			}
+			if (L1ProcTimeVsEvtNum > 0) {
+				L1ProcTimeVsEvtNumStats << timeId << "," << tsId << "," << L1ProcTimeVsEvtNum << ";";
+			}
+			if (L2ProcTimeVsEvtNum > 0) {
+				L2ProcTimeVsEvtNumStats << timeId << "," << tsId << "," << L2ProcTimeVsEvtNum << ";";
+			}
+		}
+	}
+
+	IPCHandler::sendStatistics("L0BuildingTimeVsEvtNumber", L0BuildTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber", L1BuildTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber", L1ProcTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber", L2ProcTimeVsEvtNumStats.str());
+
+	L1Builder::ResetL0BuidingTimeVsEvtNumber();
+	L2Builder::ResetL1BuidingTimeVsEvtNumber();
+	L1Builder::ResetL1ProcessingTimeVsEvtNumber();
+	L2Builder::ResetL2ProcessingTimeVsEvtNumber();
+
+
+
 	L1Builder::ResetL0BuildingTimeCumulative();
 	L1Builder::ResetL0BuildingTimeMax();
 	L1Builder::ResetL1ProcessingTimeCumulative();
@@ -237,12 +281,6 @@ void onBurstFinished() {
 	L2Builder::ResetL1BuildingTimeMax();
 	L2Builder::ResetL2ProcessingTimeCumulative();
 	L2Builder::ResetL2ProcessingTimeMax();
-
-	L1Builder::ResetL0BuidingTimeVsEvtNumber();
-	L2Builder::ResetL1BuidingTimeVsEvtNumber();
-	L1Builder::ResetL1ProcessingTimeVsEvtNumber();
-	L2Builder::ResetL2ProcessingTimeVsEvtNumber();
-
 #endif
 
 	//Updating PerBurstCounters

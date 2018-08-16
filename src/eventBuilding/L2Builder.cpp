@@ -84,17 +84,21 @@ void L2Builder::buildEvent(l1::MEPFragment* fragment) {
 	if (event->addL1Fragment(fragment)) {
 #ifdef MEASURE_TIME
 		uint L1BuildingTimeIndex = (uint) event->getL1BuildingTime() / 10000.;
-		if (L1BuildingTimeIndex >= 0x64)
+		//uint L1BuildingTimeIndex = (uint) (event->getL1BuildingTime() / 1000. + 0.5);
+		if (L1BuildingTimeIndex >= 0x64) {
 			L1BuildingTimeIndex = 0x64;
-		uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-08) / 2);
-		if (EventTimestampIndex >= 0x64)
+		}
+		uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-8));
+		if (EventTimestampIndex >= 0x64) {
 			EventTimestampIndex = 0x64;
+		}
 		L1BuildingTimeVsEvtNumber_[L1BuildingTimeIndex][EventTimestampIndex].fetch_add(
 				1, std::memory_order_relaxed);
 		L1BuildingTimeCumulative_.fetch_add(event->getL1BuildingTime(),
 				std::memory_order_relaxed);
-		if (event->getL0BuildingTime() >= L1BuildingTimeMax_)
+		if (event->getL0BuildingTime() >= L1BuildingTimeMax_) {
 			L1BuildingTimeMax_ = event->getL1BuildingTime();
+		}
 #endif
 
 		/*
@@ -126,23 +130,24 @@ void L2Builder::processL2(Event *event) {
 
 			/*STATISTICS*/
 			HltStatistics::updateL2Statistics(event, L2Trigger);
-
-#ifdef MEASURE_TIME
-			uint L2ProcessingTimeIndex = (uint) event->getL2ProcessingTime() / 1.;
-			if (L2ProcessingTimeIndex >= 0x64)
-				L2ProcessingTimeIndex = 0x64;
-			uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-08) / 2);
-			if (EventTimestampIndex >= 0x64)
-				EventTimestampIndex = 0x64;
-			L2ProcessingTimeVsEvtNumber_[L2ProcessingTimeIndex][EventTimestampIndex].fetch_add(
-					1, std::memory_order_relaxed);
-#endif
 			event->setL2Processed(L2Trigger);
 #ifdef MEASURE_TIME
-			L2ProcessingTimeCumulative_.fetch_add(event->getL2ProcessingTime(),
-					std::memory_order_relaxed);
-			if (event->getL2ProcessingTime() >= L2ProcessingTimeMax_)
+			uint L2ProcessingTimeIndex = (uint) event->getL2ProcessingTime() / 1.;
+			//uint L2ProcessingTimeIndex = (uint) event->getL2ProcessingTime() + 0.5;
+			if (L2ProcessingTimeIndex >= 0x64) {
+				L2ProcessingTimeIndex = 0x64;
+			}
+			uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-8));
+			if (EventTimestampIndex >= 0x64) {
+				EventTimestampIndex = 0x64;
+			}
+			L2ProcessingTimeVsEvtNumber_[L2ProcessingTimeIndex][EventTimestampIndex].fetch_add(1, std::memory_order_relaxed);
+
+			L2ProcessingTimeCumulative_.fetch_add(event->getL2ProcessingTime(),	std::memory_order_relaxed);
+			if (event->getL2ProcessingTime() >= L2ProcessingTimeMax_) {
 				L2ProcessingTimeMax_ = event->getL2ProcessingTime();
+			}
+
 #endif
 			/*
 			 * Event has been processed and saved or rejected -> destroy, don't delete so that it can be reused if
