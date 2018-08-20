@@ -141,7 +141,7 @@ void HandleFrameTask::execute(TaskProcessor* taskProcessor) {
 	for (DataContainer& container : containers_) {
 		//If we must clean up the burst we just drop data
 		if(BurstIdHandler::flushBurst()) {
-			LOG_WARNING("Dropping data because we are at EoB");
+			LOG_WARNING("Dropping data because we are at EoB Run: " << BurstIdHandler::getRunNumber() << " Burst: " << BurstIdHandler::getCurrentBurstId());
 			container.free();
 		} else {
 			processFrame(std::move(container), taskProcessor);
