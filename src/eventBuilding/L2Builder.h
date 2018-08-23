@@ -28,11 +28,9 @@ private:
 	static std::atomic<uint64_t> L2ProcessingTimeCumulative_;
 	static std::atomic<uint64_t> L2ProcessingTimeMax_;
 
-	//static std::atomic<uint64_t> BytesSentToStorage_;
-	//static std::atomic<uint64_t> EventsSentToStorage_;
-
 	static std::atomic<uint64_t>** L1BuildingTimeVsEvtNumber_;
 	static std::atomic<uint64_t>** L2ProcessingTimeVsEvtNumber_;
+	static std::atomic<uint64_t>** SerializationTimeVsEvtNumber_;
 
 public:
 	/**
@@ -101,26 +99,34 @@ public:
 		L1BuildingTimeMax_ = 0;
 	}
 
-//	static inline uint64_t GetBytesSentToStorage() {
-//		return BytesSentToStorage_;
-//	}
 
-//	static inline uint64_t GetEventsSentToStorage() {
-//		return EventsSentToStorage_;
-//	}
+	static inline std::atomic<uint64_t>** GetSerializationTimeVsEvtNumber() {
+		return SerializationTimeVsEvtNumber_;
+	}
+
+	static void ResetSerializationTimeVsEvtNumber() {
+			for (int i = 0; i < 0x64 + 1; ++i) {
+				for (int j = 0; j < 0x64 + 1; ++j) {
+					SerializationTimeVsEvtNumber_[i][j] = 0;
+				}
+			}
+	}
 
 	static void initialize() {
-
 		L1BuildingTimeVsEvtNumber_ = new std::atomic<uint64_t>*[0x64 + 1];
 		L2ProcessingTimeVsEvtNumber_ = new std::atomic<uint64_t>*[0x64 + 1];
+		SerializationTimeVsEvtNumber_ = new std::atomic<uint64_t>*[0x64 + 1];
 		for (int i = 0; i < 0x64 + 1; i++) {
 			L1BuildingTimeVsEvtNumber_[i] =
 					new std::atomic<uint64_t>[0x64 + 1] { };
 			L2ProcessingTimeVsEvtNumber_[i] =
 					new std::atomic<uint64_t>[0x64 + 1] { };
+			SerializationTimeVsEvtNumber_[i] =
+					new std::atomic<uint64_t>[0x64 + 1] { };
 		}
 		L2Builder::ResetL1BuidingTimeVsEvtNumber();
 		L2Builder::ResetL2ProcessingTimeVsEvtNumber();
+		L2Builder::ResetSerializationTimeVsEvtNumber();
 	}
 };
 

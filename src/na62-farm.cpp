@@ -236,14 +236,16 @@ void onBurstFinished() {
 	std::stringstream L1BuildTimeVsEvtNumStats;
 	std::stringstream L1ProcTimeVsEvtNumStats;
 	std::stringstream L2ProcTimeVsEvtNumStats;
+	std::stringstream SerializationTimeVsEvtNumStats;
 
-	for (int timeId = 0x00; timeId < 0x64 + 1; timeId++) {
-		for (int tsId = 0x00; tsId < 0x64 + 1; tsId++) {
+	for (int timeId = 0x00; timeId < 0x64 + 1; ++timeId) {
+		for (int tsId = 0x00; tsId < 0x64 + 1; ++tsId) {
 
 			uint64_t L0BuildTimeVsEvtNum = L1Builder::GetL0BuidingTimeVsEvtNumber()[timeId][tsId];
 			uint64_t L1BuildTimeVsEvtNum = L2Builder::GetL1BuidingTimeVsEvtNumber()[timeId][tsId];
 			uint64_t L1ProcTimeVsEvtNum = L1Builder::GetL1ProcessingTimeVsEvtNumber()[timeId][tsId];
 			uint64_t L2ProcTimeVsEvtNum = L2Builder::GetL2ProcessingTimeVsEvtNumber()[timeId][tsId];
+			uint64_t SerializationTimeVsEvtNum = L2Builder::GetL2ProcessingTimeVsEvtNumber()[timeId][tsId];
 
 			if (L0BuildTimeVsEvtNum > 0) {
 				L0BuildTimeVsEvtNumStats << timeId << "," << tsId << "," << L0BuildTimeVsEvtNum << ";";
@@ -257,6 +259,9 @@ void onBurstFinished() {
 			if (L2ProcTimeVsEvtNum > 0) {
 				L2ProcTimeVsEvtNumStats << timeId << "," << tsId << "," << L2ProcTimeVsEvtNum << ";";
 			}
+			if (SerializationTimeVsEvtNum > 0) {
+				SerializationTimeVsEvtNumStats << timeId << "," << tsId << "," << L2ProcTimeVsEvtNum << ";";
+			}
 		}
 	}
 
@@ -264,11 +269,13 @@ void onBurstFinished() {
 	IPCHandler::sendStatistics("L1BuildingTimeVsEvtNumber", L1BuildTimeVsEvtNumStats.str());
 	IPCHandler::sendStatistics("L1ProcessingTimeVsEvtNumber", L1ProcTimeVsEvtNumStats.str());
 	IPCHandler::sendStatistics("L2ProcessingTimeVsEvtNumber", L2ProcTimeVsEvtNumStats.str());
+	IPCHandler::sendStatistics("SerializationTimeVsEvtNumber", SerializationTimeVsEvtNumStats.str());
 
 	L1Builder::ResetL0BuidingTimeVsEvtNumber();
 	L2Builder::ResetL1BuidingTimeVsEvtNumber();
 	L1Builder::ResetL1ProcessingTimeVsEvtNumber();
 	L2Builder::ResetL2ProcessingTimeVsEvtNumber();
+	L2Builder::ResetSerializationTimeVsEvtNumber();
 
 
 

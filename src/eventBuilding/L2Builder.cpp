@@ -34,12 +34,10 @@ std::atomic<uint64_t> L2Builder::L1BuildingTimeCumulative_(0);
 std::atomic<uint64_t> L2Builder::L1BuildingTimeMax_(0);
 std::atomic<uint64_t> L2Builder::L2ProcessingTimeCumulative_(0);
 std::atomic<uint64_t> L2Builder::L2ProcessingTimeMax_(0);
-//std::atomic<uint64_t> L2Builder::BytesSentToStorage_(0);
-
-//std::atomic<uint64_t> L2Builder::EventsSentToStorage_(0);
 
 std::atomic<uint64_t>** L2Builder::L1BuildingTimeVsEvtNumber_;
 std::atomic<uint64_t>** L2Builder::L2ProcessingTimeVsEvtNumber_;
+std::atomic<uint64_t>** L2Builder::SerializationTimeVsEvtNumber_;
 
 void L2Builder::buildEvent(l1::MEPFragment* fragment) {
 	Event * event = nullptr;
@@ -116,9 +114,6 @@ void L2Builder::processL2(Event *event) {
 	if (!SourceIDManager::isL2Active()) {
 		event->setL2Processed(0);
 
-//		BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
-//				std::memory_order_relaxed);
-//		EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
 		uint64_t BytesSentToStorage = StorageHandler::SendEvent(event);
 		HltStatistics::updateStorageStatistics(BytesSentToStorage);
 	} else {
@@ -147,7 +142,6 @@ void L2Builder::processL2(Event *event) {
 			if (event->getL2ProcessingTime() >= L2ProcessingTimeMax_) {
 				L2ProcessingTimeMax_ = event->getL2ProcessingTime();
 			}
-
 #endif
 			/*
 			 * Event has been processed and saved or rejected -> destroy, don't delete so that it can be reused if
@@ -159,7 +153,19 @@ void L2Builder::processL2(Event *event) {
 					 * Send Event to merger
 					 */
 					uint64_t BytesSentToStorage = StorageHandler::SendEvent(event);
-					//EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
+#ifdef MEASURE_TIME
+					event->setSerializationTime();
+					uint SerializationTimeIndex = (uint) event->getSerializationTime();
+
+					if (SerializationTimeIndex >= 0x64) {
+						SerializationTimeIndex = 0x64;
+					}
+					uint EventTimestampIndex = (uint) ((event->getTimestamp() * 25e-8));
+					if (EventTimestampIndex >= 0x64) {
+						EventTimestampIndex = 0x64;
+					}
+					SerializationTimeVsEvtNumber_[SerializationTimeIndex][EventTimestampIndex].fetch_add(1, std::memory_order_relaxed);
+#endif
 					/*STATISTICS*/
 					HltStatistics::updateStorageStatistics(BytesSentToStorage);
 
@@ -170,22 +176,21 @@ void L2Builder::processL2(Event *event) {
 			}
 		} else { // Process non zero-suppressed data (not used at the moment!
 			// When the implementation will be completed, we need to propagate the L2 downscaling
-			uint_fast8_t L2Trigger =
-					L2TriggerProcessor::onNonZSuppressedLKrDataReceived(event);
+			uint_fast8_t L2Trigger = L2TriggerProcessor::onNonZSuppressedLKrDataReceived(event);
 
 			event->setL2Processed(L2Trigger);
 #ifdef MEASURE_TIME
 			L2ProcessingTimeCumulative_.fetch_add(event->getL2ProcessingTime(),
 					std::memory_order_relaxed);
-			if (event->getL2ProcessingTime() >= L2ProcessingTimeMax_)
+			if (event->getL2ProcessingTime() >= L2ProcessingTimeMax_) {
 				L2ProcessingTimeMax_ = event->getL2ProcessingTime();
+			}
 #endif
-			if (event->isL2Accepted()) {
-
+			//if (event->isL2Accepted()) {
 				//BytesSentToStorage_.fetch_add(StorageHandler::SendEvent(event),
 				//		std::memory_order_relaxed);
 				//EventsSentToStorage_.fetch_add(1, std::memory_order_relaxed);
-			}
+			//}
 		}
 	}
 
