@@ -48,13 +48,14 @@ namespace na62 {
 std::atomic<uint> PacketHandler::spins_;
 std::atomic<uint> PacketHandler::sleeps_;
 
-boost::timer::cpu_timer PacketHandler::sendTimer;
-
+boost::timer::cpu_timer PacketHandler::timer_;
 
 std::atomic<uint> PacketHandler::frameHandleTasksSpawned_(0);
 
 PacketHandler::PacketHandler(int threadNum) :
-		threadNum_(threadNum), running_(true) {}
+		threadNum_(threadNum), running_(true) {
+	std::fill(RxPacketsVsTime_.begin(), RxPacketsVsTime_.end(), 0);
+}
 
 PacketHandler::~PacketHandler() {
 }
@@ -74,10 +75,8 @@ void PacketHandler::thread() {
 	//OPTION_MIN_USEC_BETWEEN_L1_REQUESTS);
 
 	uint sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
-
 	const uint framesToBeGathered = Options::GetInt(OPTION_MAX_FRAME_AGGREGATION);
 
-	sleepMicros = Options::GetInt(OPTION_POLLING_SLEEP_MICROS);
 	char* buff; // = new char[MTU];
 	while (running_) {
 		/*
@@ -90,10 +89,6 @@ void PacketHandler::thread() {
 		buff = nullptr;
 		bool goToSleep = false;
 
-		//uint spinsInARow = 0;
-
-		boost::timer::cpu_timer aggregationTimer;
-
 		/*
 		 * Try to receive [framesToBeCollected] frames
 		 */
@@ -105,24 +100,28 @@ void PacketHandler::thread() {
 			 * The actual  polling!
 			 * Do not wait for incoming packets as this will block the ring and make sending impossible
 			 */
-			receivedFrame = NetworkHandler::GetNextFrame(&hdr, &buff, 0, false,
-					threadNum_);
+			receivedFrame = NetworkHandler::GetNextFrame(&hdr, &buff, 0, false, threadNum_);
 
 			if (receivedFrame > 0) {
-
 				/*
 				 * Check if the burst should be flushed else prepare the data to be handled
 				 */
-				if(!BurstIdHandler::flushBurst()) {
+				if (!BurstIdHandler::flushBurst()) {
 					if (hdr.len > MTU) {
 						LOG_ERROR("Received packet from network with size " << hdr.len << ". Dropping it");
-					}
-					else {
+					} else {
 						char* data = new char[hdr.len];
 						memcpy(data, buff, hdr.len);
 						frames.push_back( { data, (uint_fast16_t) hdr.len, true });
 						goToSleep = false;
-						//spinsInARow = 0;
+#ifdef MEASURE_TIME
+						uint time_bin = getTime();
+
+						if (time_bin > 300) {
+							time_bin = 300;
+						}
+						RxPacketsVsTime_[time_bin].fetch_add(1, std::memory_order_relaxed);
+#endif
 					}
 				}
 				//else {
@@ -130,8 +129,17 @@ void PacketHandler::thread() {
 				//}
 			}
 			//GLM: send all pending data requests
-			while (NetworkHandler::getNumberOfEnqueuedSendFrames() > 0 ) {
-				NetworkHandler::DoSendQueuedFrames(threadNum_);
+			while (NetworkHandler::getNumberOfEnqueuedSendFrames() > 0) {
+				int bytesSent = NetworkHandler::DoSendQueuedFrames(threadNum_);
+#ifdef MEASURE_TIME
+				if (bytesSent > 0) {
+					uint time_bin = getTime();
+					if (time_bin > 300) {
+						time_bin = 300;
+					}
+					TxPacketsVsTime_[time_bin].fetch_add(1, std::memory_order_relaxed);
+				}
+#endif
 			}
 
 		}
@@ -149,7 +157,7 @@ void PacketHandler::thread() {
 			HandleFrameTask* task = new HandleFrameTask(std::move(frames), BurstIdHandler::getCurrentBurstId());
 			TaskProcessor::TasksQueue_.push(task);
 			int queueSize = TaskProcessor::getSize();
-			if(queueSize >0 && (queueSize%100 == 0)) {
+			if (queueSize >0 && (queueSize%100 == 0)) {
 				LOG_WARNING("Tasks queue size " << (int) queueSize);
 			}
 			goToSleep = false;

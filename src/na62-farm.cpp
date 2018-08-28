@@ -225,9 +225,29 @@ void onBurstFinished() {
 	DetectorStatistics::clearL0DetectorStatistics();
 	DetectorStatistics::clearL1DetectorStatistics();
 
-
-
 #ifdef MEASURE_TIME
+	uint packet_handler_index = 0;
+	std::stringstream SerializationRxPacketVsTime;
+	std::stringstream SerializationTxPacketVsTime;
+	for (auto& packetHandler: packetHandlers) {
+		for (uint time = 0; time < 301; ++time) {
+			if (packetHandler->getRxPacketsVsTime()[time] > 0) {
+				SerializationRxPacketVsTime << packet_handler_index << "," << time << "," << packetHandler->getRxPacketsVsTime()[time] << ";";
+			}
+			if (packetHandler->getTxPacketsVsTime()[time] > 0) {
+				SerializationTxPacketVsTime << packet_handler_index << "," << time << "," << packetHandler->getTxPacketsVsTime()[time] << ";";
+			}
+		}
+		++packet_handler_index;
+	}
+	for (auto& packetHandler: packetHandlers) {
+		packetHandler->resetStats();
+	}
+	PacketHandler::resetTimer();
+    std::cout << SerializationRxPacketVsTime.str() << std::endl;
+	IPCHandler::sendStatistics("RxPacketsVsTime", SerializationRxPacketVsTime.str());
+	IPCHandler::sendStatistics("TxPacketsVsTime", SerializationTxPacketVsTime.str());
+
 	//Resetting time graphs
 	/*
 	 * Timing statistics for histograms

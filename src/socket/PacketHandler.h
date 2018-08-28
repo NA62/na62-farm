@@ -33,7 +33,33 @@ public:
 
 	static std::atomic<uint> spins_;
 	static std::atomic<uint> sleeps_;
-	static boost::timer::cpu_timer sendTimer;
+	static boost::timer::cpu_timer timer_;
+
+	static void inline resetTimer() {
+		timer_.stop();
+		timer_.start();
+	}
+	std::array<std::atomic<uint64_t>, 301> RxPacketsVsTime_;
+	std::array<std::atomic<uint64_t>, 301> TxPacketsVsTime_;
+
+	std::array<std::atomic<uint64_t>, 301> const & getRxPacketsVsTime() const {
+		return RxPacketsVsTime_;
+	}
+	std::array<std::atomic<uint64_t>, 301> const & getTxPacketsVsTime() const {
+		return TxPacketsVsTime_;
+	}
+
+	void resetStats() {
+			std::fill(RxPacketsVsTime_.begin(), RxPacketsVsTime_.end(), 0);
+			std::fill(TxPacketsVsTime_.begin(), TxPacketsVsTime_.end(), 0);
+	}
+
+	u_int32_t getTime() const {
+		//Returns the number of wall microseconds
+		//return timer_.elapsed().wall / 1E3;
+		//Returns the amount of 100ms (tenth of second)
+		return timer_.elapsed().wall / 1E8;
+	}
 
 	/*
 	 * Number of times a HandleFrameTask object has been created and enqueued
