@@ -452,11 +452,11 @@ int main(int argc, char* argv[]) {
 			Options::GetInt(OPTION_MAX_TRIGGERS_PER_L1MRP),
 			Options::GetInt(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS),
 			Options::GetStringList(OPTION_CREAM_MULTICAST_GROUP),
+			Options::GetStringList(OPTION_UNICAST_ADDRESS),
 			Options::GetInt(OPTION_CREAM_RECEIVER_PORT),
 			//Options::GetInt(OPTION_CREAM_MULTICAST_PORT));
 			Options::GetInt(OPTION_CREAM_MULTICAST_PORT),
 			Options::GetString(OPTION_GATEWAY_MAC_ADDRESS));
-
 
 
 	/*

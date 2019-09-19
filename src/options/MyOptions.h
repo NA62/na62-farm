@@ -46,6 +46,7 @@
 #define OPTION_INCREMENT_BURST_AT_EOB (char*)"incrementBurstAtEOB"
 
 #define OPTION_MIN_USEC_BETWEEN_L1_REQUESTS (char*)"minUsecsBetweenL1Requests"
+#define OPTION_UNICAST_ADDRESS (char*)"unicastIP"
 
 /*
  * Merger
@@ -161,6 +162,9 @@ public:
 		(OPTION_MIN_USEC_BETWEEN_L1_REQUESTS,
 				po::value<int>()->default_value(1000),
 				"Minimum time between two MRPs sent to the L1")
+		(OPTION_UNICAST_ADDRESS,
+				po::value<std::string>()->required(),
+				"Comma separated list of IPs to send the L1 requests(MRP)")
 
 		(OPTION_MERGER_HOST_NAMES, po::value<std::string>()->required(),
 				"Comma separated list of IPs or host names of the merger PCs.")
