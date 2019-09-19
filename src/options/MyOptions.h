@@ -65,6 +65,12 @@
 #define OPTION_MAX_AGGREGATION_TIME (char*)"maxAggregationTime"
 
 /*
+ * EOB
+ */
+#define OPTION_FLUSH_BURST_MILLIS (char*)"flushBurstMillis"
+#define OPTION_CLEAN_BURST_MILLIS (char*)"cleanBurstMillis"
+
+/*
  * MUVs
 */
 #define OPTION_MUV_CREAM_CRATE_ID (char*)"muvCreamCrateID"
@@ -220,6 +226,10 @@ public:
 				"If set to 1, information about unfinished events is written to /tmp/farm-logs/unfinishedEvents")
 		(OPTION_DUMP_BAD_PACKETS, po::value<bool>()->default_value(false),
 				"If set to 1, information bad packet are dumped to /var/log/dumped-packets")
+		(OPTION_FLUSH_BURST_MILLIS, po::value<int>()->default_value(3000),
+				"Number of microseconds after the EOB to start flushing data")
+		(OPTION_CLEAN_BURST_MILLIS, po::value<int>()->default_value(5000),
+				"Number of microseconds after the EOB to cleanup the event pool")
 //		(OPTION_WRITE_BROKEN_CREAM_INFO,
 //				po::value<bool>()->default_value(false),
 //				"If set to 1, information about non requested cream data (already received/not requested) is written to /tmp/farm-logs/nonRequestedCreamData)")

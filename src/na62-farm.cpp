@@ -463,6 +463,8 @@ int main(int argc, char* argv[]) {
 	 * Burst Handler
 	 */
 	LOG_INFO("Start burst handler thread.");
+
+	BurstIdHandler::initialize(Options::GetInt(OPTION_FLUSH_BURST_MILLIS),	Options::GetInt(OPTION_CLEAN_BURST_MILLIS));
 	BurstIdHandler bHandler;
 	bHandler.startThread("BurstHandler");
 
